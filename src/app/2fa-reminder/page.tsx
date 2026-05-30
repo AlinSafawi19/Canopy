@@ -5,13 +5,6 @@ import { getSession, ROLE_HOME } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ReminderActions } from "./reminder-actions";
 
-const SECURITY_URL: Record<string, string> = {
-  owner: "/owner/settings/security",
-  admin: "/admin/settings/security",
-  client: "/client/settings/security",
-  contributor: "/contributor/settings/security",
-};
-
 export default async function TwoFactorReminderPage() {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -50,8 +43,6 @@ export default async function TwoFactorReminderPage() {
     : !walkthroughSeen
     ? "/walkthrough"
     : ROLE_HOME[role];
-
-  const securityHref = SECURITY_URL[role];
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -111,7 +102,7 @@ export default async function TwoFactorReminderPage() {
             </div>
           </div>
 
-          <ReminderActions nextHref={nextHref} securityHref={securityHref} />
+          <ReminderActions nextHref={nextHref} />
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-6">
