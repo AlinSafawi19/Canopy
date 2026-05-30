@@ -34,7 +34,7 @@ export default async function ContributorProjectDetailPage({
   });
   if (!assignment) notFound();
 
-  const permissions = parsePermissions((assignment as any).permissions);
+  const permissions = parsePermissions(assignment.permissions as unknown);
 
   const { catSearch: rcs, catPage: rcp, catLimit: rcl, catSort: rcso, catDir: rcd } = await searchParams;
 
@@ -263,7 +263,7 @@ export default async function ContributorProjectDetailPage({
                   <TableCell className="font-medium text-slate-900">
                     <Link href={`${basePath}/categories/${cat.id}`} className="hover:text-indigo-600 transition-colors">
                       <p>{cat.name}</p>
-                      {(cat as any).description && <p className="text-xs text-slate-400 mt-0.5">{(cat as any).description}</p>}
+                      {cat.description && <p className="text-xs text-slate-400 mt-0.5">{cat.description}</p>}
                     </Link>
                   </TableCell>
                   <TableCell className="text-slate-500">{cat.slug || "—"}</TableCell>

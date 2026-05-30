@@ -14,7 +14,7 @@ async function getAssignedEntry(entryId: string, catId: string, projectId: strin
     where: { id: entryId, categoryId: catId, category: { projectId } },
     include: { category: { select: { fields: true } } },
   });
-  return entry ? { entry, permissions: parsePermissions((assignment as any).permissions) } : null;
+  return entry ? { entry, permissions: parsePermissions(assignment.permissions as unknown) } : null;
 }
 
 export async function PATCH(

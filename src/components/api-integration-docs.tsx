@@ -26,7 +26,7 @@ function Endpoint({ method, path, description }: { method: "GET" | "POST" | "DEL
   );
 }
 
-function CodeBlock({ code, language = "json" }: { code: string; language?: string }) {
+function CodeBlock({ code }: { code: string; language?: string }) {
   return (
     <pre className="bg-slate-900 rounded-lg p-4 overflow-x-auto text-xs font-mono leading-relaxed">
       <code className="text-slate-100">{code}</code>

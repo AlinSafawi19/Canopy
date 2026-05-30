@@ -129,7 +129,7 @@ export default async function ClientProjectDetailPage({
 
   const assignedContributors = contributorAssignments.map((a) => ({
     ...a.contributor,
-    permissions: parsePermissions((a as any).permissions),
+    permissions: parsePermissions(a.permissions as unknown),
   }));
 
   const statusVariant: Record<string, "success" | "warning" | "danger"> = {
@@ -355,7 +355,7 @@ export default async function ClientProjectDetailPage({
                   <TableCell className="font-medium text-slate-900">
                     <Link href={`${basePath}/categories/${cat.id}`} className="hover:text-indigo-600 transition-colors">
                       <p>{cat.name}</p>
-                      {(cat as any).description && <p className="text-xs text-slate-400 mt-0.5">{(cat as any).description}</p>}
+                      {cat.description && <p className="text-xs text-slate-400 mt-0.5">{cat.description}</p>}
                     </Link>
                   </TableCell>
                   <TableCell className="text-slate-500">{cat.slug || "—"}</TableCell>

@@ -19,7 +19,7 @@ export function parseTechStack(raw: unknown): TechStackItem[] {
   return raw.map((item) =>
     typeof item === "string"
       ? { icon: "", name: item }
-      : { icon: (item as any).icon ?? "", name: (item as any).name ?? "" }
+      : { icon: (item as Record<string, string>).icon ?? "", name: (item as Record<string, string>).name ?? "" }
   );
 }
 

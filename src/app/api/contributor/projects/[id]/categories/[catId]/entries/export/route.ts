@@ -20,7 +20,7 @@ export async function GET(
   });
   if (!assignment) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const permissions = parsePermissions((assignment as any).permissions);
+  const permissions = parsePermissions(assignment.permissions as unknown);
   if (!permissions.canViewContent) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

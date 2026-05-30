@@ -33,7 +33,7 @@ export async function POST(
 
     const resolvedPermissions = parsePermissions(permissions ?? DEFAULT_CONTRIBUTOR_PERMISSIONS);
 
-    await (prisma.contributorAssignment as any).upsert({
+    await prisma.contributorAssignment.upsert({
       where: { contributorId_projectId: { contributorId: id, projectId } },
       create: { contributorId: id, projectId, permissions: resolvedPermissions },
       update: { permissions: resolvedPermissions },
@@ -66,7 +66,7 @@ export async function PATCH(
 
     const resolvedPermissions = parsePermissions(permissions);
 
-    await (prisma.contributorAssignment as any).update({
+    await prisma.contributorAssignment.update({
       where: { contributorId_projectId: { contributorId: id, projectId } },
       data: { permissions: resolvedPermissions },
     });

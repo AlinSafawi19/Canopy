@@ -35,7 +35,7 @@ interface AppearanceFormProps {
   apiPath: string;
 }
 
-export function AppearanceForm({ initialTheme, apiPath }: AppearanceFormProps) {
+export function AppearanceForm({ apiPath }: AppearanceFormProps) {
   const { theme, setTheme } = useTheme();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);

@@ -3,7 +3,7 @@ import { apiFetch } from "@/lib/api-fetch";
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { ArrowRight, X } from "lucide-react";
+import { X } from "lucide-react";
 import { type SessionRole } from "@/lib/auth";
 import { getWalkthroughSteps } from "@/lib/walkthrough-steps";
 

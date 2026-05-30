@@ -12,7 +12,7 @@ async function getAssignedCategory(catId: string, projectId: string, contributor
   });
   if (!assignment) return null;
   const category = await prisma.contentCategory.findFirst({ where: { id: catId, projectId } });
-  return category ? { category, permissions: parsePermissions((assignment as any).permissions) } : null;
+  return category ? { category, permissions: parsePermissions(assignment.permissions as unknown) } : null;
 }
 
 export async function POST(

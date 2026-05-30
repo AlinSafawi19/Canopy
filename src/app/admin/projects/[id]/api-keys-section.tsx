@@ -70,8 +70,6 @@ export function ApiKeysSection({ projectId, projectSlug, initialKeys, basePath =
   const slug = projectSlug ?? projectId;
   const [origin, setOrigin] = useState("");
   useEffect(() => { setOrigin(window.location.origin); }, []);
-  const selectedKey = initialKeys.find((k) => k.id === selectedKeyId);
-
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);

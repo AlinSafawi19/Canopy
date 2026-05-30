@@ -20,7 +20,7 @@ export async function POST(
   });
   if (!assignment) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const permissions = parsePermissions((assignment as any).permissions);
+  const permissions = parsePermissions(assignment.permissions as unknown);
   if (!permissions.canCreateEntries) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

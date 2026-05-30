@@ -51,7 +51,7 @@ export default async function ContributorCategoryPage({
   });
   if (!assignment) notFound();
 
-  const permissions = parsePermissions((assignment as any).permissions);
+  const permissions = parsePermissions(assignment.permissions as unknown);
 
   const category = await prisma.contentCategory.findFirst({
     where: { id: catId, projectId: id },
