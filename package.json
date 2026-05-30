@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "set NODE_OPTIONS=--require ./scripts/require-hook.cjs && next build",
-    "start": "next start",
+    "dev": "set NODE_OPTIONS=--require ./scripts/require-hook.cjs && next dev --turbopack",
+    "build": "next build",
+    "start": "next start -p ${PORT:-3000}",
+    "postinstall": "prisma generate",
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
