@@ -1,26 +1,163 @@
 @import "tailwindcss";
+@import "react-day-picker/style.css";
+
+/* react-day-picker theme */
+.rdp-root {
+  --rdp-accent-color: #4f46e5;
+  --rdp-accent-background-color: #e0e7ff;
+  --rdp-today-color: #4f46e5;
+  --rdp-day-height: 36px;
+  --rdp-day-width: 36px;
+  --rdp-day_button-height: 34px;
+  --rdp-day_button-width: 34px;
+  --rdp-nav_button-height: 2rem;
+  --rdp-nav_button-width: 2rem;
+  --rdp-nav-height: 2.5rem;
+  font-size: 0.875rem;
+}
+
+/* ProseMirror / Tiptap editor content styles */
+.ProseMirror { outline: none; }
+.ProseMirror p { margin-bottom: 0.5em; }
+.ProseMirror p:last-child { margin-bottom: 0; }
+.ProseMirror h1 { font-size: 1.375rem; font-weight: 700; margin-bottom: 0.4em; }
+.ProseMirror h2 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.4em; }
+.ProseMirror h3 { font-size: 1rem;     font-weight: 600; margin-bottom: 0.4em; }
+.ProseMirror ul { list-style: disc;    padding-left: 1.4em; margin-bottom: 0.5em; }
+.ProseMirror ol { list-style: decimal; padding-left: 1.4em; margin-bottom: 0.5em; }
+.ProseMirror li { margin-bottom: 0.15em; }
+.ProseMirror blockquote { border-left: 3px solid #e2e8f0; padding-left: 0.75em; color: #64748b; margin: 0.5em 0; }
+.ProseMirror code { background: #f1f5f9; padding: 0.15em 0.35em; border-radius: 4px; font-size: 0.85em; font-family: monospace; }
+.ProseMirror pre  { background: #1e293b; color: #e2e8f0; padding: 0.75em 1em; border-radius: 8px; font-size: 0.85em; overflow-x: auto; margin-bottom: 0.5em; }
+.ProseMirror pre code { background: none; padding: 0; color: inherit; }
+.ProseMirror strong { font-weight: 600; }
+.ProseMirror em { font-style: italic; }
+.ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #94a3b8; pointer-events: none; float: left; height: 0; }
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #f8fafc;
+  --sidebar-accent: #6366f1;
+  --card-bg: #ffffff;
+  --border: #e2e8f0;
+  --muted: #f1f5f9;
+  --muted-text: #64748b;
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Focus ring */
+.focus-ring {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ── Dark mode ── */
+
+/* Explicit dark: always dark regardless of system preference */
+:root[data-theme="dark"] {
+  /* Slate scale — fully inverted (50↔900, 100↔800, …) */
+  --color-white:      oklch(0.279 0.041 260.031); /* → slate-800 (card bg) */
+  --color-slate-50:   oklch(0.208 0.042 265.755); /* → slate-900 (page bg) */
+  --color-slate-100:  oklch(0.279 0.041 260.031); /* → slate-800 */
+  --color-slate-200:  oklch(0.372 0.044 257.287); /* → slate-700 (border) */
+  --color-slate-300:  oklch(0.446 0.043 257.281); /* → slate-600 */
+  --color-slate-400:  oklch(0.554 0.046 257.417); /* → slate-500 */
+  --color-slate-500:  oklch(0.704 0.04  256.788); /* → slate-400 */
+  --color-slate-600:  oklch(0.869 0.022 252.894); /* → slate-300 (muted text) */
+  --color-slate-700:  oklch(0.929 0.013 255.508); /* → slate-200 (secondary text) */
+  --color-slate-800:  oklch(0.968 0.007 247.896); /* → slate-100 (primary text) */
+  --color-slate-900:  oklch(0.984 0.003 247.858); /* → slate-50  (heading text) */
+
+  /* Indigo — light bg variants become dark; buttons become brighter */
+  --color-indigo-50:  oklch(0.24 0.04  277); /* dark indigo bg */
+  --color-indigo-100: oklch(0.30 0.06  277); /* slightly lighter dark indigo */
+  --color-indigo-200: oklch(0.37 0.095 277); /* dark indigo border */
+  --color-indigo-600: oklch(0.673 0.182 276.935); /* → indigo-400 (brighter button) */
+  --color-indigo-700: oklch(0.585 0.233 277.117); /* → indigo-500 (hover) */
+
+  /* Red — light bg variants become dark; text/buttons stay visible */
+  --color-red-50:  oklch(0.22 0.04  20); /* dark red bg */
+  --color-red-100: oklch(0.27 0.06  20); /* slightly lighter dark red */
+  --color-red-200: oklch(0.34 0.09  20); /* dark red border */
+  --color-red-600: oklch(0.65 0.22  27); /* lighter for visibility */
+  --color-red-700: oklch(0.57 0.24  27); /* hover */
+
+  /* Emerald — light bg variants become dark */
+  --color-emerald-50:  oklch(0.22 0.04  162);
+  --color-emerald-100: oklch(0.27 0.058 162);
+  --color-emerald-700: oklch(0.68 0.18  162); /* lighter text */
+
+  /* Amber — light bg variants become dark */
+  --color-amber-50:  oklch(0.22 0.04  75);
+  --color-amber-100: oklch(0.27 0.058 75);
+  --color-amber-700: oklch(0.74 0.14  75); /* lighter text */
+
+  /* Semantic */
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card-bg:    #1e293b;
+  --border:     #334155;
+  --muted:      #1e293b;
+  --muted-text: #94a3b8;
+}
+
+
+/* Restore inside main sidebar (explicit dark) */
+:root[data-theme="dark"] [data-sidebar="main"] {
+  --color-white:      oklch(1 0 0);
+  --color-slate-50:   oklch(0.984 0.003 247.858);
+  --color-slate-100:  oklch(0.968 0.007 247.896);
+  --color-slate-200:  oklch(0.929 0.013 255.508);
+  --color-slate-300:  oklch(0.869 0.022 252.894);
+  --color-slate-400:  oklch(0.704 0.04  256.788);
+  --color-slate-500:  oklch(0.554 0.046 257.417);
+  --color-slate-600:  oklch(0.446 0.043 257.281);
+  --color-slate-700:  oklch(0.372 0.044 257.287);
+  --color-slate-800:  oklch(0.279 0.041 260.031);
+  --color-slate-900:  oklch(0.208 0.042 265.755);
+  --color-indigo-600: oklch(0.511 0.262 276.966);
+  --color-indigo-700: oklch(0.457 0.24  277.023);
+}
+
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #475569; }
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #64748b; }

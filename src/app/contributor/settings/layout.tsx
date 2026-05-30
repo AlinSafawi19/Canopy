@@ -1,0 +1,23 @@
+import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { SettingsShell } from "@/components/layout/settings-shell";
+
+export default async function ContributorSettingsLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession();
+  const contributor = await prisma.contributor.findUnique({
+    where: { id: session!.id },
+    select: { emailVerifiedAt: true },
+  });
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-slate-900">Settings</h2>
+        <p className="text-slate-500 text-sm mt-0.5">Manage your account</p>
+      </div>
+      <SettingsShell basePath="/contributor/settings" emailVerified={!!contributor?.emailVerifiedAt}>
+        {children}
+      </SettingsShell>
+    </div>
+  );
+}
