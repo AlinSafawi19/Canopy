@@ -45,6 +45,7 @@ model Project {
   highlights       String[]
 
   contentCategories ContentCategory[]
+  clientAssignment  ClientAssignment?
 
   @@index([archivedAt])
   @@index([slug])
@@ -117,6 +118,7 @@ model ClientAssignment {
   archivedAt       DateTime?
   archivedBy       String?
   client           ClientIdentity @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project          Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([clientId])

@@ -12,7 +12,7 @@ export default async function ClientArchiveLayout({
 
   const clientFilter = {
     project: {
-      clientAssignments: { some: { clientId, archivedAt: null } },
+      clientAssignment: { clientId, archivedAt: null },
     },
   };
 

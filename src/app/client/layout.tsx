@@ -16,7 +16,7 @@ export default async function ClientLayout({ children }: { children: React.React
   });
 
   const clientId = session.id;
-  const assignedProjectFilter = { clientAssignments: { some: { clientId, archivedAt: null } } };
+  const assignedProjectFilter = { clientAssignment: { clientId, archivedAt: null } };
 
   const [
     projectsCount, contributorsCount, adminContact,

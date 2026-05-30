@@ -48,7 +48,7 @@ export default async function ClientArchiveEntriesPage({
 
   const clientFilter = {
     project: {
-      clientAssignments: { some: { clientId, archivedAt: null } },
+      clientAssignment: { clientId, archivedAt: null },
     },
   };
 

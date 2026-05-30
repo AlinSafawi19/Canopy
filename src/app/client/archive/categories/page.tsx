@@ -32,7 +32,7 @@ export default async function ClientArchiveCategoriesPage({
 
   const clientFilter = {
     project: {
-      clientAssignments: { some: { clientId, archivedAt: null } },
+      clientAssignment: { clientId, archivedAt: null },
     },
   };
 
