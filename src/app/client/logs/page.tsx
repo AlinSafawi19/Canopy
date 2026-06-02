@@ -4,12 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { SearchInput } from "@/components/ui/search-input";
 import { DateRangeFilter } from "@/components/ui/date-range-filter";
+import { ActionFilter } from "@/components/ui/action-filter";
 import { Pagination } from "@/components/ui/pagination";
 import { ContributorLogFilter } from "./contributor-log-filter";
 import { parsePage, parseLimit, parseSearch } from "@/lib/pagination";
 import { formatDate } from "@/lib/utils";
 
 const PATH = "/client/logs";
+
+const VALID_ACTIONS = ["created", "updated", "archived", "restored", "deleted"] as const;
 
 function ActionBadge({ action }: { action: string }) {
   const colorMap: Record<string, string> = {
@@ -53,17 +56,18 @@ export default async function ClientLogsPage({
     startDate?: string;
     endDate?: string;
     contributorId?: string;
+    action?: string;
   }>;
 }) {
   const session = await getSession();
 
-  const { search: rs, page: rp, limit: rl, startDate, endDate, contributorId } = await searchParams;
+  const { search: rs, page: rp, limit: rl, startDate, endDate, contributorId, action: ra } = await searchParams;
   const search = parseSearch(rs);
   const page = parsePage(rp);
   const limit = parseLimit(rl);
   const skip = (page - 1) * limit;
+  const action = VALID_ACTIONS.includes(ra as typeof VALID_ACTIONS[number]) ? ra! : "";
 
-  // Look up contributor name for the filter label (only when filtering by contributor)
   const contributorName = contributorId
     ? await prisma.contributor.findFirst({
         where: { id: contributorId, parentClientUsername: session!.username },
@@ -71,37 +75,6 @@ export default async function ClientLogsPage({
       }).then((c) => c?.displayName ?? "")
     : "";
 
-  const extraParams: Record<string, string> = {
-    limit: String(limit),
-    ...(search ? { search } : {}),
-    ...(startDate ? { startDate } : {}),
-    ...(endDate ? { endDate } : {}),
-    ...(contributorId ? { contributorId } : {}),
-  };
-
-  const dateFilter = startDate || endDate
-    ? {
-        createdAt: {
-          ...(startDate ? { gte: new Date(startDate) } : {}),
-          ...(endDate ? { lte: new Date(endDate + "T23:59:59.999Z") } : {}),
-        },
-      }
-    : {};
-
-  const searchFilter = search
-    ? {
-        AND: [{
-          OR: [
-            { resourceName: { contains: search, mode: "insensitive" as const } },
-            { action: { contains: search, mode: "insensitive" as const } },
-            { resource: { contains: search, mode: "insensitive" as const } },
-            { actorName: { contains: search, mode: "insensitive" as const } },
-          ],
-        }],
-      }
-    : {};
-
-  // When a specific contributor is selected, narrow to that actor only
   const actorFilter = contributorId
     ? { actorId: contributorId, parentClientUsername: session!.username }
     : {
@@ -111,7 +84,28 @@ export default async function ClientLogsPage({
         ],
       };
 
-  const where = { ...actorFilter, ...searchFilter, ...dateFilter };
+  const where = {
+    ...actorFilter,
+    ...(action ? { action } : {}),
+    ...(search
+      ? {
+          AND: [{
+            OR: [
+              { resourceName: { contains: search, mode: "insensitive" as const } },
+              { action: { contains: search, mode: "insensitive" as const } },
+              { resource: { contains: search, mode: "insensitive" as const } },
+              { actorName: { contains: search, mode: "insensitive" as const } },
+            ],
+          }],
+        }
+      : {}),
+    ...(startDate || endDate ? {
+      createdAt: {
+        ...(startDate ? { gte: new Date(startDate) } : {}),
+        ...(endDate ? { lte: new Date(endDate + "T23:59:59.999Z") } : {}),
+      },
+    } : {}),
+  };
 
   const [total, logs] = await Promise.all([
     prisma.activityLog.count({ where }),
@@ -123,26 +117,44 @@ export default async function ClientLogsPage({
     }),
   ]);
 
-  // extraParams for each filter, preserving the others
-  const filterExtrasForDate: Record<string, string> = {
-    limit: String(limit),
-    ...(search ? { search } : {}),
-    ...(contributorId ? { contributorId } : {}),
-  };
-  const filterExtrasForContributor: Record<string, string> = {
+  // Each filter's extraParams carries all other active filters
+  const extraParams: Record<string, string> = {
     limit: String(limit),
     ...(search ? { search } : {}),
     ...(startDate ? { startDate } : {}),
     ...(endDate ? { endDate } : {}),
+    ...(contributorId ? { contributorId } : {}),
+    ...(action ? { action } : {}),
   };
-  const filterExtrasForSearch: Record<string, string> = {
+  const extrasForDate: Record<string, string> = {
+    limit: String(limit),
+    ...(search ? { search } : {}),
+    ...(contributorId ? { contributorId } : {}),
+    ...(action ? { action } : {}),
+  };
+  const extrasForAction: Record<string, string> = {
+    limit: String(limit),
+    ...(search ? { search } : {}),
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+    ...(contributorId ? { contributorId } : {}),
+  };
+  const extrasForContributor: Record<string, string> = {
+    limit: String(limit),
+    ...(search ? { search } : {}),
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+    ...(action ? { action } : {}),
+  };
+  const extrasForSearch: Record<string, string> = {
     limit: String(limit),
     ...(startDate ? { startDate } : {}),
     ...(endDate ? { endDate } : {}),
     ...(contributorId ? { contributorId } : {}),
+    ...(action ? { action } : {}),
   };
 
-  const hasFilters = !!(search || startDate || endDate || contributorId);
+  const hasFilters = !!(search || startDate || endDate || contributorId || action);
 
   return (
     <div className="space-y-4">
@@ -160,19 +172,24 @@ export default async function ClientLogsPage({
                 value={contributorId ?? ""}
                 initialLabel={contributorName}
                 basePath={PATH}
-                extraParams={filterExtrasForContributor}
+                extraParams={extrasForContributor}
+              />
+              <ActionFilter
+                value={action}
+                basePath={PATH}
+                extraParams={extrasForAction}
               />
               <DateRangeFilter
                 startDate={startDate}
                 endDate={endDate}
                 basePath={PATH}
-                extraParams={filterExtrasForDate}
+                extraParams={extrasForDate}
               />
               <SearchInput
                 value={search}
                 placeholder="Search logs…"
                 basePath={PATH}
-                extraParams={filterExtrasForSearch}
+                extraParams={extrasForSearch}
               />
             </div>
           </div>

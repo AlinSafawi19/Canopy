@@ -30,7 +30,7 @@ export function TabShell({ children, basePath, navItems }: TabShellProps) {
           {navItems.map(({ label, segment, icon, count }) => {
             const Icon = ICON_MAP[icon] ?? Folder;
             const href = `${basePath}/${segment}`;
-            const isActive = pathname === href || pathname.startsWith(`${href}/`);
+            const isActive = pathname === href || (pathname?.startsWith(`${href}/`) ?? false);
             return (
               <Link
                 key={segment}

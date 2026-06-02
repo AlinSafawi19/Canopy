@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "set NODE_OPTIONS=--require ./scripts/require-hook.cjs && next dev --turbopack",
-    "build": "next build",
+    "build": "node --require ./scripts/require-hook.cjs node_modules/next/dist/bin/next build",
     "start": "next start -p ${PORT:-3000}",
     "postinstall": "prisma generate",
     "lint": "eslint",

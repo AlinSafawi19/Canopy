@@ -4,11 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { SearchInput } from "@/components/ui/search-input";
 import { DateRangeFilter } from "@/components/ui/date-range-filter";
+import { ActionFilter } from "@/components/ui/action-filter";
 import { Pagination } from "@/components/ui/pagination";
 import { parsePage, parseLimit, parseSearch } from "@/lib/pagination";
 import { formatDate } from "@/lib/utils";
 
 const PATH = "/contributor/logs";
+
+const VALID_ACTIONS = ["created", "updated", "archived", "restored", "deleted"] as const;
 
 function ActionBadge({ action }: { action: string }) {
   const colorMap: Record<string, string> = {
@@ -45,36 +48,29 @@ function ResourceBadge({ resource }: { resource: string }) {
 export default async function ContributorLogsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; page?: string; limit?: string; startDate?: string; endDate?: string }>;
+  searchParams: Promise<{ search?: string; page?: string; limit?: string; startDate?: string; endDate?: string; action?: string }>;
 }) {
   const session = await getSession();
 
-  const { search: rs, page: rp, limit: rl, startDate, endDate } = await searchParams;
+  const { search: rs, page: rp, limit: rl, startDate, endDate, action: ra } = await searchParams;
   const search = parseSearch(rs);
   const page = parsePage(rp);
   const limit = parseLimit(rl);
   const skip = (page - 1) * limit;
-
-  const extraParams: Record<string, string> = {
-    limit: String(limit),
-    ...(search ? { search } : {}),
-    ...(startDate ? { startDate } : {}),
-    ...(endDate ? { endDate } : {}),
-  };
+  const action = VALID_ACTIONS.includes(ra as typeof VALID_ACTIONS[number]) ? ra! : "";
 
   const where = {
     actorId: session!.id,
+    ...(action ? { action } : {}),
     ...(search
       ? {
-          AND: [
-            {
-              OR: [
-                { resourceName: { contains: search, mode: "insensitive" as const } },
-                { action: { contains: search, mode: "insensitive" as const } },
-                { resource: { contains: search, mode: "insensitive" as const } },
-              ],
-            },
-          ],
+          AND: [{
+            OR: [
+              { resourceName: { contains: search, mode: "insensitive" as const } },
+              { action: { contains: search, mode: "insensitive" as const } },
+              { resource: { contains: search, mode: "insensitive" as const } },
+            ],
+          }],
         }
       : {}),
     ...(startDate || endDate ? {
@@ -95,10 +91,32 @@ export default async function ContributorLogsPage({
     }),
   ]);
 
-  const filterExtras: Record<string, string> = {
+  const extraParams: Record<string, string> = {
     limit: String(limit),
     ...(search ? { search } : {}),
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+    ...(action ? { action } : {}),
   };
+  const extrasForDate: Record<string, string> = {
+    limit: String(limit),
+    ...(search ? { search } : {}),
+    ...(action ? { action } : {}),
+  };
+  const extrasForAction: Record<string, string> = {
+    limit: String(limit),
+    ...(search ? { search } : {}),
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+  };
+  const extrasForSearch: Record<string, string> = {
+    limit: String(limit),
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+    ...(action ? { action } : {}),
+  };
+
+  const hasFilters = !!(search || startDate || endDate || action);
 
   return (
     <div className="space-y-4">
@@ -112,17 +130,22 @@ export default async function ContributorLogsPage({
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <CardTitle>{total} {total === 1 ? "entry" : "entries"}</CardTitle>
             <div className="flex items-center gap-2 flex-wrap">
+              <ActionFilter
+                value={action}
+                basePath={PATH}
+                extraParams={extrasForAction}
+              />
               <DateRangeFilter
                 startDate={startDate}
                 endDate={endDate}
                 basePath={PATH}
-                extraParams={filterExtras}
+                extraParams={extrasForDate}
               />
               <SearchInput
                 value={search}
                 placeholder="Search logs…"
                 basePath={PATH}
-                extraParams={{ limit: String(limit), ...(startDate ? { startDate } : {}), ...(endDate ? { endDate } : {}) }}
+                extraParams={extrasForSearch}
               />
             </div>
           </div>
@@ -142,7 +165,7 @@ export default async function ContributorLogsPage({
               {logs.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-slate-400 text-center">
-                    {search || startDate || endDate ? "No logs found for the selected filters" : "No activity yet"}
+                    {hasFilters ? "No logs found for the selected filters" : "No activity yet"}
                   </TableCell>
                 </TableRow>
               )}

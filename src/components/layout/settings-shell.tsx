@@ -27,7 +27,7 @@ export function SettingsShell({ children, basePath, emailVerified }: SettingsShe
         <nav data-wt="settings-nav" className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible bg-white rounded-xl border border-slate-200 shadow-sm p-2 md:h-full">
           {SETTINGS_NAV.map(({ label, segment, icon: Icon }) => {
             const href = `${basePath}/${segment}`;
-            const isActive = pathname === href || pathname.startsWith(`${href}/`);
+            const isActive = pathname === href || (pathname?.startsWith(`${href}/`) ?? false);
             const showBadge = segment === "email" && emailVerified !== undefined;
             return (
               <Link

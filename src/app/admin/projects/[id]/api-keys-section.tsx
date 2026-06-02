@@ -13,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Select } from "@/components/ui/select";
 import { Trash2, Copy, Check } from "lucide-react";
 
 
@@ -65,7 +64,6 @@ export function ApiKeysSection({ projectId, projectSlug, initialKeys, basePath =
   const router = useRouter();
   const [deleteTarget, setDeleteTarget] = useState<ApiKey | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [selectedKeyId, setSelectedKeyId] = useState<string>(initialKeys[0]?.id ?? "");
 
   const slug = projectSlug ?? projectId;
   const [origin, setOrigin] = useState("");
@@ -88,23 +86,7 @@ export function ApiKeysSection({ projectId, projectSlug, initialKeys, basePath =
     <>
       {/* Endpoints */}
       <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60 space-y-3">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Endpoints</p>
-          {initialKeys.length > 0 ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">Key:</span>
-              <Select
-                value={selectedKeyId}
-                onChange={setSelectedKeyId}
-                options={initialKeys.map((k) => ({ value: k.id, label: k.name }))}
-                size="sm"
-                autoWidth
-              />
-            </div>
-          ) : (
-            <span className="text-xs text-slate-400 italic">Create a key to get test URLs</span>
-          )}
-        </div>
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Endpoints</p>
         <EndpointRow label="All projects" url={`${origin}/api/v1/projects`} />
         <EndpointRow label="This project" url={`${origin}/api/v1/${slug}`} />
         <EndpointRow label="Category data" url={`${origin}/api/v1/${slug}/[category-slug]`} />

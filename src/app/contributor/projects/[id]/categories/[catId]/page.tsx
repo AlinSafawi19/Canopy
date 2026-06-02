@@ -119,7 +119,7 @@ export default async function ContributorCategoryPage({
           )}
           {permissions.canCreateEntries && (
             <>
-              <ImportEntriesButton projectId={id} categoryId={catId} fields={fields} basePath={BASE} />
+              <ImportEntriesButton projectId={id} categoryId={catId} fields={fields} totalEntries={total} basePath={BASE} />
               <CreateEntryButton categoryId={catId} projectId={id} fields={fields} basePath={BASE} />
             </>
           )}

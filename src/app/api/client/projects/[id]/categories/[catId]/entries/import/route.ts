@@ -24,6 +24,6 @@ export async function POST(
   });
   if (!category) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const { rows } = await request.json();
-  return handleImport(rows, category);
+  const { rows, mode } = await request.json();
+  return handleImport(rows, category, mode);
 }

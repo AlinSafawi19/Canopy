@@ -1,7 +1,7 @@
 "use client";
 import { apiFetch } from "@/lib/api-fetch";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Link2, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +31,15 @@ export function MediaInput({
   const [tab, setTab] = useState<"url" | "upload">("url");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [imgError, setImgError] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Reset preview error whenever the URL changes so a new URL gets a fresh attempt
+  useEffect(() => {
+    setImgError(false);
+    setVideoError(false);
+  }, [value]);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -76,11 +84,8 @@ export function MediaInput({
     onChange("");
   }
 
-  const looksLikeImage = accept.includes("image") && value &&
-    (/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(value) || value.includes("drive.google.com/uc"));
-
-  const looksLikeVideo = accept.includes("video") && value &&
-    /\.(mp4|webm|mov|ogg)(\?|$)/i.test(value);
+  const showImagePreview = accept.includes("image") && !!value && !imgError;
+  const showVideoPreview = accept.includes("video") && !!value && !videoError;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -172,21 +177,27 @@ export function MediaInput({
         </div>
       )}
 
-      {/* Image preview */}
-      {looksLikeImage && (
+      {/* Image preview — shown for any URL; hidden on load error */}
+      {showImagePreview && (
         <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-50 h-20 flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="preview" className="max-h-full max-w-full object-contain" />
+          <img
+            src={value}
+            alt="preview"
+            className="max-h-full max-w-full object-contain"
+            onError={() => setImgError(true)}
+          />
         </div>
       )}
 
-      {/* Video preview */}
-      {looksLikeVideo && (
+      {/* Video preview — shown for any URL; hidden on load error */}
+      {showVideoPreview && (
         <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-950 h-28 flex items-center justify-center">
           <video
             src={value}
             controls
             className="max-h-full max-w-full"
+            onError={() => setVideoError(true)}
           />
         </div>
       )}

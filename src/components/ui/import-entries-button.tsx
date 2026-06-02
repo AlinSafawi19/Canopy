@@ -13,6 +13,7 @@ interface Props {
   projectId: string;
   categoryId: string;
   fields: Field[];
+  totalEntries?: number;
   basePath?: string;
 }
 
@@ -39,8 +40,6 @@ function parseCSV(text: string): Record<string, string>[] {
   }
   if (cur || lines.length) lines.push(cur);
 
-  // Split each line into cells (respecting quotes already stripped above ─
-  // we just need a column split on the unquoted commas level of individual lines)
   function splitLine(line: string): string[] {
     const cells: string[] = [];
     let cell = "";
@@ -76,12 +75,14 @@ function parseCSV(text: string): Record<string, string>[] {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 type ParsedRow = Record<string, string>;
-type ImportResult = { created: number; errors: Array<{ row: number; error: string }> };
+type ImportMode = "replace" | "merge" | null;
+type ImportResult = { created: number; updated: number; errors: Array<{ row: number; error: string }> };
 
 export function ImportEntriesButton({
   projectId,
   categoryId,
   fields,
+  totalEntries = 0,
   basePath = "/api/admin/projects",
 }: Props) {
   const router = useRouter();
@@ -91,11 +92,13 @@ export function ImportEntriesButton({
   const [parseError, setParseError] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [mode, setMode] = useState<ImportMode>(null);
 
   function reset() {
     setRows([]);
     setParseError("");
     setResult(null);
+    setMode(null);
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -144,12 +147,12 @@ export function ImportEntriesButton({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rows }),
+          body: JSON.stringify({ rows, mode }),
         },
       );
       const data: ImportResult = await res.json();
       setResult(data);
-      if (data.created > 0) router.refresh();
+      if (data.created > 0 || data.updated > 0) router.refresh();
     } finally {
       setLoading(false);
     }
@@ -157,6 +160,14 @@ export function ImportEntriesButton({
 
   const previewFields = fields.length > 0 ? fields : rows[0] ? Object.keys(rows[0]).map((k) => ({ name: k, type: "text" })) : [];
   const PREVIEW_ROWS = 5;
+  const hasExisting = totalEntries > 0;
+
+  const resultSummary = result
+    ? [
+        result.created > 0 ? `${result.created} row${result.created !== 1 ? "s" : ""} imported` : "",
+        result.updated > 0 ? `${result.updated} row${result.updated !== 1 ? "s" : ""} updated` : "",
+      ].filter(Boolean).join(", ") || "No changes made"
+    : "";
 
   return (
     <>
@@ -201,6 +212,46 @@ export function ImportEntriesButton({
             </p>
           )}
 
+          {/* Mode selector — only when existing data is present */}
+          {rows.length > 0 && hasExisting && !result && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                {totalEntries} existing {totalEntries === 1 ? "entry" : "entries"} found — how should we proceed?
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMode("merge")}
+                  className={`text-left px-3 py-2.5 rounded-lg border transition-colors ${
+                    mode === "merge"
+                      ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                      : "border-slate-200 hover:border-slate-300 text-slate-600"
+                  }`}
+                >
+                  <p className="text-sm font-medium">Merge</p>
+                  <p className="text-xs opacity-75">Add new rows, update changed ones</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("replace")}
+                  className={`text-left px-3 py-2.5 rounded-lg border transition-colors ${
+                    mode === "replace"
+                      ? "border-red-500 bg-red-50 text-red-700"
+                      : "border-slate-200 hover:border-slate-300 text-slate-600"
+                  }`}
+                >
+                  <p className="text-sm font-medium">Replace all</p>
+                  <p className="text-xs opacity-75">Delete existing data and reimport</p>
+                </button>
+              </div>
+              {mode === "replace" && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  All {totalEntries} existing {totalEntries === 1 ? "entry" : "entries"} will be permanently deleted before importing.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Preview table */}
           {rows.length > 0 && !result && (
             <div>
@@ -238,7 +289,7 @@ export function ImportEntriesButton({
           {result && (
             <div className="space-y-2">
               <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 font-medium">
-                {result.created} row{result.created !== 1 ? "s" : ""} imported successfully.
+                {resultSummary}.
               </p>
               {result.errors.length > 0 && (
                 <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 space-y-1">
@@ -261,9 +312,10 @@ export function ImportEntriesButton({
                 type="button"
                 onClick={handleImport}
                 loading={loading}
-                disabled={rows.length === 0 || loading}
+                disabled={rows.length === 0 || loading || (hasExisting && mode === null)}
+                variant={mode === "replace" && hasExisting ? "danger" : "primary"}
               >
-                Import {rows.length > 0 ? `${rows.length} row${rows.length !== 1 ? "s" : ""}` : ""}
+                {mode === "replace" ? "Replace" : "Import"}{rows.length > 0 ? ` ${rows.length} row${rows.length !== 1 ? "s" : ""}` : ""}
               </Button>
             )}
           </div>
