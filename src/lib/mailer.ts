@@ -1,5 +1,9 @@
 import nodemailer from "nodemailer";
-import { promises as dns } from "dns";
+import { setDefaultResultOrder } from "dns";
+
+// Railway doesn't support IPv6 outbound — prefer A records globally so
+// Node.js never picks an AAAA address and gets ENETUNREACH.
+setDefaultResultOrder("ipv4first");
 
 export async function sendMail({
   to,
@@ -12,38 +16,22 @@ export async function sendMail({
   html: string;
   text?: string;
 }) {
-  const port = Number(process.env.SMTP_PORT ?? 587);
+  const port = Number(process.env.SMTP_PORT ?? 465);
   const secure = process.env.SMTP_SECURE === "true";
-  const smtpHost = process.env.SMTP_HOST ?? "smtp.gmail.com";
-
-  // Railway doesn't support IPv6 outbound. Node.js prefers AAAA records which
-  // fail immediately with ENETUNREACH. Resolve to IPv4 explicitly so the
-  // socket never attempts an IPv6 connection.
-  let host = smtpHost;
-  try {
-    const [ipv4] = await dns.resolve4(smtpHost);
-    host = ipv4;
-  } catch {
-    // DNS resolution failed — fall back to hostname and hope for the best
-  }
 
   const transporter = nodemailer.createTransport({
-    host,
+    host: process.env.SMTP_HOST,
     port,
     secure,
-    // Port 587 uses STARTTLS — requireTLS forces the upgrade (nodemailer v8+)
+    // Port 465 = SSL from the start (no STARTTLS needed).
+    // Port 587 = STARTTLS — requireTLS forces the upgrade.
     ...(secure ? {} : { requireTLS: true }),
-    tls: {
-      // When connecting by IP, the TLS handshake must still verify against
-      // the original hostname so the certificate is accepted.
-      servername: smtpHost,
-    },
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
-    connectionTimeout: 10_000,
-    socketTimeout: 15_000,
+    connectionTimeout: 15_000,
+    socketTimeout: 20_000,
   });
 
   return transporter.sendMail({
