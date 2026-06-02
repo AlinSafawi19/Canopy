@@ -72,6 +72,25 @@ function parseCSV(text: string): Record<string, string>[] {
   });
 }
 
+// ── Value flattener ────────────────────────────────────────────────────────────
+// Converts any JSON value to a human-readable string the same way a spreadsheet
+// would display it:
+//   { url: "https://..." }  →  "https://..."   (common link/image object)
+//   ["a", "b"]              →  "a, b"           (arrays joined)
+//   42 / true / null        →  "42" / "true" / ""
+function flattenValue(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  if (Array.isArray(v)) return v.map(flattenValue).join(", ");
+  if (typeof v === "object") {
+    const obj = v as Record<string, unknown>;
+    if (typeof obj.url === "string") return obj.url;
+    return JSON.stringify(v);
+  }
+  return String(v);
+}
+
 // ── Component ──────────────────────────────────────────────────────────────────
 
 type ParsedRow = Record<string, string>;
@@ -123,7 +142,7 @@ export function ImportEntriesButton({
           if (!Array.isArray(parsed)) throw new Error("JSON must be an array of objects.");
           setRows(parsed.map((r: unknown) =>
             typeof r === "object" && r !== null
-              ? Object.fromEntries(Object.entries(r as Record<string, unknown>).map(([k, v]) => [k, String(v ?? "")]))
+              ? Object.fromEntries(Object.entries(r as Record<string, unknown>).map(([k, v]) => [k, flattenValue(v)]))
               : {}
           ));
         } else {

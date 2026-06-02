@@ -8,8 +8,11 @@ const CSP = [
   "script-src 'self' 'unsafe-inline'",
   // Tailwind and component inline styles
   "style-src 'self' 'unsafe-inline'",
-  // Same-origin images + data URIs (QR codes) + GCS bucket (uploaded files)
-  "img-src 'self' data: blob: https://storage.googleapis.com",
+  // Same-origin + GCS uploads + data URIs (QR codes) + any HTTPS/HTTP URL
+  // (users paste arbitrary image URLs into project media fields)
+  "img-src 'self' data: blob: https: http:",
+  // Video backgrounds follow the same pattern as images
+  "media-src 'self' blob: https: http:",
   "font-src 'self'",
   // All API calls go to same origin; no external fetch targets in client code
   "connect-src 'self'",

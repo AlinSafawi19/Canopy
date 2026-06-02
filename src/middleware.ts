@@ -16,6 +16,8 @@ const PUBLIC_PATHS = [
   "/api/auth/reset-password",
   "/api/auth/signup",
   "/api/auth/two-factor",
+  "/api/auth/send-verification",
+  "/api/auth/verify-email",
 ];
 
 // Paths accessible to any authenticated user regardless of role prefix

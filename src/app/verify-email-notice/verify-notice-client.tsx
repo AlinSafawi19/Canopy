@@ -25,7 +25,7 @@ export function VerifyNoticeClient({ email, nextHref }: Props) {
   // cancels the first request so only one email is sent.
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/auth/send-verification", { method: "POST", signal: controller.signal })
+    apiFetch("/api/auth/send-verification", { method: "POST", signal: controller.signal })
       .catch(() => {}); // ignore abort
     return () => controller.abort();
   }, []);
