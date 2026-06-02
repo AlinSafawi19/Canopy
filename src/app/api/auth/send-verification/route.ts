@@ -28,7 +28,7 @@ export async function POST() {
     }
   } catch (err) {
     console.error("[send-verification] DB lookup failed:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "DB lookup failed", detail: String(err) }, { status: 500 });
   }
 
   if (!email) {
@@ -39,7 +39,8 @@ export async function POST() {
     await sendVerificationEmail(role, id, email, displayName);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("[send-verification] Email send failed:", err);
-    return NextResponse.json({ error: "Failed to send verification email" }, { status: 500 });
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error("[send-verification] send failed:", detail);
+    return NextResponse.json({ error: "Failed to send verification email", detail }, { status: 500 });
   }
 }
