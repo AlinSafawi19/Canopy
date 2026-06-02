@@ -5,30 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { CreateEntryButton } from "@/app/admin/projects/[id]/categories/[catId]/create-entry-button";
-import { EntryActions } from "@/app/admin/projects/[id]/categories/[catId]/entry-actions";
-import { EntryStatusBadge } from "@/app/admin/projects/[id]/categories/[catId]/entry-status-badge";
+import { EntriesTable } from "@/app/admin/projects/[id]/categories/[catId]/entries-table";
 import { ManageSchemaButton } from "@/app/admin/projects/[id]/categories/[catId]/manage-schema-button";
 import { ExportEntriesButton } from "@/components/ui/export-entries-button";
 import { ImportEntriesButton } from "@/components/ui/import-entries-button";
-import { stripRichText } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { SearchInput } from "@/components/ui/search-input";
-import { SortableHeader } from "@/components/ui/sortable-header";
 import { parsePage, parseLimit, parseSearch, parseSortDir } from "@/lib/pagination";
 
 const BASE = "/api/client/projects";
 
-const TYPE_COLORS: Record<string, string> = {
-  text:      "text-violet-500",
-  textarea:  "text-blue-500",
-  rich_text: "text-purple-600",
-  number:    "text-amber-500",
-  date:      "text-emerald-500",
-  boolean:   "text-rose-500",
-  url:       "text-cyan-500",
-  email:     "text-indigo-500",
-};
 
 export default async function ClientCategoryPage({
   params,
@@ -146,74 +133,18 @@ export default async function ClientCategoryPage({
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="w-10 px-3 py-2.5 text-left border-r border-slate-200 sticky left-0 bg-slate-50">
-                        <SortableHeader label="#" field="sortIndex" sortBy="sortIndex" sortDir={sortDir} basePath={basePath} extraParams={sortExtras} />
-                      </th>
-                      {fields.map((f) => (
-                        <th key={f.name} className="px-4 py-2.5 text-left font-medium text-slate-700 border-r border-slate-200 min-w-[160px] whitespace-nowrap">
-                          <div className="flex flex-col gap-0.5">
-                            <span>{f.name}</span>
-                            <span className={`text-[10px] font-normal uppercase tracking-wide ${TYPE_COLORS[f.type] ?? "text-slate-400"}`}>{f.type}</span>
-                          </div>
-                        </th>
-                      ))}
-                      <th className="px-4 py-2.5 text-left font-medium text-slate-700 border-r border-slate-200 whitespace-nowrap">
-                        <div className="flex flex-col gap-0.5">
-                          <span>Status</span>
-                          <span className="text-[10px] font-normal uppercase tracking-wide text-slate-400">system</span>
-                        </div>
-                      </th>
-                      <th className="px-4 py-2.5 text-left font-medium text-slate-700 whitespace-nowrap sticky right-0 bg-slate-50">
-                        <div className="flex flex-col gap-0.5">
-                          <span>Actions</span>
-                          <span className="text-[10px] font-normal uppercase tracking-wide text-slate-400">system</span>
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {entries.length === 0 ? (
-                      <tr>
-                        <td className="px-4 py-8 text-center text-slate-400 text-sm" colSpan={fields.length + 3}>
-                          No entries found for &ldquo;{search}&rdquo;
-                        </td>
-                      </tr>
-                    ) : entries.map((entry, idx) => {
-                      const values = entry.values as Record<string, unknown>;
-                      return (
-                        <tr key={entry.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
-                          <td className="px-3 py-2.5 text-center text-xs text-slate-400 border-r border-slate-100 sticky left-0 bg-white">{skip + idx + 1}</td>
-                          {fields.map((f) => {
-                            const raw = values[f.name];
-                            let display: string | null = null;
-                            if (raw !== undefined && raw !== null && raw !== "") {
-                              const str = String(raw);
-                              display = f.type === "rich_text" ? stripRichText(str) : str;
-                            }
-                            return (
-                              <td key={f.name} className="px-4 py-2.5 border-r border-slate-100 max-w-[240px]">
-                                {display
-                                  ? <span className="block truncate text-slate-700">{display}</span>
-                                  : <span className="text-slate-300">—</span>}
-                              </td>
-                            );
-                          })}
-                          <td className="px-4 py-2.5 border-r border-slate-100">
-                            <EntryStatusBadge entry={entry} categoryId={catId} projectId={id} basePath={BASE} />
-                          </td>
-                          <td className="px-4 py-2.5 sticky right-0 bg-white">
-                            <EntryActions entry={entry} categoryId={catId} projectId={id} fields={fields} basePath={BASE} />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <EntriesTable
+                entries={entries}
+                fields={fields}
+                projectId={id}
+                categoryId={catId}
+                skip={skip}
+                search={search}
+                pagePath={basePath}
+                sortDir={sortDir}
+                sortExtras={sortExtras}
+                apiBase={BASE}
+              />
               <div className="px-4 border-t border-slate-100">
                 <Pagination total={total} page={page} limit={limit} basePath={basePath} extraParams={extraParams} />
               </div>

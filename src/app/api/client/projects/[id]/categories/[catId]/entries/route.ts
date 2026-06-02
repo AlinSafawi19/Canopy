@@ -54,3 +54,29 @@ export async function POST(
 
   return NextResponse.json({ id: entry.id }, { status: 201 });
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; catId: string }> }
+) {
+  const session = await getSession();
+  if (!session || session.role !== "client") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { id: projectId, catId } = await params;
+
+  const category = await getAssignedCategory(catId, projectId, session.id);
+  if (!category) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const { ids } = await request.json();
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return NextResponse.json({ error: "ids required" }, { status: 400 });
+  }
+
+  const { count } = await prisma.contentCategoryEntry.deleteMany({
+    where: { id: { in: ids }, categoryId: catId },
+  });
+
+  await logActivity({ session, action: "deleted", resource: "entry", resourceName: `${count} entries` });
+  return NextResponse.json({ ok: true, deleted: count });
+}
