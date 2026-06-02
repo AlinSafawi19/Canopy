@@ -125,11 +125,6 @@ export default async function CategoryDetailPage({
               <p className="text-sm font-medium text-slate-600">No columns defined</p>
               <p className="text-xs">Click <span className="font-medium text-slate-700">Manage Columns</span> to define your schema first, then add rows.</p>
             </div>
-          ) : total === 0 && !search ? (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
-              <p className="text-sm font-medium text-slate-600">No rows yet</p>
-              <p className="text-xs">Click <span className="font-medium text-slate-700">New Row</span> to add the first entry.</p>
-            </div>
           ) : (
             <>
               <EntriesTable

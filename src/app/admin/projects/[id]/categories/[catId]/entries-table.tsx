@@ -171,7 +171,7 @@ export function EntriesTable({
             {entries.length === 0 ? (
               <tr>
                 <td className="px-4 py-8 text-center text-slate-400 text-sm" colSpan={colCount}>
-                  {search ? `No entries found for "${search}"` : "No entries"}
+                  {search ? `No entries found for "${search}"` : "No rows yet"}
                 </td>
               </tr>
             ) : entries.map((entry, idx) => {
