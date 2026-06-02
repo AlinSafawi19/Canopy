@@ -2,8 +2,40 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
+import { Extension } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
+
+// Preserve HTML attributes that TipTap strips by default (e.g. dir="auto",
+// data-* on list items) so imported HTML round-trips through the editor intact.
+const PreserveAttributes = Extension.create({
+  name: "preserveAttributes",
+  addGlobalAttributes() {
+    return [
+      {
+        types: ["heading", "paragraph", "bulletList", "orderedList", "listItem", "blockquote", "codeBlock"],
+        attributes: {
+          dir: {
+            default: null,
+            parseHTML: (el) => el.getAttribute("dir") || null,
+            renderHTML: (attrs) => (attrs.dir ? { dir: attrs.dir } : {}),
+          },
+        },
+      },
+      {
+        types: ["listItem"],
+        attributes: {
+          "data-preset-tag": {
+            default: null,
+            parseHTML: (el) => el.getAttribute("data-preset-tag") || null,
+            renderHTML: (attrs) =>
+              attrs["data-preset-tag"] ? { "data-preset-tag": attrs["data-preset-tag"] } : {},
+          },
+        },
+      },
+    ];
+  },
+});
 import {
   Bold, Italic, Heading2, Heading3,
   List, ListOrdered, Quote, Code, Minus, ImageIcon, Upload, Link2,
@@ -166,6 +198,7 @@ export function RichTextEditor({
   const editor = useEditor({
     extensions: [
       StarterKit,
+      PreserveAttributes,
       Image.configure({
         HTMLAttributes: {
           class: "max-w-full rounded-lg my-2 border border-slate-200",
