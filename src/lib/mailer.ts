@@ -13,11 +13,8 @@ export async function sendMail({
   html: string;
   text?: string;
 }) {
-  const from = process.env.RESEND_FROM!;
-  const fromFormatted = from.includes("<") ? from : `Canopy <${from}>`;
-
   const { error } = await resend.emails.send({
-    from: fromFormatted,
+    from: process.env.RESEND_FROM!,
     to,
     subject,
     html,
