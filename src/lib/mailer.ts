@@ -1,10 +1,3 @@
-import nodemailer from "nodemailer";
-import { setDefaultResultOrder } from "dns";
-
-// Railway doesn't support IPv6 outbound — prefer A records globally so
-// Node.js never picks an AAAA address and gets ENETUNREACH.
-setDefaultResultOrder("ipv4first");
-
 export async function sendMail({
   to,
   subject,
@@ -16,29 +9,25 @@ export async function sendMail({
   html: string;
   text?: string;
 }) {
-  const port = Number(process.env.SMTP_PORT ?? 465);
-  const secure = process.env.SMTP_SECURE === "true";
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error("RESEND_API_KEY is not set");
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port,
-    secure,
-    // Port 465 = SSL from the start (no STARTTLS needed).
-    // Port 587 = STARTTLS — requireTLS forces the upgrade.
-    ...(secure ? {} : { requireTLS: true }),
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+  const from = process.env.RESEND_FROM ?? "Canopy <onboarding@resend.dev>";
+  const fromFormatted = from.includes("<") ? from : `Canopy <${from}>`;
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
     },
-    connectionTimeout: 15_000,
-    socketTimeout: 20_000,
+    body: JSON.stringify({ from: fromFormatted, to: [to], subject, html, text }),
   });
 
-  return transporter.sendMail({
-    from: `"Canopy" <${process.env.SMTP_USER}>`,
-    to,
-    subject,
-    html,
-    text,
-  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(`Resend error ${res.status}: ${JSON.stringify(body)}`);
+  }
+
+  return res.json();
 }
