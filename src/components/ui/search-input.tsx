@@ -27,7 +27,7 @@ export function SearchInput({ value, placeholder = "Search…", basePath, extraP
     if (q) params.set(searchParam, q);
     else params.delete(searchParam);
     params.set(pageParam, "1");
-    router.replace(`${basePath}?${params}`);
+    router.replace(`${basePath}?${params}`, { scroll: false });
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {

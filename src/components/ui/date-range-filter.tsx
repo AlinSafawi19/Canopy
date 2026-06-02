@@ -20,7 +20,7 @@ export function DateRangeFilter({ startDate, endDate, basePath, extraParams }: P
     if (end) params.set("endDate", end);
     else params.delete("endDate");
     params.set("page", "1");
-    router.replace(`${basePath}?${params}`);
+    router.replace(`${basePath}?${params}`, { scroll: false });
   }
 
   return (

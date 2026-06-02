@@ -26,7 +26,7 @@ export function ActionFilter({ value, basePath, extraParams }: Props) {
     if (action) params.set("action", action);
     else params.delete("action");
     params.set("page", "1");
-    router.replace(`${basePath}?${params}`);
+    router.replace(`${basePath}?${params}`, { scroll: false });
   }
 
   return (

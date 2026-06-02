@@ -19,7 +19,7 @@ export function ContributorLogFilter({ value, initialLabel, basePath, extraParam
     if (id) params.set("contributorId", id);
     else params.delete("contributorId");
     params.set("page", "1");
-    router.replace(`${basePath}?${params}`);
+    router.replace(`${basePath}?${params}`, { scroll: false });
   }
 
   return (
