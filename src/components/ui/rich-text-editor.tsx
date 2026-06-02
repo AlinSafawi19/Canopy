@@ -197,7 +197,11 @@ export function RichTextEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // StarterKit defaults to [1,2,3] — allow all six levels so h4/h5/h6
+        // imported from external HTML are preserved instead of stripped.
+        heading: { levels: [1, 2, 3, 4, 5, 6] },
+      }),
       PreserveAttributes,
       Image.configure({
         HTMLAttributes: {
