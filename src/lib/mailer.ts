@@ -26,7 +26,10 @@ export async function sendMail({
     },
     connectionTimeout: 10_000,
     socketTimeout: 15_000,
-  });
+    // Railway's network doesn't support IPv6 outbound — force IPv4 so Node.js
+    // doesn't pick the AAAA record for smtp.gmail.com and get ENETUNREACH.
+    socketOptions: { family: 4 },
+  } as Parameters<typeof nodemailer.createTransport>[0]);
 
   return transporter.sendMail({
     from: `"Canopy" <${process.env.SMTP_USER}>`,
