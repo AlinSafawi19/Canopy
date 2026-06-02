@@ -78,6 +78,11 @@ function parseCSV(text: string): Record<string, string>[] {
 //   { url: "https://..." }  →  "https://..."   (common link/image object)
 //   ["a", "b"]              →  "a, b"           (arrays joined)
 //   42 / true / null        →  "42" / "true" / ""
+function inferFieldType(value: string): string {
+  if (/<[a-z][\s\S]*?>/i.test(value)) return "rich_text";
+  return "text";
+}
+
 function flattenValue(v: unknown): string {
   if (v === null || v === undefined) return "";
   if (typeof v === "string") return v;
@@ -177,7 +182,7 @@ export function ImportEntriesButton({
     }
   }
 
-  const previewFields = fields.length > 0 ? fields : rows[0] ? Object.keys(rows[0]).map((k) => ({ name: k, type: "text" })) : [];
+  const previewFields = fields.length > 0 ? fields : rows[0] ? Object.keys(rows[0]).map((k) => ({ name: k, type: inferFieldType(rows[0][k]) })) : [];
   const PREVIEW_ROWS = 5;
   const hasExisting = totalEntries > 0;
 

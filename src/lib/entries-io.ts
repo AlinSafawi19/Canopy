@@ -65,6 +65,13 @@ export async function handleExport(
 
 const MAX_IMPORT_ROWS = 500;
 
+const HTML_RE = /<[a-z][\s\S]*?>/i;
+
+function inferFieldType(value: unknown): string {
+  if (typeof value === "string" && HTML_RE.test(value)) return "rich_text";
+  return "text";
+}
+
 export async function handleImport(
   rows: unknown,
   category: { id: string; fields: unknown },
@@ -93,7 +100,7 @@ export async function handleImport(
     const firstRow = rows[0] as Record<string, unknown>;
     fields = Object.keys(firstRow).map((key) => {
       const existing = fields.find((f) => f.name === key);
-      return existing ?? { name: key, type: "text" };
+      return existing ?? { name: key, type: inferFieldType(firstRow[key]) };
     });
     await prisma.contentCategory.update({
       where: { id: category.id },
@@ -120,7 +127,7 @@ export async function handleImport(
     // Merge: ensure field schema includes every imported column
     const firstRow = rows[0] as Record<string, unknown>;
     if (fields.length === 0) {
-      fields = Object.keys(firstRow).map((key) => ({ name: key, type: "text" }));
+      fields = Object.keys(firstRow).map((key) => ({ name: key, type: inferFieldType(firstRow[key]) }));
       await prisma.contentCategory.update({
         where: { id: category.id },
         data: { fields: fields as never },
@@ -129,7 +136,7 @@ export async function handleImport(
       const existingNames = new Set(fields.map((f) => f.name));
       const newFields = Object.keys(firstRow)
         .filter((key) => !existingNames.has(key))
-        .map((key) => ({ name: key, type: "text" as const }));
+        .map((key) => ({ name: key, type: inferFieldType(firstRow[key]) }));
       if (newFields.length > 0) {
         fields = [...fields, ...newFields];
         await prisma.contentCategory.update({
