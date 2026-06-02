@@ -11,17 +11,21 @@ export async function sendMail({
   html: string;
   text?: string;
 }) {
-  // Transporter is created per-call so env vars are always read at request time,
-  // not at module-load time (which happens during Next.js build/startup on Railway
-  // before runtime env vars are injected into process.env).
+  const port = Number(process.env.SMTP_PORT ?? 587);
+  const secure = process.env.SMTP_SECURE === "true";
+
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: process.env.SMTP_SECURE === "true",
+    port,
+    secure,
+    // Port 587 uses STARTTLS — requireTLS forces the upgrade (nodemailer v8+)
+    ...(secure ? {} : { requireTLS: true }),
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    connectionTimeout: 10_000,
+    socketTimeout: 15_000,
   });
 
   return transporter.sendMail({
