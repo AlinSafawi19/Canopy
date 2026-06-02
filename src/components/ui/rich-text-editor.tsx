@@ -212,7 +212,16 @@ export function RichTextEditor({
     content: value || "",
     editorProps: {
       attributes: {
-        class: "text-sm text-slate-900 px-3 py-2.5",
+        class: [
+          "text-sm text-slate-900 px-3 py-2.5",
+          // Tailwind Preflight resets all heading styles — restore hierarchy
+          "[&_h1]:text-2xl [&_h1]:font-bold [&_h1]:leading-tight",
+          "[&_h2]:text-xl [&_h2]:font-bold [&_h2]:leading-tight",
+          "[&_h3]:text-lg [&_h3]:font-semibold [&_h3]:leading-snug",
+          "[&_h4]:text-base [&_h4]:font-semibold",
+          "[&_h5]:text-sm [&_h5]:font-semibold [&_h5]:uppercase [&_h5]:tracking-wide",
+          "[&_h6]:text-xs [&_h6]:font-semibold [&_h6]:uppercase [&_h6]:tracking-wide",
+        ].join(" "),
         style: `min-height: ${minHeight}`,
         "data-placeholder": placeholder,
       },
