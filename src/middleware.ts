@@ -90,7 +90,8 @@ export async function middleware(request: NextRequest) {
     const { ok, retryAfter } = await rateLimit(key, 15 * 60_000, 10);
     if (!ok) return rateLimitResponse(retryAfter);
 
-  // Code sending — own bucket; 8 per hour is generous for resend, stingy for abuse.
+  // Code sending — 5 per 15 min: resets quickly enough for legitimate resends
+  // (page auto-sends on mount + user can resend if email is delayed).
   } else if (pathname === "/api/auth/send-verification") {
     const token = request.cookies.get("cms_session")?.value;
     let key = `send-verification:${ip}`;
@@ -98,7 +99,7 @@ export async function middleware(request: NextRequest) {
       const session = await verifyToken(token);
       if (session) key = `send-verification:${session.id}`;
     }
-    const { ok, retryAfter } = await rateLimit(key, 60 * 60_000, 8);
+    const { ok, retryAfter } = await rateLimit(key, 15 * 60_000, 5);
     if (!ok) return rateLimitResponse(retryAfter);
 
   // Other auth endpoints (change-password, 2FA setup/confirm/disable,
