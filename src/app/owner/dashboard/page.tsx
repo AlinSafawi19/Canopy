@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { UserCog, FolderKanban, Users, Layers } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { CreateAdminButton } from "../admins/create-admin-button";
+import { PublishReleaseButton } from "../settings/releases/publish-release-button";
 
 export default async function OwnerDashboard() {
   const session = await getSession();
@@ -57,6 +58,7 @@ export default async function OwnerDashboard() {
         <CardContent>
           <div className="flex flex-wrap gap-3">
             <CreateAdminButton />
+            <PublishReleaseButton />
           </div>
         </CardContent>
       </Card>
