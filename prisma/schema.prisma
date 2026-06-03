@@ -271,3 +271,14 @@ model ActivityLog {
   @@index([adminTenantId, createdAt])
   @@index([parentClientUsername, createdAt])
 }
+
+model Release {
+  id        String   @id @default(cuid())
+  version   String
+  title     String
+  notes     String   @db.Text
+  createdAt DateTime @default(now())
+  createdBy String
+
+  @@index([createdAt])
+}

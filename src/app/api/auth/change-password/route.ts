@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession, hashPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { validatePassword } from "@/lib/validation";
+import { sendSecurityAlertEmail, getUserEmailAndName } from "@/lib/security-alerts";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -39,6 +40,10 @@ export async function POST(request: NextRequest) {
         data: { password: hashed, mustChangePassword: false, updatedBy: id },
       });
     }
+
+    getUserEmailAndName(id, role).then((user) => {
+      if (user) sendSecurityAlertEmail(user.email, user.displayName, "password_changed").catch(() => {});
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

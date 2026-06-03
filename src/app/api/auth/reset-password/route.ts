@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { validatePassword } from "@/lib/validation";
 import bcrypt from "bcryptjs";
+import { sendSecurityAlertEmail, getUserEmailAndName } from "@/lib/security-alerts";
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,6 +81,10 @@ export async function POST(request: NextRequest) {
     }
 
     await prisma.passwordResetChallenge.delete({ where: { id: challenge.id } });
+
+    getUserEmailAndName(targetId, targetKind).then((user) => {
+      if (user) sendSecurityAlertEmail(user.email, user.displayName, "password_changed").catch(() => {});
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

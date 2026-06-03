@@ -6,6 +6,7 @@ import {
   generateBackupCodes,
   saveBackupCodes,
 } from "@/lib/two-factor";
+import { sendSecurityAlertEmail, getUserEmailAndName } from "@/lib/security-alerts";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -25,6 +26,10 @@ export async function POST(request: NextRequest) {
 
   await setTwoFactorEnabled(session.id, session.role, secret, true);
   await saveBackupCodes(session.role, session.id, backupCodes);
+
+  getUserEmailAndName(session.id, session.role).then((user) => {
+    if (user) sendSecurityAlertEmail(user.email, user.displayName, "2fa_enabled").catch(() => {});
+  });
 
   return NextResponse.json({ backupCodes });
 }

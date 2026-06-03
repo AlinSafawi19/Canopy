@@ -3,6 +3,7 @@ import { getSession, hashPassword, verifyPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/email-verification";
 import { validatePassword, validateEmail, validateDisplayName } from "@/lib/validation";
+import { sendSecurityAlertEmail } from "@/lib/security-alerts";
 
 export async function PATCH(request: NextRequest) {
   const session = await getSession();
@@ -27,6 +28,7 @@ export async function PATCH(request: NextRequest) {
       if (!valid) return NextResponse.json({ error: "Current password is incorrect." }, { status: 400 });
 
       await prisma.clientIdentity.update({ where: { id }, data: { password: await hashPassword(body.newPassword) } });
+      sendSecurityAlertEmail(client.email, client.displayName, "password_changed").catch(() => {});
     } else {
       const nameErr = validateDisplayName(body.displayName);
       if (nameErr) return NextResponse.json({ error: nameErr }, { status: 400 });
@@ -52,6 +54,9 @@ export async function PATCH(request: NextRequest) {
           await sendVerificationEmail("client", id, newEmail, body.displayName.trim());
         } catch (mailErr) {
           console.error("[client/profile] verification email failed:", mailErr);
+        }
+        if (current?.email) {
+          sendSecurityAlertEmail(current.email, current.displayName, "email_changed").catch(() => {});
         }
         return NextResponse.json({ ok: true, emailChanged: true });
       }
