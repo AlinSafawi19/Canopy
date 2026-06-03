@@ -87,9 +87,12 @@ export function VerifyNoticeClient({ email, nextHref }: Props) {
       ) : (
         <>
           <p className="text-slate-500 text-sm text-center mb-3">
-            Your email address{" "}
-            <strong className="text-slate-700">{email || "on file"}</strong>{" "}
-            hasn&apos;t been verified yet. We&apos;ve sent a 6-digit code there — enter it below to confirm you own this address.
+            We&apos;ve sent a 6-digit code to{" "}
+            <strong className="text-slate-700">{email || "your email"}</strong>.
+            Enter it below to confirm you own this address.
+          </p>
+          <p className="text-xs text-slate-400 text-center mb-3">
+            Verifying confirms this address is real and belongs to you, so we can reach you when it matters.
           </p>
           <p className="text-xs text-slate-400 text-center mb-5">
             This is a one-time step. You won&apos;t be asked again unless you change your email address.

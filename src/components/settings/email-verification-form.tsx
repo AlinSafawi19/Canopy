@@ -89,7 +89,10 @@ export function EmailVerificationForm({ email, emailVerified: initialVerified }:
       ) : (
         <>
           <p className="text-sm text-slate-500">
-            Enter the 6-digit code we sent to your email address to verify your account.
+            Verifying confirms this address is real and belongs to you, so we can reach you when it matters.
+          </p>
+          <p className="text-sm text-slate-500">
+            Enter the 6-digit code sent to your email address to complete verification.
           </p>
 
           <form onSubmit={handleVerify} className="space-y-4">
