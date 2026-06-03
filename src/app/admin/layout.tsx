@@ -33,7 +33,7 @@ export default async function AdminLayout({
     prisma.contentCategory.count({ where: { archivedAt: { not: null }, project: { adminTenantId: tenantId } } }),
     prisma.contentCategoryEntry.count({ where: { archivedAt: { not: null }, category: { project: { adminTenantId: tenantId } } } }),
     prisma.activityLog.count({ where: { adminTenantId: tenantId, actorId: session.id } }),
-    prisma.release.findFirst({ orderBy: { createdAt: "desc" } }),
+    prisma.release.findFirst({ where: { status: "published" }, orderBy: { publishedAt: "desc" } }),
   ]);
 
   const archiveCount = archivedProjectsCount + archivedCategoriesCount + archivedEntriesCount;

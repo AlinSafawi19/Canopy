@@ -277,12 +277,16 @@ model ActivityLog {
 }
 
 model Release {
-  id        String   @id @default(cuid())
-  version   String
-  title     String
-  notes     String   @db.Text
-  createdAt DateTime @default(now())
-  createdBy String
+  id          String    @id @default(cuid())
+  version     String
+  title       String
+  notes       String    @db.Text
+  status      String    @default("draft")
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String
 
   @@index([createdAt])
+  @@index([status])
 }

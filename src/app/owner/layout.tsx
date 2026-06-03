@@ -20,7 +20,7 @@ export default async function OwnerLayout({
       select: { walkthroughSeenAt: true, emailVerifiedAt: true, lastSeenReleaseId: true },
     }),
     prisma.adminIdentity.count({ where: { archivedAt: null } }),
-    prisma.release.findFirst({ orderBy: { createdAt: "desc" } }),
+    prisma.release.findFirst({ where: { status: "published" }, orderBy: { publishedAt: "desc" } }),
   ]);
 
   const pendingRelease =

@@ -35,7 +35,7 @@ export default async function ClientLayout({ children }: { children: React.React
     prisma.activityLog.count({
       where: { OR: [{ actorId: clientId }, { actorRole: "contributor", parentClientUsername: session.username }] },
     }),
-    prisma.release.findFirst({ orderBy: { createdAt: "desc" } }),
+    prisma.release.findFirst({ where: { status: "published" }, orderBy: { publishedAt: "desc" } }),
   ]);
 
   const archiveCount = archivedCategoriesCount + archivedEntriesCount;

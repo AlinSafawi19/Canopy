@@ -32,7 +32,7 @@ export default async function ContributorLayout({ children }: { children: React.
       ? prisma.contentCategoryEntry.count({ where: { archivedAt: { not: null }, category: { projectId: { in: projectIds } } } })
       : Promise.resolve(0),
     prisma.activityLog.count({ where: { actorId: session.id } }),
-    prisma.release.findFirst({ orderBy: { createdAt: "desc" } }),
+    prisma.release.findFirst({ where: { status: "published" }, orderBy: { publishedAt: "desc" } }),
   ]);
 
   const pendingRelease =

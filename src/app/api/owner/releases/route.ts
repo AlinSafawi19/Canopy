@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { version, title, notes } = await request.json();
+    const { version, title, notes, status = "draft" } = await request.json();
 
     if (!version?.trim() || !title?.trim() || !notes?.trim()) {
       return NextResponse.json(
@@ -19,19 +19,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const publish = status === "published";
+
     const release = await prisma.release.create({
       data: {
         version: version.trim(),
         title: title.trim(),
         notes: notes.trim(),
+        status: publish ? "published" : "draft",
+        publishedAt: publish ? new Date() : null,
         createdBy: session.id,
       },
     });
 
-    // Fire-and-forget — don't block the response on email delivery
-    sendReleaseEmails(release).catch((err) =>
-      console.error("[releases] broadcast failed:", err)
-    );
+    if (publish) {
+      sendReleaseEmails(release).catch((err) =>
+        console.error("[releases] broadcast failed:", err)
+      );
+    }
 
     return NextResponse.json({ ok: true, id: release.id });
   } catch (err) {
