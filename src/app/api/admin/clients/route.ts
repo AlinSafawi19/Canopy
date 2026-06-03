@@ -6,11 +6,17 @@ import { generateId, slugify } from "@/lib/utils";
 import { validateUsername, validateEmail, validateDisplayName, firstError } from "@/lib/validation";
 import { logActivity } from "@/lib/activity-log";
 import { createInviteToken } from "@/lib/invite-tokens";
+import { validateUserStillExists } from "@/lib/validate-user";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session || session.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  const adminExists = await validateUserStillExists(session.id, "admin");
+  if (!adminExists) {
+    return NextResponse.json({ error: "Account has been deleted." }, { status: 403 });
   }
 
   try {

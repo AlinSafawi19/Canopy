@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { validateUserStillExists } from "@/lib/validate-user";
 import { AppShell } from "@/components/layout/app-shell";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -9,6 +10,9 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session || session.role !== "client") redirect("/login");
+
+  const clientExists = await validateUserStillExists(session.id, "client");
+  if (!clientExists) redirect("/login");
 
   const client = await prisma.clientIdentity.findUnique({
     where: { id: session.id },

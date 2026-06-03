@@ -6,11 +6,17 @@ import { generateId } from "@/lib/utils";
 import { nanoid } from "nanoid";
 import { validateUsername, validateEmail, validateDisplayName, firstError } from "@/lib/validation";
 import { createInviteToken } from "@/lib/invite-tokens";
+import { validateUserStillExists } from "@/lib/validate-user";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session || session.role !== "owner") {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  const ownerExists = await validateUserStillExists(session.id, "owner");
+  if (!ownerExists) {
+    return NextResponse.json({ error: "Account has been deleted." }, { status: 403 });
   }
 
   try {

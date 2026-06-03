@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { validateUserStillExists } from "@/lib/validate-user";
 import { AppShell } from "@/components/layout/app-shell";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -13,6 +14,9 @@ export default async function OwnerLayout({
 }) {
   const session = await getSession();
   if (!session || session.role !== "owner") redirect("/login");
+
+  const ownerExists = await validateUserStillExists(session.id, "owner");
+  if (!ownerExists) redirect("/login");
 
   const [owner, adminsCount, archivedAdminsCount, archivedReleasesCount, latestRelease] = await Promise.all([
     prisma.platformOwner.findUnique({

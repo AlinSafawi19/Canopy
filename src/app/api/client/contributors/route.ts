@@ -6,11 +6,17 @@ import { generateId } from "@/lib/utils";
 import { validateUsername, validateEmail, validateDisplayName, firstError } from "@/lib/validation";
 import { logActivity } from "@/lib/activity-log";
 import { createInviteToken } from "@/lib/invite-tokens";
+import { validateUserStillExists } from "@/lib/validate-user";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session || session.role !== "client") {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  const clientExists = await validateUserStillExists(session.id, "client");
+  if (!clientExists) {
+    return NextResponse.json({ error: "Account has been deleted." }, { status: 403 });
   }
 
   try {
