@@ -11,9 +11,10 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { ActionMenu, ActionMenuItem } from "@/components/ui/action-menu";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Select } from "@/components/ui/select";
 import { LIMITS } from "@/lib/limits";
 
-interface Field { name: string; type: string }
+interface Field { name: string; type: string; options?: string[] }
 interface Entry { id: string; values: unknown; archivedAt: Date | null }
 
 export function EntryActions({
@@ -142,6 +143,18 @@ export function EntryActions({
                 label={field.name}
                 value={values[field.name] ?? null}
                 onChange={(v) => { setValues(vals => ({ ...vals, [field.name]: v ?? "" })); setTouched(true); }}
+              />
+            );
+            if (field.type === "enum") return (
+              <Select
+                key={field.name}
+                label={field.name}
+                value={values[field.name] ?? ""}
+                onChange={(v) => { setValues(vals => ({ ...vals, [field.name]: v })); setTouched(true); }}
+                options={[
+                  { value: "", label: "Select…" },
+                  ...(field.options ?? []).map((o) => ({ value: o, label: o })),
+                ]}
               />
             );
             if (field.type === "boolean") {

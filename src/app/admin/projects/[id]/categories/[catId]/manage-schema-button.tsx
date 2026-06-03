@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
-import { Plus, Trash2, Columns } from "lucide-react";
+import { Plus, Trash2, Columns, X } from "lucide-react";
 
-interface Field { name: string; type: string }
+interface Field { name: string; type: string; options?: string[] }
 
 const FIELD_TYPES = [
   { value: "text",      label: "Text" },
@@ -20,6 +20,7 @@ const FIELD_TYPES = [
   { value: "url",       label: "URL" },
   { value: "email",     label: "Email" },
   { value: "boolean",   label: "Boolean" },
+  { value: "enum",      label: "Enum" },
 ];
 
 export function ManageSchemaButton({
@@ -38,10 +39,12 @@ export function ManageSchemaButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fields, setFields] = useState<Field[]>(initialFields);
+  const [optionInputs, setOptionInputs] = useState<Record<number, string>>({});
 
   function handleOpen() {
     setFields(initialFields);
     setError("");
+    setOptionInputs({});
     setOpen(true);
   }
 
@@ -51,24 +54,59 @@ export function ManageSchemaButton({
 
   function removeField(i: number) {
     setFields((f) => f.filter((_, idx) => idx !== i));
+    setOptionInputs((p) => {
+      const next: Record<number, string> = {};
+      Object.entries(p).forEach(([k, v]) => {
+        const ki = Number(k);
+        if (ki < i) next[ki] = v;
+        else if (ki > i) next[ki - 1] = v;
+      });
+      return next;
+    });
   }
 
-  function updateField(i: number, key: keyof Field, value: string) {
-    setFields((f) => f.map((field, idx) => idx === i ? { ...field, [key]: value } : field));
+  function updateField(i: number, patch: Partial<Field>) {
+    setFields((f) => f.map((field, idx) => idx === i ? { ...field, ...patch } : field));
     setError("");
+  }
+
+  function addOption(fieldIdx: number) {
+    const val = (optionInputs[fieldIdx] ?? "").trim();
+    if (!val) return;
+    const existing = fields[fieldIdx].options ?? [];
+    if (existing.includes(val)) return;
+    updateField(fieldIdx, { options: [...existing, val] });
+    setOptionInputs((p) => ({ ...p, [fieldIdx]: "" }));
+  }
+
+  function removeOption(fieldIdx: number, optIdx: number) {
+    const existing = fields[fieldIdx].options ?? [];
+    updateField(fieldIdx, { options: existing.filter((_, i) => i !== optIdx) });
   }
 
   async function save() {
     const names = fields.map((f) => f.name.trim());
     if (names.some((n) => !n)) { setError("All columns must have a name"); return; }
     if (new Set(names).size !== names.length) { setError("Column names must be unique"); return; }
+    for (const f of fields) {
+      if (f.type === "enum" && (!f.options || f.options.length < 2)) {
+        setError(`"${f.name || "Enum column"}" must have at least 2 options`);
+        return;
+      }
+    }
 
     setLoading(true);
     setError("");
     const res = await apiFetch(`${basePath}/${projectId}/categories/${categoryId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fields: fields.map((f) => ({ name: f.name.trim(), type: f.type })) }),
+      body: JSON.stringify({
+        fields: fields.map((f) => ({
+          name: f.name.trim(),
+          type: f.type,
+          ...(f.type === "enum" ? { options: f.options ?? [] } : {}),
+        })),
+      }),
     });
     setLoading(false);
     if (!res.ok) { setError("Failed to save columns"); return; }
@@ -103,24 +141,72 @@ export function ManageSchemaButton({
           )}
 
           {fields.map((field, i) => (
-            <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_148px_32px] gap-2 items-start">
-              <Input
-                value={field.name}
-                placeholder="e.g. Title"
-                onChange={(e) => updateField(i, "name", e.target.value)}
-              />
-              <Select
-                value={field.type}
-                onChange={(v) => updateField(i, "type", v)}
-                options={FIELD_TYPES}
-              />
-              <button
-                type="button"
-                onClick={() => removeField(i)}
-                className="h-9 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"
-              >
-                <Trash2 size={14} />
-              </button>
+            <div key={i} className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_148px_32px] gap-2 items-start">
+                <Input
+                  value={field.name}
+                  placeholder="e.g. Title"
+                  onChange={(e) => updateField(i, { name: e.target.value })}
+                />
+                <Select
+                  value={field.type}
+                  onChange={(v) => updateField(i, {
+                    type: v,
+                    ...(v !== "enum" ? { options: [] } : {}),
+                  })}
+                  options={FIELD_TYPES}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeField(i)}
+                  className="h-9 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+
+              {field.type === "enum" && (
+                <div className="ml-1 pl-3 border-l-2 border-slate-200 space-y-2">
+                  <div className="flex flex-wrap gap-1.5 items-center min-h-[24px]">
+                    {(field.options ?? []).length === 0 && (
+                      <span className="text-xs text-slate-400">No options yet — add at least 2</span>
+                    )}
+                    {(field.options ?? []).map((opt, j) => (
+                      <span
+                        key={j}
+                        className="flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-200"
+                      >
+                        {opt}
+                        <button
+                          type="button"
+                          onClick={() => removeOption(i, j)}
+                          className="text-indigo-400 hover:text-indigo-700 transition-colors leading-none"
+                        >
+                          <X size={10} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Add option…"
+                      value={optionInputs[i] ?? ""}
+                      onChange={(e) => setOptionInputs((p) => ({ ...p, [i]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOption(i); } }}
+                      className="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 w-36 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addOption(i)}
+                      className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+                    >
+                      <Plus size={12} />
+                      Add
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
 

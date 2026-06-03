@@ -9,9 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Modal, ModalRef } from "@/components/ui/modal";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Select } from "@/components/ui/select";
 import { LIMITS } from "@/lib/limits";
 
-interface Field { name: string; type: string }
+interface Field { name: string; type: string; options?: string[] }
 
 export function CreateEntryButton({
   categoryId,
@@ -98,6 +99,18 @@ export function CreateEntryButton({
                 label={field.name}
                 value={values[field.name] ?? null}
                 onChange={(v) => setValue(field.name, v ?? "")}
+              />
+            );
+            if (field.type === "enum") return (
+              <Select
+                key={field.name}
+                label={field.name}
+                value={values[field.name] ?? ""}
+                onChange={(v) => setValue(field.name, v)}
+                options={[
+                  { value: "", label: "Select…" },
+                  ...(field.options ?? []).map((o) => ({ value: o, label: o })),
+                ]}
               />
             );
             if (field.type === "boolean") {

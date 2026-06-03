@@ -44,15 +44,25 @@ export function maxLen(value: unknown, max: number, label: string): string | nul
   return null;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /** Validates entry values against their category field types. Returns first error or null. */
 export function validateEntryValues(
   values: Record<string, unknown> | null | undefined,
-  fields: Array<{ name: string; type: string }>,
+  fields: Array<{ name: string; type: string; options?: string[] }>,
 ): string | null {
   if (!values || !Array.isArray(fields)) return null;
   for (const field of fields) {
     const v = values[field.name];
     if (typeof v !== "string") continue;
+    if (field.type === "enum" && v && Array.isArray(field.options) && field.options.length > 0) {
+      if (!field.options.includes(v)) {
+        return `"${field.name}" must be one of: ${field.options.join(", ")}.`;
+      }
+    }
+    if (field.type === "email" && v.trim() && !EMAIL_RE.test(v.trim())) {
+      return `"${field.name}" must be a valid email address.`;
+    }
     const limits: Record<string, number> = {
       text: LIMITS.ENTRY_TEXT,
       textarea: LIMITS.ENTRY_TEXTAREA,
