@@ -66,10 +66,30 @@ export async function handleExport(
 const MAX_IMPORT_ROWS = 500;
 
 const HTML_RE = /<[a-z][\s\S]*?>/i;
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(T[\d:.Z+-]*)?\s*$/;
+const BOOL_RE = /^(true|false)$/i;
 
 function inferFieldType(value: unknown): string {
-  if (typeof value === "string" && HTML_RE.test(value)) return "rich_text";
+  if (typeof value === "boolean") return "boolean";
+  if (typeof value === "string") {
+    const t = value.trim();
+    if (HTML_RE.test(t)) return "rich_text";
+    if (BOOL_RE.test(t)) return "boolean";
+    if (ISO_DATE_RE.test(t)) return "date";
+  }
   return "text";
+}
+
+function normalizeValue(raw: unknown, type: string): string {
+  if (type === "boolean") {
+    if (typeof raw === "boolean") return String(raw);
+    return String(raw ?? "").trim().toLowerCase() === "true" ? "true" : "false";
+  }
+  if (type === "date") {
+    const m = String(raw ?? "").trim().match(/^(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : String(raw ?? "");
+  }
+  return String(raw ?? "");
 }
 
 export async function handleImport(
@@ -115,7 +135,12 @@ export async function handleImport(
         errors.push({ row: i + 1, error: "Row must be an object." });
         continue;
       }
-      const values = row as Record<string, unknown>;
+      const raw = row as Record<string, unknown>;
+      const values: Record<string, unknown> = {};
+      for (const key of Object.keys(raw)) {
+        const field = fields.find((f) => f.name === key);
+        values[key] = field ? normalizeValue(raw[key], field.type) : String(raw[key] ?? "");
+      }
       const valErr = validateEntryValues(values, fields);
       if (valErr) { errors.push({ row: i + 1, error: valErr }); continue; }
       await prisma.contentCategoryEntry.create({
@@ -164,7 +189,12 @@ export async function handleImport(
         errors.push({ row: i + 1, error: "Row must be an object." });
         continue;
       }
-      const values = row as Record<string, unknown>;
+      const raw = row as Record<string, unknown>;
+      const values: Record<string, unknown> = {};
+      for (const key of Object.keys(raw)) {
+        const field = fields.find((f) => f.name === key);
+        values[key] = field ? normalizeValue(raw[key], field.type) : String(raw[key] ?? "");
+      }
       const valErr = validateEntryValues(values, fields);
       if (valErr) { errors.push({ row: i + 1, error: valErr }); continue; }
 
