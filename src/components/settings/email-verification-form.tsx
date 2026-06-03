@@ -52,9 +52,14 @@ export function EmailVerificationForm({ email, emailVerified: initialVerified }:
     setResendMsg("");
     setVerifyError("");
     setCode("");
-    await apiFetch("/api/auth/send-verification", { method: "POST" });
+    const res = await apiFetch("/api/auth/send-verification", { method: "POST" });
     setResendLoading(false);
-    setResendMsg("A new code has been sent to your email.");
+    if (res.ok) {
+      setResendMsg("A new code has been sent to your email.");
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setVerifyError(data.error ?? "Failed to send verification email. Please try again.");
+    }
   }
 
   return (

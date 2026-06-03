@@ -86,8 +86,6 @@ export function ResetForm({ token, id, kind }: ResetFormProps) {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         autoComplete="new-password"
-        minLength={8}
-        maxLength={72}
         hint="At least 8 characters."
         required
       />

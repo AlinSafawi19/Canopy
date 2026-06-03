@@ -97,8 +97,6 @@ export function CreateAdminButton() {
               value={form.password}
               onChange={(e) => handleChange("password", e.target.value)}
               autoComplete="new-password"
-              minLength={8}
-              maxLength={72}
               hint="The admin will be prompted to change this on first login."
               required
             />

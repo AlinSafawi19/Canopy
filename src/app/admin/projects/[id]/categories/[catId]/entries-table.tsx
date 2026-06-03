@@ -8,7 +8,7 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { EntryActions } from "./entry-actions";
 import { EntryStatusBadge } from "./entry-status-badge";
 import { SortableHeader } from "@/components/ui/sortable-header";
-import { stripRichText } from "@/lib/utils";
+import { stripRichText, formatDate } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -200,7 +200,9 @@ export function EntriesTable({
                     let display: string | null = null;
                     if (raw !== undefined && raw !== null && raw !== "") {
                       const str = String(raw);
-                      display = f.type === "rich_text" ? stripRichText(str) : str;
+                      if (f.type === "rich_text") display = stripRichText(str);
+                      else if (f.type === "date") display = formatDate(str);
+                      else display = str;
                     }
                     return (
                       <td key={f.name} className="px-4 py-2.5 border-r border-slate-100 max-w-[240px]">

@@ -107,8 +107,6 @@ export function CreateClientButton({ tenantId }: Props) {
               value={form.password}
               onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
               autoComplete="new-password"
-              minLength={8}
-              maxLength={72}
               hint="The client will be prompted to change this on first login."
               required
             />

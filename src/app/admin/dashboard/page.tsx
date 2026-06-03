@@ -10,7 +10,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CreateProjectButton } from "../projects/create-project-button";
 import { CreateClientButton } from "../clients/create-client-button";
-import { CreateContributorButton } from "../contributors/create-contributor-button";
 
 export default async function AdminDashboard() {
   const session = await getSession();
@@ -68,7 +67,6 @@ export default async function AdminDashboard() {
           <div className="flex flex-wrap gap-3">
             <CreateProjectButton />
             <CreateClientButton tenantId={tenantId} />
-            <CreateContributorButton />
           </div>
         </CardContent>
       </Card>

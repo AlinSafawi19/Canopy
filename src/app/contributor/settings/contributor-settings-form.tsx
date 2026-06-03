@@ -96,8 +96,6 @@ export function ContributorSettingsForm({ contributor }: { contributor: Contribu
               value={pw.next}
               onChange={(e) => setPw((f) => ({ ...f, next: e.target.value }))}
               autoComplete="new-password"
-              minLength={8}
-              maxLength={72}
               hint="At least 8 characters."
               required
             />

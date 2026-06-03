@@ -19,26 +19,55 @@ interface Props {
   autoWidth?: boolean;
 }
 
+// Matches max-h-52 (13rem at 16px base)
+const DROPDOWN_MAX_H = 208;
+
 export function Select({ label, value, onChange, options, placeholder, required, disabled, error, size = "md", autoWidth = false }: Props) {
   const [open, setOpen] = useState(false);
-  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const [pos, setPos] = useState<{ top: number; left: number; minWidth: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const correctedRef = useRef(false);
 
   const selectedLabel = options.find((o) => o.value === value)?.label;
 
-  function openDropdown() {
-    if (!triggerRef.current) return;
+  // Step 1: compute initial position using max estimated height
+  useEffect(() => {
+    if (!open || !triggerRef.current) {
+      setPos(null);
+      correctedRef.current = false;
+      return;
+    }
     const rect = triggerRef.current.getBoundingClientRect();
-    setDropdownStyle({
-      position: "fixed",
-      top: rect.bottom + 4,
+    const spaceBelow = window.innerHeight - rect.bottom - 8;
+    const spaceAbove = rect.top - 8;
+    const showBelow = spaceBelow >= DROPDOWN_MAX_H || spaceBelow >= spaceAbove;
+    correctedRef.current = false;
+    setPos({
+      top: showBelow ? rect.bottom + 4 : rect.top - DROPDOWN_MAX_H - 4,
       left: rect.left,
       minWidth: rect.width,
-      zIndex: 9999,
     });
-    setOpen(true);
-  }
+  }, [open]);
+
+  // Step 2: after first render, correct top using actual dropdown height
+  useEffect(() => {
+    if (!pos || correctedRef.current || !dropdownRef.current || !triggerRef.current) return;
+    correctedRef.current = true;
+    const dropRect = dropdownRef.current.getBoundingClientRect();
+    const btnRect = triggerRef.current.getBoundingClientRect();
+
+    if (dropRect.bottom < btnRect.top) {
+      // Opened above — fine-tune with actual height
+      const corrected = Math.max(8, btnRect.top - dropRect.height - 4);
+      if (Math.abs(corrected - pos.top) > 2) {
+        setPos((p) => p && { ...p, top: corrected });
+      }
+    } else if (dropRect.bottom > window.innerHeight - 8) {
+      // Still overflowing below — flip above with actual height
+      setPos((p) => p && { ...p, top: Math.max(8, btnRect.top - dropRect.height - 4) });
+    }
+  }, [pos]);
 
   useEffect(() => {
     if (!open) return;
@@ -52,7 +81,10 @@ export function Select({ label, value, onChange, options, placeholder, required,
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") { e.stopImmediatePropagation(); setOpen(false); }
     }
-    function handleScroll() { setOpen(false); }
+    function handleScroll(e: Event) {
+      if (dropdownRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    }
     document.addEventListener("mousedown", handleOutside);
     document.addEventListener("keydown", handleKey, true);
     window.addEventListener("scroll", handleScroll, true);
@@ -63,10 +95,10 @@ export function Select({ label, value, onChange, options, placeholder, required,
     };
   }, [open]);
 
-  const dropdown = open ? (
+  const dropdown = open && pos ? (
     <div
       ref={dropdownRef}
-      style={dropdownStyle}
+      style={{ position: "fixed", top: pos.top, left: pos.left, minWidth: pos.minWidth, zIndex: 9999 }}
       className="rounded-lg border border-slate-200 bg-white shadow-xl overflow-hidden"
     >
       <div className="max-h-52 overflow-y-auto">
@@ -100,7 +132,7 @@ export function Select({ label, value, onChange, options, placeholder, required,
         ref={triggerRef}
         type="button"
         disabled={disabled}
-        onClick={() => open ? setOpen(false) : openDropdown()}
+        onClick={() => setOpen((o) => !o)}
         className={[
           "flex items-center justify-between gap-1.5 rounded-lg border text-left transition-colors focus:outline-none",
           autoWidth ? "" : "w-full",
