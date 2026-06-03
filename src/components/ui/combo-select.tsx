@@ -2,6 +2,7 @@
 import { apiFetch } from "@/lib/api-fetch";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Search, Check, Loader2 } from "lucide-react";
 
 interface SelectItem {
@@ -42,9 +43,13 @@ export function ComboSelect({
   const [selectedLabel, setSelectedLabel] = useState(initialLabel);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const correctedRef = useRef(false);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // Refs to avoid stale closures in callbacks
   const busyRef = useRef(false);
@@ -98,6 +103,38 @@ export function ComboSelect({
     doFetch(queryRef.current, pageRef.current + 1, true);
   }
 
+  // Step 1: estimate position using max expected height
+  const DROPDOWN_MAX_H = 320;
+  useEffect(() => {
+    if (!open || !triggerRef.current) { setPos(null); correctedRef.current = false; return; }
+    const rect = triggerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom - 8;
+    const spaceAbove = rect.top - 8;
+    const showBelow = spaceBelow >= DROPDOWN_MAX_H || spaceBelow >= spaceAbove;
+    correctedRef.current = false;
+    setPos({
+      top: showBelow ? rect.bottom + 4 : rect.top - DROPDOWN_MAX_H - 4,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, [open]);
+
+  // Step 2: correct top using actual rendered dropdown height
+  useEffect(() => {
+    if (!pos || correctedRef.current || !dropdownRef.current || !triggerRef.current) return;
+    correctedRef.current = true;
+    const dropRect = dropdownRef.current.getBoundingClientRect();
+    const btnRect = triggerRef.current.getBoundingClientRect();
+    if (dropRect.bottom < btnRect.top) {
+      // Opened above — snap to just above trigger using real height
+      const corrected = Math.max(8, btnRect.top - dropRect.height - 4);
+      if (Math.abs(corrected - pos.top) > 2) setPos((p) => p && { ...p, top: corrected });
+    } else if (dropRect.bottom > window.innerHeight - 8) {
+      // Overflows below — flip above using real height
+      setPos((p) => p && { ...p, top: Math.max(8, btnRect.top - dropRect.height - 4) });
+    }
+  }, [pos]);
+
   // When dropdown opens: reset and fetch first page
   useEffect(() => {
     if (!open) {
@@ -140,14 +177,26 @@ export function ComboSelect({
     return () => obs.disconnect();
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Close on outside click
+  // Close on outside click (check both trigger container and portal dropdown)
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+      if (
+        containerRef.current?.contains(e.target as Node) ||
+        dropdownRef.current?.contains(e.target as Node)
+      ) return;
+      setOpen(false);
+    };
+    const scrollHandler = (e: Event) => {
+      if (dropdownRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
     };
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    window.addEventListener("scroll", scrollHandler, true);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      window.removeEventListener("scroll", scrollHandler, true);
+    };
   }, [open]);
 
   // Escape closes combo (capture phase so modal Escape doesn't fire too)
@@ -172,7 +221,7 @@ export function ComboSelect({
   const displayLabel = value ? selectedLabel : "";
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef}>
       {label && (
         <label className="block text-sm font-medium text-slate-700 mb-1.5">
           {label}
@@ -181,6 +230,7 @@ export function ComboSelect({
       )}
 
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : setOpen(true))}
@@ -201,8 +251,12 @@ export function ComboSelect({
         />
       </button>
 
-      {open && (
-        <div className="absolute z-[200] mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-xl overflow-hidden">
+      {open && pos && typeof document !== "undefined" && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{ position: "fixed", top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}
+          className="rounded-lg border border-slate-200 bg-white shadow-xl overflow-hidden"
+        >
           {/* Search bar */}
           <div className="p-2 border-b border-slate-100">
             <div className="relative">
@@ -264,7 +318,8 @@ export function ComboSelect({
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

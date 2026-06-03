@@ -15,7 +15,11 @@ export default async function OwnerSettingsLayout({ children }: { children: Reac
         <h2 className="text-xl font-bold text-slate-900">Settings</h2>
         <p className="text-slate-500 text-sm mt-0.5">Manage your account</p>
       </div>
-      <SettingsShell basePath="/owner/settings" emailVerified={!!owner?.emailVerifiedAt}>
+      <SettingsShell
+        basePath="/owner/settings"
+        emailVerified={!!owner?.emailVerifiedAt}
+        showReleases
+      >
         {children}
       </SettingsShell>
     </div>

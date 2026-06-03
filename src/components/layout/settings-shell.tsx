@@ -3,29 +3,35 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { User, Lock, Mail, Palette } from "lucide-react";
+import { User, Lock, Mail, Palette, Megaphone } from "lucide-react";
 
-const SETTINGS_NAV = [
+const BASE_NAV = [
   { label: "Profile", segment: "profile", icon: User },
   { label: "Security", segment: "security", icon: Lock },
   { label: "Email", segment: "email", icon: Mail },
   { label: "Appearance", segment: "appearance", icon: Palette },
-] as const;
+];
+
+const OWNER_NAV = [
+  { label: "Releases", segment: "releases", icon: Megaphone },
+];
 
 interface SettingsShellProps {
   children: React.ReactNode;
   basePath: string;
   emailVerified?: boolean;
+  showReleases?: boolean;
 }
 
-export function SettingsShell({ children, basePath, emailVerified }: SettingsShellProps) {
+export function SettingsShell({ children, basePath, emailVerified, showReleases }: SettingsShellProps) {
   const pathname = usePathname();
+  const nav = [...BASE_NAV, ...(showReleases ? OWNER_NAV : [])];
 
   return (
     <div className="flex flex-col md:flex-row gap-6 md:gap-8 md:items-start">
       <aside className="w-full md:w-44 flex-shrink-0 md:self-stretch">
         <nav data-wt="settings-nav" className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible bg-white rounded-xl border border-slate-200 shadow-sm p-2 md:h-full">
-          {SETTINGS_NAV.map(({ label, segment, icon: Icon }) => {
+          {nav.map(({ label, segment, icon: Icon }) => {
             const href = `${basePath}/${segment}`;
             const isActive = pathname === href || (pathname?.startsWith(`${href}/`) ?? false);
             const showBadge = segment === "email" && emailVerified !== undefined;
