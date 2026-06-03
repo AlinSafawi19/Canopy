@@ -25,6 +25,7 @@ export function SortableHeader({ label, field, sortBy, sortDir, basePath, extraP
   return (
     <Link
       href={`${basePath}?${params}`}
+      scroll={false}
       className="flex items-center gap-1 group whitespace-nowrap hover:text-slate-900 transition-colors"
     >
       <span>{label}</span>
