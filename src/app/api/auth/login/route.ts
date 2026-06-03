@@ -114,18 +114,16 @@ export async function POST(request: NextRequest) {
       redirectTo = ROLE_HOME[session.role];
     }
 
-    // First-time login: stamp lastSeenReleaseId so they don't see historical releases
+    // First-time login: stamp lastSeenReleaseId before redirect so the layout
+    // never sees a null value and incorrectly shows the release popup.
     if (!user.lastSeenReleaseId) {
-      prisma.release
-        .findFirst({ where: { status: "published" }, orderBy: { publishedAt: "desc" }, select: { id: true } })
-        .then((latest) => {
-          if (!latest) return;
-          if (owner)       return prisma.platformOwner.update({ where: { id: owner.id },           data: { lastSeenReleaseId: latest.id } });
-          if (admin)       return prisma.adminIdentity.update({ where: { id: admin.id },           data: { lastSeenReleaseId: latest.id } });
-          if (client)      return prisma.clientIdentity.update({ where: { id: client.id },         data: { lastSeenReleaseId: latest.id } });
-          if (contributor) return prisma.contributor.update({ where: { id: contributor.id },       data: { lastSeenReleaseId: latest.id } });
-        })
-        .catch(() => {});
+      const latest = await prisma.release.findFirst({ where: { status: "published" }, orderBy: { publishedAt: "desc" }, select: { id: true } });
+      if (latest) {
+        if (owner)       await prisma.platformOwner.update({ where: { id: owner.id },       data: { lastSeenReleaseId: latest.id } });
+        else if (admin)  await prisma.adminIdentity.update({ where: { id: admin.id },       data: { lastSeenReleaseId: latest.id } });
+        else if (client) await prisma.clientIdentity.update({ where: { id: client.id },    data: { lastSeenReleaseId: latest.id } });
+        else if (contributor) await prisma.contributor.update({ where: { id: contributor.id }, data: { lastSeenReleaseId: latest.id } });
+      }
     }
 
     const response = NextResponse.json({ redirectTo });

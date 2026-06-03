@@ -43,18 +43,21 @@ export default async function InvitePage({
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="flex justify-center mb-8">
-          <LogoMark className="w-10 h-10" />
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-6">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Set up your account</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Welcome{displayName ? `, ${displayName}` : ""}. Choose a password to activate your account.
-            </p>
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 shadow-lg mb-4">
+            <LogoMark size={20} className="text-white" />
           </div>
+          <h1 className="text-2xl font-bold text-slate-900">Canopy</h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Welcome{displayName ? `, ${displayName}` : ""}. Set a password to activate your account.
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
           <InviteForm token={token} />
         </div>
+        <p className="text-center text-xs text-slate-400 mt-6">
+          Multi-role content management platform
+        </p>
       </div>
     </div>
   );
@@ -64,18 +67,24 @@ function InviteError({ message }: { message: string }) {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="flex justify-center mb-8">
-          <LogoMark className="w-10 h-10" />
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 shadow-lg mb-4">
+            <LogoMark size={20} className="text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900">Canopy</h1>
         </div>
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center space-y-4">
           <div className="flex justify-center">
             <XCircle size={40} className="text-red-400" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-slate-900">Invalid invite link</h1>
+            <h2 className="text-lg font-semibold text-slate-900">Invalid invite link</h2>
             <p className="text-sm text-slate-500 mt-1">{message}</p>
           </div>
         </div>
+        <p className="text-center text-xs text-slate-400 mt-6">
+          Multi-role content management platform
+        </p>
       </div>
     </div>
   );
