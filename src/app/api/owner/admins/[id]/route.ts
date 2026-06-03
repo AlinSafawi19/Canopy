@@ -57,23 +57,35 @@ export async function DELETE(
   try {
     const admin = await prisma.adminIdentity.findUnique({ where: { id } });
     if (!admin) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    // Delete everything owned by this admin's workspace in the correct order.
-    // There are no DB-level FKs between AdminIdentity and the other models
-    // (they share tenantId as a plain string), so cascades must be explicit.
-    await prisma.$transaction([
-      // Contributors + their assignments (ContributorAssignment cascades via FK)
-      prisma.contributor.deleteMany({ where: { tenantId: admin.tenantId } }),
-      // Clients + their project assignments (ClientAssignment cascades via FK)
-      prisma.clientIdentity.deleteMany({ where: { tenantId: admin.tenantId } }),
-      // Projects + their categories + entries (cascade via FK chain)
-      prisma.project.deleteMany({ where: { adminTenantId: admin.tenantId } }),
-      // API keys
-      prisma.apiKey.deleteMany({ where: { adminTenantId: admin.tenantId } }),
-      // Activity logs
-      prisma.activityLog.deleteMany({ where: { adminTenantId: admin.tenantId } }),
-      // Finally the admin record itself
-      prisma.adminIdentity.delete({ where: { id } }),
-    ]);
+
+    const t = admin.tenantId;
+
+    await prisma.$transaction(async (tx) => {
+      // Deepest dependents first so FK constraints (with or without CASCADE) are never violated.
+      await tx.contentCategoryEntry.deleteMany({
+        where: { category: { project: { adminTenantId: t } } },
+      });
+      await tx.contentCategory.deleteMany({
+        where: { project: { adminTenantId: t } },
+      });
+      await tx.contributorAssignment.deleteMany({
+        where: { contributor: { tenantId: t } },
+      });
+      await tx.clientAssignment.deleteMany({
+        where: { client: { tenantId: t } },
+      });
+      await tx.contributor.deleteMany({ where: { tenantId: t } });
+      await tx.clientIdentity.deleteMany({ where: { tenantId: t } });
+      await tx.project.deleteMany({ where: { adminTenantId: t } });
+      await tx.apiKey.deleteMany({ where: { adminTenantId: t } });
+      await tx.activityLog.deleteMany({ where: { adminTenantId: t } });
+      // Admin's own auth records
+      await tx.twoFactorBackupCode.deleteMany({ where: { targetKind: "admin", targetId: id } });
+      await tx.emailVerificationChallenge.deleteMany({ where: { targetKind: "admin", targetId: id } });
+      await tx.passwordResetChallenge.deleteMany({ where: { targetKind: "admin", targetId: id } });
+      await tx.adminIdentity.delete({ where: { id } });
+    });
+
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[owner/admins/:id DELETE]", err);
