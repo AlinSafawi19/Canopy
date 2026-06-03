@@ -1,5 +1,7 @@
 "use client";
 
+"use client";
+
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Sparkles } from "lucide-react";
@@ -33,11 +35,6 @@ export function ReleasePopup({ release }: ReleasePopupProps) {
 
   if (!visible) return null;
 
-  const lines = release.notes
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
@@ -61,20 +58,21 @@ export function ReleasePopup({ release }: ReleasePopupProps) {
 
         {/* Notes */}
         <div className="px-6 pb-4 overflow-y-auto flex-1 min-h-0">
-          <div className="space-y-2">
-            {lines.map((line, i) => {
-              const isBullet = line.startsWith("- ") || line.startsWith("• ");
-              const text = isBullet ? line.slice(2) : line;
-              return isBullet ? (
-                <div key={i} className="flex gap-2 text-sm text-slate-600">
-                  <span className="text-indigo-400 mt-0.5 flex-shrink-0">•</span>
-                  <span>{text}</span>
-                </div>
-              ) : (
-                <p key={i} className="text-sm text-slate-600">{text}</p>
-              );
-            })}
-          </div>
+          <div
+            className={[
+              "text-sm text-slate-600",
+              "[&_p]:mb-2 [&_p:last-child]:mb-0",
+              "[&_ul]:list-disc [&_ul]:pl-4 [&_ul]:mb-2 [&_ul_li]:mb-0.5",
+              "[&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:mb-2 [&_ol_li]:mb-0.5",
+              "[&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-slate-900 [&_h2]:mb-1 [&_h2]:mt-3",
+              "[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-slate-900 [&_h3]:mb-1 [&_h3]:mt-3",
+              "[&_strong]:font-semibold [&_strong]:text-slate-900",
+              "[&_blockquote]:border-l-2 [&_blockquote]:border-slate-200 [&_blockquote]:pl-3 [&_blockquote]:text-slate-500 [&_blockquote]:italic",
+              "[&_code]:bg-slate-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono",
+              "[&_hr]:border-slate-200 [&_hr]:my-3",
+            ].join(" ")}
+            dangerouslySetInnerHTML={{ __html: release.notes }}
+          />
         </div>
 
         {/* Footer */}
