@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
+import { NavigationLoader } from "./navigation-loader";
 import { type SessionRole } from "@/lib/auth";
 import { WalkthroughOverlay } from "@/components/walkthrough/walkthrough-overlay";
 import { ReleasePopup } from "@/components/layout/release-popup";
@@ -43,6 +44,8 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <NavigationLoader />
+
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
