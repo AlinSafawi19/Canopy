@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { getSession, hashPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateId } from "@/lib/utils";
 import { nanoid } from "nanoid";
-import { validateUsername, validatePassword, validateEmail, validateDisplayName, firstError } from "@/lib/validation";
+import { validateUsername, validateEmail, validateDisplayName, firstError } from "@/lib/validation";
+import { createInviteToken } from "@/lib/invite-tokens";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -12,13 +14,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { username, password, displayName, email } = await request.json();
+    const { username, displayName, email } = await request.json();
 
     const err = firstError(
       validateDisplayName(displayName),
       validateUsername(username),
       validateEmail(email),
-      validatePassword(password),
     );
     if (err) return NextResponse.json({ error: err }, { status: 400 });
 
@@ -27,21 +28,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Username is already taken." }, { status: 409 });
     }
 
-    const hashed = await hashPassword(password);
+    // Placeholder password — user sets their own via the invite link
+    const placeholder = await hashPassword(crypto.randomBytes(32).toString("hex"));
+
     const admin = await prisma.adminIdentity.create({
       data: {
         id: generateId(),
         username,
-        password: hashed,
+        password: placeholder,
         displayName: displayName.trim(),
         email: email.trim().toLowerCase(),
         tenantId: nanoid(),
-        mustChangePassword: true,
         updatedBy: session.id,
       },
     });
 
-    return NextResponse.json({ id: admin.id }, { status: 201 });
+    const inviteToken = await createInviteToken("admin", admin.id);
+
+    return NextResponse.json({ id: admin.id, inviteToken }, { status: 201 });
   } catch (err) {
     console.error("[owner/admins POST]", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });

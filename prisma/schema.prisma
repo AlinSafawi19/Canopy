@@ -90,7 +90,6 @@ model ClientIdentity {
   password           String
   displayName        String             @db.VarChar(50)
   email              String             @db.VarChar(255)
-  mustChangePassword Boolean            @default(false)
   theme              String             @default("auto") @db.VarChar(10)
   updatedAt          DateTime           @updatedAt
   updatedBy          String?
@@ -133,7 +132,6 @@ model AdminIdentity {
   email              String    @unique @default("") @db.VarChar(255)
   updatedAt          DateTime  @updatedAt
   updatedBy          String?
-  mustChangePassword Boolean   @default(false)
   theme              String    @default("auto") @db.VarChar(10)
   tenantId           String    @default("") @unique
   archivedAt         DateTime?
@@ -156,7 +154,6 @@ model PlatformOwner {
   email              String    @unique @default("") @db.VarChar(255)
   updatedAt          DateTime  @updatedAt
   updatedBy          String?
-  mustChangePassword Boolean   @default(false)
   theme              String    @default("auto") @db.VarChar(10)
   walkthroughSeenAt  DateTime?
   emailVerifiedAt    DateTime?
@@ -209,7 +206,6 @@ model Contributor {
   tenantId             String
   parentClientUsername String
   permissions          Json
-  mustChangePassword   Boolean   @default(false)
   theme                String    @default("auto") @db.VarChar(10)
   accountId            String
   updatedAt            DateTime  @updatedAt
@@ -274,6 +270,19 @@ model ActivityLog {
   @@index([actorId, createdAt])
   @@index([adminTenantId, createdAt])
   @@index([parentClientUsername, createdAt])
+}
+
+model InviteToken {
+  id         String    @id @default(cuid())
+  token      String    @unique
+  targetKind String    // "admin" | "client" | "contributor"
+  targetId   String
+  usedAt     DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+
+  @@index([token])
+  @@index([targetKind, targetId])
 }
 
 model Release {

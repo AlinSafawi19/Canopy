@@ -9,6 +9,8 @@ import { Pagination } from "@/components/ui/pagination";
 import { SearchInput } from "@/components/ui/search-input";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { parsePage, parseLimit, parseSearch, parseSortDir } from "@/lib/pagination";
+import { InviteStatusCell } from "@/components/ui/invite-status-cell";
+import { inviteStatus } from "@/lib/invite-tokens";
 
 const BASE = "/owner/admins";
 const VALID_SORTS = ["displayName", "username", "updatedAt"] as const;
@@ -49,10 +51,22 @@ export default async function AdminsPage({
       take: limit,
       select: {
         id: true, username: true, displayName: true, email: true,
-        tenantId: true, mustChangePassword: true, archivedAt: true, updatedAt: true,
+        tenantId: true, archivedAt: true, updatedAt: true,
       },
     }),
   ]);
+
+  // Fetch latest invite token for each admin
+  const inviteTokens = await prisma.inviteToken.findMany({
+    where: { targetKind: "admin", targetId: { in: admins.map((a) => a.id) } },
+    orderBy: { createdAt: "desc" },
+  });
+  const inviteMap = new Map(
+    admins.map((a) => {
+      const token = inviteTokens.find((t) => t.targetId === a.id) ?? null;
+      return [a.id, token];
+    })
+  );
 
   const extraParams: Record<string, string> = { limit: String(limit), sortBy, sortDir };
   if (search) extraParams.search = search;
@@ -88,6 +102,7 @@ export default async function AdminsPage({
                 <TableHead>Email</TableHead>
                 <TableHead>Tenant</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Invite</TableHead>
                 <TableHead><SortableHeader label="Updated" field="updatedAt" sortBy={sortBy} sortDir={sortDir} basePath={BASE} extraParams={{ limit: String(limit), ...(search ? { search } : {}) }} /></TableHead>
                 <TableHead className="sticky right-0 bg-slate-50">Actions</TableHead>
               </TableRow>
@@ -95,7 +110,7 @@ export default async function AdminsPage({
             <TableBody>
               {admins.length === 0 && (
                 <TableRow>
-                  <TableCell className="text-slate-400 text-center" colSpan={7}>
+                  <TableCell className="text-slate-400 text-center" colSpan={8}>
                     {search ? `No admins found for "${search}"` : "No admins yet"}
                   </TableCell>
                 </TableRow>
@@ -108,6 +123,13 @@ export default async function AdminsPage({
                   <TableCell><Badge variant="outline">{admin.tenantId || "unset"}</Badge></TableCell>
                   <TableCell>
                     {admin.archivedAt ? <Badge variant="danger">Archived</Badge> : <Badge variant="success">Active</Badge>}
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const t = inviteMap.get(admin.id) ?? null;
+                      const st = t ? inviteStatus(t) : "none";
+                      return <InviteStatusCell targetKind="admin" targetId={admin.id} displayName={admin.displayName} status={st} token={t?.token} />;
+                    })()}
                   </TableCell>
                   <TableCell className="text-slate-500">{formatDate(admin.updatedAt)}</TableCell>
                   <TableCell className="sticky right-0 bg-white"><AdminActions admin={admin} /></TableCell>

@@ -34,13 +34,8 @@ export function EmailVerificationForm({ email, emailVerified: initialVerified }:
     });
     setVerifyLoading(false);
     if (res.ok) {
-      const data = await res.json();
       setVerified(true);
-      if (data.mustChangePassword) {
-        router.push("/change-password");
-      } else {
-        router.refresh();
-      }
+      router.refresh();
     } else {
       const data = await res.json();
       setVerifyError(data.error ?? "Verification failed");

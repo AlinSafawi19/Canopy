@@ -28,7 +28,7 @@ export async function PATCH(
       const pwErr = validatePassword(body.newPassword);
       if (pwErr) return NextResponse.json({ error: pwErr }, { status: 400 });
       const hashed = await hashPassword(body.newPassword);
-      await prisma.contributor.update({ where: { id }, data: { password: hashed, mustChangePassword: true, updatedBy: session.id } });
+      await prisma.contributor.update({ where: { id }, data: { password: hashed, updatedBy: session.id } });
     } else {
       return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }

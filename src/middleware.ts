@@ -10,6 +10,7 @@ const PUBLIC_PATHS = [
   "/verify-email",
   "/verify-email-notice",
   "/two-factor",
+  "/invite",
   "/api/auth/login",
   "/api/auth/logout",
   "/api/auth/forgot-password",
@@ -18,10 +19,11 @@ const PUBLIC_PATHS = [
   "/api/auth/two-factor",
   "/api/auth/send-verification",
   "/api/auth/verify-email",
+  "/api/auth/invite",
 ];
 
 // Paths accessible to any authenticated user regardless of role prefix
-const AUTH_PATHS = ["/change-password", "/2fa-reminder", "/walkthrough"];
+const AUTH_PATHS = ["/2fa-reminder", "/walkthrough"];
 
 const ROLE_PREFIXES: Record<SessionRole, string> = {
   owner: "/owner",

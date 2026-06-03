@@ -35,37 +35,30 @@ export async function POST(request: NextRequest) {
   }
 
   // Check post-login redirect conditions
-  let mustChangePassword = false;
   let emailVerified = true;
   let walkthroughSeen = false;
   const { id, role } = session;
 
   if (role === "owner") {
-    const u = await prisma.platformOwner.findUnique({ where: { id }, select: { mustChangePassword: true, emailVerifiedAt: true, walkthroughSeenAt: true } });
-    mustChangePassword = !!u?.mustChangePassword;
+    const u = await prisma.platformOwner.findUnique({ where: { id }, select: { emailVerifiedAt: true, walkthroughSeenAt: true } });
     emailVerified = !!u?.emailVerifiedAt;
     walkthroughSeen = !!u?.walkthroughSeenAt;
   } else if (role === "admin") {
-    const u = await prisma.adminIdentity.findUnique({ where: { id }, select: { mustChangePassword: true, emailVerifiedAt: true, walkthroughSeenAt: true } });
-    mustChangePassword = !!u?.mustChangePassword;
+    const u = await prisma.adminIdentity.findUnique({ where: { id }, select: { emailVerifiedAt: true, walkthroughSeenAt: true } });
     emailVerified = !!u?.emailVerifiedAt;
     walkthroughSeen = !!u?.walkthroughSeenAt;
   } else if (role === "client") {
-    const u = await prisma.clientIdentity.findUnique({ where: { id }, select: { mustChangePassword: true, emailVerifiedAt: true, walkthroughSeenAt: true } });
-    mustChangePassword = !!u?.mustChangePassword;
+    const u = await prisma.clientIdentity.findUnique({ where: { id }, select: { emailVerifiedAt: true, walkthroughSeenAt: true } });
     emailVerified = !!u?.emailVerifiedAt;
     walkthroughSeen = !!u?.walkthroughSeenAt;
   } else if (role === "contributor") {
-    const u = await prisma.contributor.findUnique({ where: { id }, select: { mustChangePassword: true, emailVerifiedAt: true, walkthroughSeenAt: true } });
-    mustChangePassword = !!u?.mustChangePassword;
+    const u = await prisma.contributor.findUnique({ where: { id }, select: { emailVerifiedAt: true, walkthroughSeenAt: true } });
     emailVerified = !!u?.emailVerifiedAt;
     walkthroughSeen = !!u?.walkthroughSeenAt;
   }
 
   let redirectTo: string;
-  if (mustChangePassword) {
-    redirectTo = "/change-password";
-  } else if (!emailVerified) {
+  if (!emailVerified) {
     redirectTo = "/verify-email-notice";
   } else if (!walkthroughSeen) {
     redirectTo = "/walkthrough";

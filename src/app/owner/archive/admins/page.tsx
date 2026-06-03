@@ -38,7 +38,7 @@ export default async function OwnerArchiveAdminsPage({
       orderBy: { archivedAt: "desc" },
       skip,
       take: limit,
-      select: { id: true, username: true, displayName: true, email: true, tenantId: true, mustChangePassword: true, archivedAt: true, updatedAt: true },
+      select: { id: true, username: true, displayName: true, email: true, tenantId: true, archivedAt: true, updatedAt: true },
     }),
   ]);
 

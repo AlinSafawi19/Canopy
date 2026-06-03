@@ -1,14 +1,14 @@
 "use client";
-import { apiFetch } from "@/lib/api-fetch";
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal, ModalRef } from "@/components/ui/modal";
 import { ComboSelect } from "@/components/ui/combo-select";
-import { validateUsername, validatePassword, validateEmail, validateDisplayName, firstError } from "@/lib/validation";
-import { downloadCredentialsPdf } from "@/lib/credentials-pdf";
+import { InviteLinkPopup } from "@/components/ui/invite-link-popup";
+import { validateUsername, validateEmail, validateDisplayName, firstError } from "@/lib/validation";
 
 export function CreateContributorButton() {
   const router = useRouter();
@@ -16,12 +16,14 @@ export function CreateContributorButton() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [touched, setTouched] = useState(false);
+  const [inviteUrl, setInviteUrl] = useState("");
+  const [createdName, setCreatedName] = useState("");
   const modalRef = useRef<ModalRef>(null);
   const submittingRef = useRef(false);
-  const [form, setForm] = useState({ username: "", password: "", displayName: "", email: "", projectId: "" });
+  const [form, setForm] = useState({ username: "", displayName: "", email: "", projectId: "" });
 
   function reset() {
-    setForm({ username: "", password: "", displayName: "", email: "", projectId: "" });
+    setForm({ username: "", displayName: "", email: "", projectId: "" });
     setError("");
     setTouched(false);
   }
@@ -34,7 +36,6 @@ export function CreateContributorButton() {
       validateDisplayName(form.displayName),
       validateUsername(form.username),
       validateEmail(form.email),
-      validatePassword(form.password),
     );
     if (err) { setError(err); return; }
     if (!form.projectId) { setError("Project is required."); return; }
@@ -48,13 +49,8 @@ export function CreateContributorButton() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Failed to create contributor."); return; }
-      downloadCredentialsPdf({
-        role: "Contributor",
-        displayName: form.displayName,
-        username: form.username,
-        password: form.password,
-        email: form.email,
-      });
+      setInviteUrl(`${window.location.origin}/invite?token=${data.inviteToken}`);
+      setCreatedName(form.displayName);
       setOpen(false);
       reset();
       router.refresh();
@@ -67,6 +63,7 @@ export function CreateContributorButton() {
   return (
     <>
       <Button onClick={() => setOpen(true)}>New Contributor</Button>
+
       <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); reset(); }} title="Add Contributor" isDirty={touched}>
         <form onSubmit={handleSubmit} className="space-y-4" onInput={() => setTouched(true)}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -91,31 +88,18 @@ export function CreateContributorButton() {
               required
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Password"
-              type="password"
-              showToggle
-              value={form.password}
-              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-              autoComplete="new-password"
-              hint="The contributor will be prompted to change this on first login."
-              required
-            />
-            <Input
-              label="Email"
-              type="text"
-              inputMode="email"
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              placeholder="contributor@example.com"
-              autoComplete="off"
-              hint="A verification code will be sent here."
-              maxLength={255}
-              required
-            />
-          </div>
-
+          <Input
+            label="Email"
+            type="text"
+            inputMode="email"
+            value={form.email}
+            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            placeholder="contributor@example.com"
+            autoComplete="off"
+            hint="An invite link will be generated for them to set their password."
+            maxLength={255}
+            required
+          />
           <ComboSelect
             endpoint="/api/client/selects/projects"
             value={form.projectId}
@@ -124,14 +108,21 @@ export function CreateContributorButton() {
             placeholder="— select a project —"
             required
           />
-
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex justify-end gap-3">
             <Button variant="outline" type="button" onClick={() => modalRef.current?.attemptClose()}>Cancel</Button>
-            <Button type="submit" loading={loading}>Add contributor</Button>
+            <Button type="submit" loading={loading}>Create & get invite link</Button>
           </div>
         </form>
       </Modal>
+
+      {inviteUrl && (
+        <InviteLinkPopup
+          inviteUrl={inviteUrl}
+          displayName={createdName}
+          onClose={() => setInviteUrl("")}
+        />
+      )}
     </>
   );
 }

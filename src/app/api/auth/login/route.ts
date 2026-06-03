@@ -43,81 +43,44 @@ export async function POST(request: NextRequest) {
 
     let session: SessionPayload;
     let emailVerified = true;
-    let mustChangePassword = false;
     let twoFactorEnabled = false;
     let mustShow2faReminder = false;
     let walkthroughSeen = false;
     let userTheme = "auto";
 
     if (owner) {
-      session = {
-        id: owner.id,
-        username: owner.username,
-        displayName: owner.displayName,
-        role: "owner",
-      };
+      session = { id: owner.id, username: owner.username, displayName: owner.displayName, role: "owner" };
       emailVerified = !!owner.emailVerifiedAt;
-      mustChangePassword = !!owner.mustChangePassword;
       twoFactorEnabled = !!owner.twoFactorEnabled;
       mustShow2faReminder = !!owner.mustShow2faReminder;
       walkthroughSeen = !!owner.walkthroughSeenAt;
       userTheme = owner.theme;
     } else if (admin) {
       if (admin.archivedAt) {
-        return NextResponse.json(
-          { error: "Your account has been deactivated. Contact the platform owner for help." },
-          { status: 403 }
-        );
+        return NextResponse.json({ error: "Your account has been deactivated. Contact the platform owner for help." }, { status: 403 });
       }
-      session = {
-        id: admin.id,
-        username: admin.username,
-        displayName: admin.displayName,
-        role: "admin",
-        tenantId: admin.tenantId,
-      };
+      session = { id: admin.id, username: admin.username, displayName: admin.displayName, role: "admin", tenantId: admin.tenantId };
       emailVerified = !!admin.emailVerifiedAt;
-      mustChangePassword = !!admin.mustChangePassword;
       twoFactorEnabled = !!admin.twoFactorEnabled;
       mustShow2faReminder = !!admin.mustShow2faReminder;
       walkthroughSeen = !!admin.walkthroughSeenAt;
       userTheme = admin.theme;
     } else if (client) {
       if (client.archivedAt) {
-        return NextResponse.json(
-          { error: "Your account has been deactivated. Contact your admin for help." },
-          { status: 403 }
-        );
+        return NextResponse.json({ error: "Your account has been deactivated. Contact your admin for help." }, { status: 403 });
       }
-      session = {
-        id: client.id,
-        username: client.username,
-        displayName: client.displayName,
-        role: "client",
-      };
+      session = { id: client.id, username: client.username, displayName: client.displayName, role: "client" };
       emailVerified = !!client.emailVerifiedAt;
-      mustChangePassword = !!client.mustChangePassword;
       twoFactorEnabled = !!client.twoFactorEnabled;
       mustShow2faReminder = !!client.mustShow2faReminder;
       walkthroughSeen = !!client.walkthroughSeenAt;
       userTheme = client.theme;
     } else {
-      // contributor is guaranteed non-null here
       if (contributor!.archivedAt) {
-        return NextResponse.json(
-          { error: "Your account has been deactivated. Contact your client for help." },
-          { status: 403 }
-        );
+        return NextResponse.json({ error: "Your account has been deactivated. Contact your client for help." }, { status: 403 });
       }
-      session = {
-        id: contributor!.id,
-        username: contributor!.username,
-        displayName: contributor!.displayName,
-        role: "contributor",
-        tenantId: contributor!.tenantId,
-      };
+      session = { id: contributor!.id, username: contributor!.username, displayName: contributor!.displayName, role: "contributor", tenantId: contributor!.tenantId };
       emailVerified = !!contributor!.emailVerifiedAt;
-      mustChangePassword = !!contributor!.mustChangePassword;
       twoFactorEnabled = !!contributor!.twoFactorEnabled;
       mustShow2faReminder = !!contributor!.mustShow2faReminder;
       walkthroughSeen = !!contributor!.walkthroughSeenAt;
@@ -143,8 +106,6 @@ export async function POST(request: NextRequest) {
     let redirectTo: string;
     if (mustShow2faReminder) {
       redirectTo = "/2fa-reminder";
-    } else if (mustChangePassword) {
-      redirectTo = "/change-password";
     } else if (!emailVerified) {
       redirectTo = "/verify-email-notice";
     } else if (!walkthroughSeen) {

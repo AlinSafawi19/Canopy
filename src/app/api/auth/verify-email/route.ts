@@ -43,23 +43,18 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date();
-    let mustChangePassword = false;
     if (role === "owner") {
-      const u = await prisma.platformOwner.update({ where: { id }, data: { emailVerifiedAt: now } });
-      mustChangePassword = !!u.mustChangePassword;
+      await prisma.platformOwner.update({ where: { id }, data: { emailVerifiedAt: now } });
     } else if (role === "admin") {
-      const u = await prisma.adminIdentity.update({ where: { id }, data: { emailVerifiedAt: now } });
-      mustChangePassword = !!u.mustChangePassword;
+      await prisma.adminIdentity.update({ where: { id }, data: { emailVerifiedAt: now } });
     } else if (role === "client") {
-      const u = await prisma.clientIdentity.update({ where: { id }, data: { emailVerifiedAt: now } });
-      mustChangePassword = !!u.mustChangePassword;
+      await prisma.clientIdentity.update({ where: { id }, data: { emailVerifiedAt: now } });
     } else if (role === "contributor") {
-      const u = await prisma.contributor.update({ where: { id }, data: { emailVerifiedAt: now } });
-      mustChangePassword = !!u.mustChangePassword;
+      await prisma.contributor.update({ where: { id }, data: { emailVerifiedAt: now } });
     }
 
     await prisma.emailVerificationChallenge.delete({ where: { id: challenge.id } });
-    return NextResponse.json({ ok: true, mustChangePassword });
+    return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[verify-email]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

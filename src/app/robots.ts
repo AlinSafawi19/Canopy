@@ -12,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
           "/client/",
           "/contributor/",
           "/api/",
-          "/change-password",
+          "/invite",
           "/two-factor",
           "/2fa-reminder",
           "/verify-email",
