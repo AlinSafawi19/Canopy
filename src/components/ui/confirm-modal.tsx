@@ -31,11 +31,11 @@ export function ConfirmModal({
       <div className="space-y-4">
         {message && <p className="text-sm text-slate-600 break-words">{message}</p>}
         {children}
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" type="button" onClick={onClose} disabled={loading}>
+        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-3">
+          <Button variant="outline" type="button" onClick={onClose} disabled={loading} className="sm:flex-none flex-1">
             Cancel
           </Button>
-          <Button variant={variant} type="button" onClick={onConfirm} loading={loading}>
+          <Button variant={variant} type="button" onClick={onConfirm} loading={loading} className="sm:flex-none flex-1">
             {confirmLabel}
           </Button>
         </div>
