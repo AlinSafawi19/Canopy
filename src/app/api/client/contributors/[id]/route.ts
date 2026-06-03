@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-log";
+import { validateUserStillExists } from "@/lib/validate-user";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session || session.role !== "client") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const clientExists = await validateUserStillExists(session.id, "client");
+  if (!clientExists) {
+    return NextResponse.json({ error: "Account has been deleted." }, { status: 403 });
   }
 
   const { id } = await params;

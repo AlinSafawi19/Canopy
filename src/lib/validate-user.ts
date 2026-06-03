@@ -9,27 +9,27 @@ import type { SessionRole } from "@/lib/auth";
 export async function validateUserStillExists(
   userId: string,
   role: SessionRole
-): Promise<{ id: string; archivedAt: Date | null } | null> {
+): Promise<{ id: string } | null> {
   try {
     if (role === "owner") {
       return await prisma.platformOwner.findUnique({
         where: { id: userId },
-        select: { id: true, archivedAt: true },
+        select: { id: true },
       });
     } else if (role === "admin") {
       return await prisma.adminIdentity.findUnique({
         where: { id: userId },
-        select: { id: true, archivedAt: true },
+        select: { id: true },
       });
     } else if (role === "client") {
       return await prisma.clientIdentity.findUnique({
         where: { id: userId },
-        select: { id: true, archivedAt: true },
+        select: { id: true },
       });
     } else if (role === "contributor") {
       return await prisma.contributor.findUnique({
         where: { id: userId },
-        select: { id: true, archivedAt: true },
+        select: { id: true },
       });
     }
     return null;

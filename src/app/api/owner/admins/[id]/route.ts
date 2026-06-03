@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { validateUserStillExists } from "@/lib/validate-user";
 
 export async function PATCH(
   request: NextRequest,
@@ -9,6 +10,11 @@ export async function PATCH(
   const session = await getSession();
   if (!session || session.role !== "owner") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const ownerExists = await validateUserStillExists(session.id, "owner");
+  if (!ownerExists) {
+    return NextResponse.json({ error: "Account has been deleted." }, { status: 403 });
   }
 
   const { id } = await params;
@@ -53,6 +59,12 @@ export async function DELETE(
   if (!session || session.role !== "owner") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const ownerExists = await validateUserStillExists(session.id, "owner");
+  if (!ownerExists) {
+    return NextResponse.json({ error: "Account has been deleted." }, { status: 403 });
+  }
+
   const { id } = await params;
   try {
     const admin = await prisma.adminIdentity.findUnique({ where: { id } });
