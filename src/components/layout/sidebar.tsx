@@ -35,6 +35,7 @@ const NAV_ITEMS: Record<SessionRole, NavItem[]> = {
   owner: [
     { label: "Dashboard", href: "/owner/dashboard", icon: LayoutDashboard },
     { label: "Admins", href: "/owner/admins", icon: UserCog },
+    { label: "Archive", href: "/owner/archive", icon: Archive },
   ],
   admin: [
     { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },

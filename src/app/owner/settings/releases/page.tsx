@@ -12,6 +12,7 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
 
 export default async function ReleasesPage() {
   const releases = await prisma.release.findMany({
+    where: { status: { not: "archived" } },
     orderBy: { createdAt: "desc" },
   });
 

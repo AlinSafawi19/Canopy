@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api-fetch";
 import { PublishReleaseButton } from "./publish-release-button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Pencil, Trash2, Archive, Globe, FileText } from "lucide-react";
+// Archived releases are excluded from this page — restore is handled from /owner/archive/releases
 
 interface Release {
   id: string;
@@ -72,26 +73,15 @@ export function ReleaseActions({ release }: { release: Release }) {
         </button>
       )}
 
-      {/* Archive / Unarchive */}
-      {release.status !== "archived" ? (
-        <button
-          title="Archive"
-          disabled={loading === "archived"}
-          onClick={() => patch({ status: "archived" })}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-40"
-        >
-          <Archive size={14} />
-        </button>
-      ) : (
-        <button
-          title="Restore"
-          disabled={loading === "draft"}
-          onClick={() => patch({ status: "draft" })}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors disabled:opacity-40"
-        >
-          <Globe size={14} />
-        </button>
-      )}
+      {/* Archive — restore is only available from /owner/archive/releases */}
+      <button
+        title="Archive"
+        disabled={loading === "archived"}
+        onClick={() => patch({ status: "archived" })}
+        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-40"
+      >
+        <Archive size={14} />
+      </button>
 
       {/* Delete */}
       <button

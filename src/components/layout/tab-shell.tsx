@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Folder, Layers, FileText, type LucideIcon } from "lucide-react";
+import { Folder, Layers, FileText, UserCog, Megaphone, type LucideIcon } from "lucide-react";
 
-const ICON_MAP: Record<string, LucideIcon> = { Folder, Layers, FileText };
+const ICON_MAP: Record<string, LucideIcon> = { Folder, Layers, FileText, UserCog, Megaphone };
 
 export interface TabShellNavItem {
   label: string;
