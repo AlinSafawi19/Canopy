@@ -14,13 +14,17 @@ export default async function OwnerLayout({
   const session = await getSession();
   if (!session || session.role !== "owner") redirect("/login");
 
-  const [owner, adminsCount] = await Promise.all([
+  const [owner, adminsCount, latestRelease] = await Promise.all([
     prisma.platformOwner.findUnique({
       where: { id: session.id },
-      select: { walkthroughSeenAt: true, emailVerifiedAt: true },
+      select: { walkthroughSeenAt: true, emailVerifiedAt: true, lastSeenReleaseId: true },
     }),
     prisma.adminIdentity.count({ where: { archivedAt: null } }),
+    prisma.release.findFirst({ orderBy: { createdAt: "desc" } }),
   ]);
+
+  const pendingRelease =
+    latestRelease && latestRelease.id !== owner?.lastSeenReleaseId ? latestRelease : null;
 
   return (
     <AppShell
@@ -30,6 +34,7 @@ export default async function OwnerLayout({
       emailVerified={!!owner?.emailVerifiedAt}
       navCounts={{ "/owner/admins": adminsCount }}
       walkthroughActive={!owner?.walkthroughSeenAt}
+      pendingRelease={pendingRelease}
     >
       {children}
     </AppShell>

@@ -13,7 +13,7 @@ export default async function ContributorLayout({ children }: { children: React.
   const [contributor, assignments] = await Promise.all([
     prisma.contributor.findUnique({
       where: { id: session.id },
-      select: { walkthroughSeenAt: true, emailVerifiedAt: true, parentClientUsername: true, tenantId: true },
+      select: { walkthroughSeenAt: true, emailVerifiedAt: true, parentClientUsername: true, tenantId: true, lastSeenReleaseId: true },
     }),
     prisma.contributorAssignment.findMany({
       where: { contributorId: session.id },
@@ -24,7 +24,7 @@ export default async function ContributorLayout({ children }: { children: React.
   const projectIds = assignments.map((a) => a.projectId);
   const projectsCount = projectIds.length;
 
-  const [clientContact, archivedEntriesCount, logsCount] = await Promise.all([
+  const [clientContact, archivedEntriesCount, logsCount, latestRelease] = await Promise.all([
     contributor?.parentClientUsername
       ? prisma.clientIdentity.findFirst({ where: { username: contributor.parentClientUsername }, select: { email: true } })
       : Promise.resolve(null),
@@ -32,7 +32,11 @@ export default async function ContributorLayout({ children }: { children: React.
       ? prisma.contentCategoryEntry.count({ where: { archivedAt: { not: null }, category: { projectId: { in: projectIds } } } })
       : Promise.resolve(0),
     prisma.activityLog.count({ where: { actorId: session.id } }),
+    prisma.release.findFirst({ orderBy: { createdAt: "desc" } }),
   ]);
+
+  const pendingRelease =
+    latestRelease && latestRelease.id !== contributor?.lastSeenReleaseId ? latestRelease : null;
 
   return (
     <AppShell
@@ -43,6 +47,7 @@ export default async function ContributorLayout({ children }: { children: React.
       navCounts={{ "/contributor/projects": projectsCount, "/contributor/archive": archivedEntriesCount, "/contributor/logs": logsCount }}
       contactEmail={clientContact?.email || undefined}
       walkthroughActive={!contributor?.walkthroughSeenAt}
+      pendingRelease={pendingRelease}
     >
       {children}
     </AppShell>

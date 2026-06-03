@@ -102,6 +102,7 @@ model ClientIdentity {
   twoFactorSecret     String?
   twoFactorEnabled    Boolean            @default(false)
   mustShow2faReminder Boolean            @default(true)
+  lastSeenReleaseId   String?
   assignments         ClientAssignment[]
 
   @@index([tenantId])
@@ -142,6 +143,7 @@ model AdminIdentity {
   twoFactorSecret     String?
   twoFactorEnabled    Boolean   @default(false)
   mustShow2faReminder Boolean   @default(true)
+  lastSeenReleaseId   String?
 
   @@index([archivedAt])
 }
@@ -161,6 +163,7 @@ model PlatformOwner {
   twoFactorSecret      String?
   twoFactorEnabled     Boolean   @default(false)
   mustShow2faReminder  Boolean   @default(true)
+  lastSeenReleaseId    String?
 }
 
 model TwoFactorBackupCode {
@@ -218,6 +221,7 @@ model Contributor {
   twoFactorSecret      String?
   twoFactorEnabled     Boolean   @default(false)
   mustShow2faReminder  Boolean   @default(true)
+  lastSeenReleaseId    String?
   assignments          ContributorAssignment[]
 
   @@unique([tenantId, username])

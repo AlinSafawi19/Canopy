@@ -16,7 +16,7 @@ export default async function AdminLayout({
 
   const admin = await prisma.adminIdentity.findUnique({
     where: { id: session.id },
-    select: { walkthroughSeenAt: true, emailVerifiedAt: true, tenantId: true },
+    select: { walkthroughSeenAt: true, emailVerifiedAt: true, tenantId: true, lastSeenReleaseId: true },
   });
 
   const tenantId = admin?.tenantId ?? "";
@@ -24,7 +24,7 @@ export default async function AdminLayout({
   const [
     projectsCount, clientsCount, owner,
     archivedProjectsCount, archivedCategoriesCount, archivedEntriesCount,
-    logsCount,
+    logsCount, latestRelease,
   ] = await Promise.all([
     prisma.project.count({ where: { adminTenantId: tenantId, archivedAt: null } }),
     prisma.clientIdentity.count({ where: { tenantId, archivedAt: null } }),
@@ -33,9 +33,12 @@ export default async function AdminLayout({
     prisma.contentCategory.count({ where: { archivedAt: { not: null }, project: { adminTenantId: tenantId } } }),
     prisma.contentCategoryEntry.count({ where: { archivedAt: { not: null }, category: { project: { adminTenantId: tenantId } } } }),
     prisma.activityLog.count({ where: { adminTenantId: tenantId, actorId: session.id } }),
+    prisma.release.findFirst({ orderBy: { createdAt: "desc" } }),
   ]);
 
   const archiveCount = archivedProjectsCount + archivedCategoriesCount + archivedEntriesCount;
+  const pendingRelease =
+    latestRelease && latestRelease.id !== admin?.lastSeenReleaseId ? latestRelease : null;
 
   return (
     <AppShell
@@ -46,6 +49,7 @@ export default async function AdminLayout({
       navCounts={{ "/admin/projects": projectsCount, "/admin/clients": clientsCount, "/admin/archive": archiveCount, "/admin/logs": logsCount }}
       contactEmail={owner?.email || undefined}
       walkthroughActive={!admin?.walkthroughSeenAt}
+      pendingRelease={pendingRelease}
     >
       {children}
     </AppShell>

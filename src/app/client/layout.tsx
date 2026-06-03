@@ -12,7 +12,7 @@ export default async function ClientLayout({ children }: { children: React.React
 
   const client = await prisma.clientIdentity.findUnique({
     where: { id: session.id },
-    select: { walkthroughSeenAt: true, emailVerifiedAt: true, tenantId: true },
+    select: { walkthroughSeenAt: true, emailVerifiedAt: true, tenantId: true, lastSeenReleaseId: true },
   });
 
   const clientId = session.id;
@@ -21,7 +21,7 @@ export default async function ClientLayout({ children }: { children: React.React
   const [
     projectsCount, contributorsCount, adminContact,
     archivedCategoriesCount, archivedEntriesCount,
-    logsCount,
+    logsCount, latestRelease,
   ] = await Promise.all([
     prisma.clientAssignment.count({ where: { clientId, archivedAt: null } }),
     client?.tenantId
@@ -35,9 +35,12 @@ export default async function ClientLayout({ children }: { children: React.React
     prisma.activityLog.count({
       where: { OR: [{ actorId: clientId }, { actorRole: "contributor", parentClientUsername: session.username }] },
     }),
+    prisma.release.findFirst({ orderBy: { createdAt: "desc" } }),
   ]);
 
   const archiveCount = archivedCategoriesCount + archivedEntriesCount;
+  const pendingRelease =
+    latestRelease && latestRelease.id !== client?.lastSeenReleaseId ? latestRelease : null;
 
   return (
     <AppShell
@@ -48,6 +51,7 @@ export default async function ClientLayout({ children }: { children: React.React
       navCounts={{ "/client/projects": projectsCount, "/client/contributors": contributorsCount, "/client/archive": archiveCount, "/client/logs": logsCount }}
       contactEmail={adminContact?.email || undefined}
       walkthroughActive={!client?.walkthroughSeenAt}
+      pendingRelease={pendingRelease}
     >
       {children}
     </AppShell>

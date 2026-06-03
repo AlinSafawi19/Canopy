@@ -1,5 +1,5 @@
--- CreateTable
-CREATE TABLE "Release" (
+-- CreateTable (IF NOT EXISTS — init migration already includes this table on fresh DBs)
+CREATE TABLE IF NOT EXISTS "Release" (
     "id" TEXT NOT NULL,
     "version" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -11,4 +11,4 @@ CREATE TABLE "Release" (
 );
 
 -- CreateIndex
-CREATE INDEX "Release_createdAt_idx" ON "Release"("createdAt");
+CREATE INDEX IF NOT EXISTS "Release_createdAt_idx" ON "Release"("createdAt");

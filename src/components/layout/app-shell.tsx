@@ -5,6 +5,14 @@ import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { type SessionRole } from "@/lib/auth";
 import { WalkthroughOverlay } from "@/components/walkthrough/walkthrough-overlay";
+import { ReleasePopup } from "@/components/layout/release-popup";
+
+interface PendingRelease {
+  id: string;
+  version: string;
+  title: string;
+  notes: string;
+}
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -16,6 +24,7 @@ interface AppShellProps {
   navCounts?: Record<string, number>;
   contactEmail?: string;
   walkthroughActive?: boolean;
+  pendingRelease?: PendingRelease | null;
 }
 
 export function AppShell({
@@ -28,6 +37,7 @@ export function AppShell({
   navCounts,
   contactEmail,
   walkthroughActive,
+  pendingRelease,
 }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -55,6 +65,9 @@ export function AppShell({
 
       {/* Walkthrough overlay — mounted inside the shell so it sits over the real app */}
       {walkthroughActive && <WalkthroughOverlay role={role} />}
+
+      {/* Release popup — shown once per release until acknowledged */}
+      {!walkthroughActive && pendingRelease && <ReleasePopup release={pendingRelease} />}
     </div>
   );
 }
