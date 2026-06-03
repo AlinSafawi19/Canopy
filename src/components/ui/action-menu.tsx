@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useId, createContext, useContext } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "./button";
 
 const Ctx = createContext<{ close: () => void }>({ close: () => {} });
@@ -46,16 +47,17 @@ export function ActionMenu({ children }: { children: React.ReactNode }) {
         >
           ···
         </Button>
-        {open && (
+        {open && typeof document !== "undefined" && createPortal(
           <>
             <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
             <div
-              style={{ top: pos.top, bottom: pos.bottom, right: pos.right }}
-              className="fixed z-50 bg-white border border-slate-200 rounded-lg shadow-lg py-1 w-44"
+              style={{ position: "fixed", top: pos.top, bottom: pos.bottom, right: pos.right, zIndex: 9999 }}
+              className="bg-white border border-slate-200 rounded-lg shadow-lg py-1 w-44"
             >
               {children}
             </div>
-          </>
+          </>,
+          document.body
         )}
       </div>
     </Ctx.Provider>
