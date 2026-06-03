@@ -142,24 +142,28 @@ export function ManageSchemaButton({
 
           {fields.map((field, i) => (
             <div key={i} className="space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_148px_32px] gap-2 items-start">
+              <div className="grid grid-cols-[1fr_32px] sm:grid-cols-[1fr_148px_32px] gap-2 items-start">
                 <Input
                   value={field.name}
                   placeholder="e.g. Title"
                   onChange={(e) => updateField(i, { name: e.target.value })}
                 />
-                <Select
-                  value={field.type}
-                  onChange={(v) => updateField(i, {
-                    type: v,
-                    ...(v !== "enum" ? { options: [] } : {}),
-                  })}
-                  options={FIELD_TYPES}
-                />
+                {/* On mobile: drops to row 2, spans both columns. On sm+: normal column 2. */}
+                <div className="col-span-2 order-3 sm:col-span-1 sm:order-none">
+                  <Select
+                    value={field.type}
+                    onChange={(v) => updateField(i, {
+                      type: v,
+                      ...(v !== "enum" ? { options: [] } : {}),
+                    })}
+                    options={FIELD_TYPES}
+                  />
+                </div>
+                {/* On mobile: stays row 1 col 2 next to input. On sm+: normal column 3. */}
                 <button
                   type="button"
                   onClick={() => removeField(i)}
-                  className="h-9 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"
+                  className="order-2 sm:order-none h-9 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"
                 >
                   <Trash2 size={14} />
                 </button>
