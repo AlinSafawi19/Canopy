@@ -38,15 +38,15 @@ export function Topbar({ title, onMenuClick }: TopbarProps) {
               <Menu size={20} />
             </button>
           )}
+          <div className="flex items-center gap-2 lg:hidden">
+            <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
+              <LogoMark size={13} className="text-white" />
+            </div>
+            <span className="text-sm font-semibold tracking-wide text-slate-900">Canopy</span>
+          </div>
           {title && (
             <h1 className="text-base font-semibold text-slate-900 hidden lg:block">{title}</h1>
           )}
-        </div>
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 lg:hidden">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
-            <LogoMark size={13} className="text-white" />
-          </div>
-          <span className="text-sm font-semibold tracking-wide text-slate-900">Canopy</span>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(true)} className="gap-2">
           <LogOut size={15} />
