@@ -16,6 +16,7 @@ export function CreateAdminButton() {
   const [error, setError] = useState("");
   const [touched, setTouched] = useState(false);
   const modalRef = useRef<ModalRef>(null);
+  const submittingRef = useRef(false);
   const [form, setForm] = useState({ username: "", password: "", displayName: "", email: "" });
 
   function handleChange(field: string, value: string) {
@@ -26,6 +27,7 @@ export function CreateAdminButton() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submittingRef.current) return;
     setError("");
     const err = firstError(
       validateDisplayName(form.displayName),
@@ -35,6 +37,7 @@ export function CreateAdminButton() {
     );
     if (err) { setError(err); return; }
     setLoading(true);
+    submittingRef.current = true;
     try {
       const res = await apiFetch("/api/owner/admins", {
         method: "POST",
@@ -59,6 +62,7 @@ export function CreateAdminButton() {
       router.refresh();
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   }
 

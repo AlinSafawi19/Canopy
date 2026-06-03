@@ -21,6 +21,7 @@ export function CreateClientButton({ tenantId }: Props) {
   const [error, setError] = useState("");
   const [touched, setTouched] = useState(false);
   const modalRef = useRef<ModalRef>(null);
+  const submittingRef = useRef(false);
   const [form, setForm] = useState({ username: "", password: "", displayName: "", email: "", projectId: "" });
 
   function reset() {
@@ -30,6 +31,7 @@ export function CreateClientButton({ tenantId }: Props) {
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (submittingRef.current) return;
     e.preventDefault();
     setError("");
     const err = firstError(
@@ -40,6 +42,7 @@ export function CreateClientButton({ tenantId }: Props) {
     );
     if (err) { setError(err); return; }
     setLoading(true);
+    submittingRef.current = true;
     try {
       const res = await apiFetch("/api/admin/clients", {
         method: "POST",
@@ -69,6 +72,7 @@ export function CreateClientButton({ tenantId }: Props) {
       router.refresh();
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   }
 

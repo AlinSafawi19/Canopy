@@ -1,7 +1,7 @@
 "use client";
 import { apiFetch } from "@/lib/api-fetch";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -18,9 +18,11 @@ export function SignupForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const submittingRef = useRef(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submittingRef.current) return;
     setError("");
 
     const err = firstError(
@@ -33,6 +35,7 @@ export function SignupForm() {
     if (password !== confirmPassword) { setError("Passwords do not match."); return; }
 
     setLoading(true);
+    submittingRef.current = true;
 
     try {
       const res = await apiFetch("/api/auth/signup", {
@@ -53,6 +56,7 @@ export function SignupForm() {
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   }
 

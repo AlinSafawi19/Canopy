@@ -17,6 +17,7 @@ export function CreateContributorButton() {
   const [error, setError] = useState("");
   const [touched, setTouched] = useState(false);
   const modalRef = useRef<ModalRef>(null);
+  const submittingRef = useRef(false);
   const [form, setForm] = useState({ username: "", password: "", displayName: "", email: "", projectId: "" });
 
   function reset() {
@@ -27,6 +28,7 @@ export function CreateContributorButton() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submittingRef.current) return;
     setError("");
     const err = firstError(
       validateDisplayName(form.displayName),
@@ -37,6 +39,7 @@ export function CreateContributorButton() {
     if (err) { setError(err); return; }
     if (!form.projectId) { setError("Project is required."); return; }
     setLoading(true);
+    submittingRef.current = true;
     try {
       const res = await apiFetch("/api/client/contributors", {
         method: "POST",
@@ -57,6 +60,7 @@ export function CreateContributorButton() {
       router.refresh();
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   }
 
