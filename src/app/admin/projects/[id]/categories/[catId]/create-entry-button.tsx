@@ -100,6 +100,30 @@ export function CreateEntryButton({
                 onChange={(v) => setValue(field.name, v ?? "")}
               />
             );
+            if (field.type === "boolean") {
+              const isTrue = (values[field.name] ?? "false") === "true";
+              return (
+                <div key={field.name} className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium text-slate-700">{field.name}</span>
+                  <div className="flex rounded-lg border border-slate-300 overflow-hidden w-fit">
+                    <button
+                      type="button"
+                      onClick={() => setValue(field.name, "true")}
+                      className={`px-4 py-1.5 text-sm font-medium transition-colors ${isTrue ? "bg-indigo-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}
+                    >
+                      True
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setValue(field.name, "false")}
+                      className={`px-4 py-1.5 text-sm font-medium transition-colors border-l border-slate-300 ${!isTrue ? "bg-indigo-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}
+                    >
+                      False
+                    </button>
+                  </div>
+                </div>
+              );
+            }
             const maxLengthByType: Record<string, number> = {
               text: LIMITS.ENTRY_TEXT,
               url: LIMITS.ENTRY_URL,
