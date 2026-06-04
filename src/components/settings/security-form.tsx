@@ -2,10 +2,12 @@
 import { apiFetch } from "@/lib/api-fetch";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { TwoFactorSection } from "./two-factor-section";
 import { validatePassword } from "@/lib/validation";
+import { AlertCircle } from "lucide-react";
 
 interface SecurityFormProps {
   apiPath: string;
@@ -13,10 +15,12 @@ interface SecurityFormProps {
 }
 
 export function SecurityForm({ apiPath, twoFactorEnabled }: SecurityFormProps) {
+  const router = useRouter();
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [msgOk, setMsgOk] = useState(true);
+  const [showWarning, setShowWarning] = useState(true);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -33,12 +37,41 @@ export function SecurityForm({ apiPath, twoFactorEnabled }: SecurityFormProps) {
     });
     setLoading(false);
     setMsgOk(res.ok);
-    setMsg(res.ok ? "Password changed." : "Failed to change password.");
-    if (res.ok) setPw({ current: "", next: "", confirm: "" });
+    setMsg(
+      res.ok
+        ? "Password changed successfully. You'll be logged out in a few seconds..."
+        : "Failed to change password."
+    );
+    if (res.ok) {
+      setPw({ current: "", next: "", confirm: "" });
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {showWarning && (
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-amber-900">
+              Important: Changing your password will log you out
+            </p>
+            <p className="text-sm text-amber-800 mt-0.5">
+              You'll be logged out of all sessions and need to sign in again.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowWarning(false)}
+              className="text-xs text-amber-700 hover:text-amber-900 mt-2 underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
       <Input
         label="Current password"
         type="password"
@@ -56,7 +89,7 @@ export function SecurityForm({ apiPath, twoFactorEnabled }: SecurityFormProps) {
           value={pw.next}
           onChange={(e) => setPw((f) => ({ ...f, next: e.target.value }))}
           autoComplete="new-password"
-          hint="At least 8 characters."
+          hint="At least 8 characters. Cannot reuse recent passwords."
           required
         />
         <Input
