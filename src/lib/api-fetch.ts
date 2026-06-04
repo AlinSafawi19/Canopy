@@ -15,5 +15,8 @@ export async function apiFetch(
       headers: { ...init?.headers, "X-CSRF-Token": getCsrfToken() },
     };
   }
-  return fetch(input, init);
+  return fetch(input, {
+    ...init,
+    credentials: "include", // Send cookies with request
+  });
 }
