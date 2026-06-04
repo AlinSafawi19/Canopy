@@ -34,6 +34,13 @@ export function SessionList({ sessions, currentSessionId }: SessionListProps) {
       setRevoking(null);
       if (res.ok) {
         setRevoked((prev) => new Set(prev).add(sessionId));
+        // Optional: Show toast notification
+        // toast.success("Session revoked");
+      } else {
+        const data = await res.json();
+        console.error("Failed to revoke session:", data.error);
+        // Optional: Show error toast
+        // toast.error(data.error || "Failed to revoke session");
       }
     } catch (err) {
       setRevoking(null);
