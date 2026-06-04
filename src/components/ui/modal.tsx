@@ -66,7 +66,7 @@ export const Modal = forwardRef<ModalRef, ModalProps>(function Modal({
     };
     if (open) document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [open, isDirty, confirmingClose]);
+  }, [open, isDirty, confirmingClose, attemptClose]);
 
   if (!open) return null;
 

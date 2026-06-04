@@ -21,7 +21,7 @@ export default async function AdminSessionsPage() {
       </CardHeader>
       <CardContent>
         <p className="text-sm text-slate-600 mb-4">
-          Manage all devices and locations where you're signed in. Revoke any sessions you don't recognize.
+          Manage all devices and locations where you&apos;re signed in. Revoke any sessions you don&apos;t recognize.
         </p>
         <SessionList sessions={sessions} currentSessionId={session.id} />
       </CardContent>

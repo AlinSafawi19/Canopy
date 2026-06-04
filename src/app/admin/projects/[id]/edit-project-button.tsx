@@ -109,7 +109,7 @@ export function EditProjectButton({ project, open: controlledOpen, onClose: cont
   const originalGcsUrls = useMemo(() => new Set(
     [project.imageBg ?? "", project.videoBg ?? "", ...parseTechStack(project.techStack).map(t => t.icon)]
       .filter(u => u.startsWith("https://storage.googleapis.com/"))
-  ), [project.id]);
+  ), [project.id, project.imageBg, project.videoBg, project.techStack]);
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
