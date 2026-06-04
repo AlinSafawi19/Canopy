@@ -38,15 +38,22 @@ export function SecurityForm({ apiPath, twoFactorEnabled }: SecurityFormProps) {
       setMsgOk(res.ok);
 
       if (res.ok) {
-        setMsg("Password changed successfully. You'll be logged out in a few seconds...");
+        setMsg("Password changed successfully. You'll be logged out immediately...");
         setPw({ current: "", next: "", confirm: "" });
-        // Clear session cookie and redirect after brief delay
-        setTimeout(() => {
-          // Delete the session cookie on the client side
-          document.cookie = "cms_session=; path=/; max-age=0;";
-          // Force a full page navigation to login (not client-side routing)
-          window.location.href = "/login";
-        }, 1500);
+
+        // Clear all authentication cookies immediately
+        // Set expiry to past date to ensure deletion
+        const pastDate = "Thu, 01 Jan 1970 00:00:00 UTC";
+        document.cookie = `cms_session=; path=/; expires=${pastDate}; secure; samesite=lax;`;
+        document.cookie = `cms_csrf=; path=/; expires=${pastDate}; secure; samesite=lax;`;
+        document.cookie = `cms_2fa_pending=; path=/; expires=${pastDate}; secure; samesite=lax;`;
+
+        // Also clear theme cookie so it doesn't persist
+        document.cookie = `cms_theme=; path=/; expires=${pastDate};`;
+
+        // Redirect immediately to login (backend already revoked sessions)
+        // Use replace to prevent back button returning to old page
+        window.location.replace("/login");
       } else {
         const data = await res.json();
         setMsg(data.error ?? "Failed to change password.");
