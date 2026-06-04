@@ -8,9 +8,9 @@ interface AuditEvent {
   action: string;
   resource: string;
   severity: string;
-  ipAddress?: string;
-  userAgent?: string;
-  details?: Record<string, unknown>;
+  ipAddress: string | null;
+  userAgent: string | null;
+  details: unknown;
   createdAt: Date;
 }
 
