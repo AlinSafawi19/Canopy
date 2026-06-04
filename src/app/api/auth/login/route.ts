@@ -2,6 +2,8 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { signToken, verifyPassword, ROLE_HOME, type SessionPayload } from "@/lib/auth";
+import { checkAccountLock, recordFailedLoginAttempt, clearAccountLock } from "@/lib/account-lock";
+import { logActivity } from "@/lib/activity-log";
 
 // Pre-computed bcrypt-12 hash used for a dummy compare when no user is found,
 // so the "unknown username" path takes the same wall time as a real bcrypt check.
@@ -36,10 +38,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
+    const { locked, retryAfter } = await checkAccountLock(
+      user === owner ? "owner" : user === admin ? "admin" : user === client ? "client" : "contributor",
+      user.id
+    );
+
+    if (locked) {
+      return NextResponse.json(
+        { error: "Too many failed login attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
+      );
+    }
+
     const valid = await verifyPassword(password, user.password);
     if (!valid) {
+      const userRole = user === owner ? "owner" : user === admin ? "admin" : user === client ? "client" : "contributor";
+      await recordFailedLoginAttempt(userRole, user.id);
+      await logActivity({
+        session: { id: user.id, username: user.username, displayName: user.displayName, role: userRole },
+        action: "login_failed",
+        resource: "auth",
+      });
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
+
+    const userRole = user === owner ? "owner" : user === admin ? "admin" : user === client ? "client" : "contributor";
+    await clearAccountLock(userRole, user.id);
 
     let session: SessionPayload;
     let emailVerified = true;

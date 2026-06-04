@@ -18,10 +18,9 @@ export async function GET(
 ) {
   const { projectSlug } = await params;
 
-  const rawKey =
-    request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ??
-    request.nextUrl.searchParams.get("key") ??
-    "";
+  const authHeader = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
+  const queryKey = request.nextUrl.searchParams.get("key");
+  const rawKey = authHeader ?? queryKey ?? "";
 
   if (!rawKey) {
     return NextResponse.json({ error: "API key required" }, { status: 401, headers: CORS });
@@ -34,6 +33,12 @@ export async function GET(
 
   if (!apiKey) {
     return NextResponse.json({ error: "Invalid API key" }, { status: 401, headers: CORS });
+  }
+
+  const responseHeaders: Record<string, string> = { ...CORS };
+  if (queryKey) {
+    responseHeaders["X-Deprecation-Warning"] =
+      "API key in URL is deprecated; use Authorization: Bearer <key> instead";
   }
 
   const project = await prisma.project.findFirst({
@@ -80,6 +85,6 @@ export async function GET(
         entryCount: cat._count.entries,
       })),
     },
-    { headers: CORS }
+    { headers: responseHeaders }
   );
 }

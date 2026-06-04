@@ -124,6 +124,8 @@ export async function middleware(request: NextRequest) {
       const session = await verifyToken(token);
       if (session) {
         const isWrite = ["POST", "PATCH", "DELETE"].includes(request.method);
+        // Profile endpoints get a dedicated tighter bucket
+        const isProfileOp = /\/api\/(owner|admin|client|contributor)\/profile$/.test(pathname);
         // Account management routes (user creation / deletion) get a tighter hourly bucket
         const isAccountOp = /\/(clients|contributors|admins)(\/|$)/.test(pathname);
 
@@ -131,7 +133,11 @@ export async function middleware(request: NextRequest) {
         let windowMs: number;
         let max: number;
 
-        if (isAccountOp && isWrite) {
+        if (isProfileOp && isWrite) {
+          rlKey = `profile:${session.id}`;
+          windowMs = 60 * 60_000; // 1 hour
+          max = 10;
+        } else if (isAccountOp && isWrite) {
           rlKey = `acct:${session.id}`;
           windowMs = 60 * 60_000; // 1 hour
           max = 20;

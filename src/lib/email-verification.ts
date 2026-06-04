@@ -8,7 +8,7 @@ export async function sendVerificationEmail(
   toEmail: string,
   displayName: string
 ) {
-  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const code = String(Math.floor(10000000 + Math.random() * 90000000));
   const codeHash = await bcrypt.hash(code, 10);
   const expiresAt = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
 

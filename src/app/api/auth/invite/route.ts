@@ -14,20 +14,7 @@ export async function GET(request: NextRequest) {
   if (invite.status === "used") return NextResponse.json({ valid: false, reason: "used" });
   if (invite.status === "expired") return NextResponse.json({ valid: false, reason: "expired" });
 
-  // Fetch display info for the invited user
-  let displayName = "";
-  if (invite.targetKind === "admin") {
-    const u = await prisma.adminIdentity.findUnique({ where: { id: invite.targetId }, select: { displayName: true } });
-    displayName = u?.displayName ?? "";
-  } else if (invite.targetKind === "client") {
-    const u = await prisma.clientIdentity.findUnique({ where: { id: invite.targetId }, select: { displayName: true } });
-    displayName = u?.displayName ?? "";
-  } else if (invite.targetKind === "contributor") {
-    const u = await prisma.contributor.findUnique({ where: { id: invite.targetId }, select: { displayName: true } });
-    displayName = u?.displayName ?? "";
-  }
-
-  return NextResponse.json({ valid: true, displayName, expiresAt: invite.expiresAt });
+  return NextResponse.json({ valid: true, expiresAt: invite.expiresAt });
 }
 
 export async function POST(request: NextRequest) {

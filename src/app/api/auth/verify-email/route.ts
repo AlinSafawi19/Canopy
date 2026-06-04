@@ -12,8 +12,8 @@ export async function POST(request: NextRequest) {
   try {
     const { code } = await request.json();
 
-    if (!code || typeof code !== "string" || !/^\d{6}$/.test(code)) {
-      return NextResponse.json({ error: "Enter a valid 6-digit code" }, { status: 400 });
+    if (!code || typeof code !== "string" || !/^\d{8}$/.test(code)) {
+      return NextResponse.json({ error: "Enter a valid 8-digit code" }, { status: 400 });
     }
 
     const { id, role } = session;

@@ -5,19 +5,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/login", "/signup", "/forgot-password", "/reset-password"],
-        disallow: [
-          "/owner/",
-          "/admin/",
-          "/client/",
-          "/contributor/",
-          "/api/",
-          "/invite",
-          "/two-factor",
-          "/2fa-reminder",
-          "/verify-email",
-          "/verify-email-notice",
-        ],
+        allow: ["/login", "/signup", "/forgot-password"],
+        disallow: ["/"],
       },
     ],
     sitemap: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/sitemap.xml`,

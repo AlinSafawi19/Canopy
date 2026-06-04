@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
-    if (!/^\d{6}$/.test(code)) {
+    if (!/^\d{8}$/.test(code)) {
       return NextResponse.json({ error: "Invalid code format." }, { status: 400 });
     }
 

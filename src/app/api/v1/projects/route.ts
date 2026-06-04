@@ -14,10 +14,9 @@ export async function OPTIONS() {
 }
 
 export async function GET(request: NextRequest) {
-  const rawKey =
-    request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ??
-    request.nextUrl.searchParams.get("key") ??
-    "";
+  const authHeader = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
+  const queryKey = request.nextUrl.searchParams.get("key");
+  const rawKey = authHeader ?? queryKey ?? "";
 
   if (!rawKey) {
     return NextResponse.json({ error: "API key required" }, { status: 401, headers: CORS });
@@ -30,6 +29,12 @@ export async function GET(request: NextRequest) {
 
   if (!apiKey) {
     return NextResponse.json({ error: "Invalid API key" }, { status: 401, headers: CORS });
+  }
+
+  const responseHeaders: Record<string, string> = { ...CORS };
+  if (queryKey) {
+    responseHeaders["X-Deprecation-Warning"] =
+      "API key in URL is deprecated; use Authorization: Bearer <key> instead";
   }
 
   const sp = request.nextUrl.searchParams;
@@ -83,6 +88,6 @@ export async function GET(request: NextRequest) {
       })),
       pagination: paginationMeta(total, page, limit),
     },
-    { headers: CORS }
+    { headers: responseHeaders }
   );
 }

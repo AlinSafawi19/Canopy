@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { Storage } from "@google-cloud/storage";
+import { fileTypeFromBuffer } from "file-type";
+
+const ALLOWED_TYPES: Record<string, string> = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/gif": ".gif",
+  "image/webp": ".webp",
+  "image/svg+xml": ".svg",
+  "application/pdf": ".pdf",
+  "video/mp4": ".mp4",
+  "video/webm": ".webm",
+  "video/quicktime": ".mov",
+};
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -21,17 +34,25 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const fileType = await fileTypeFromBuffer(buffer);
+
+    if (!fileType || !ALLOWED_TYPES[fileType.mime]) {
+      return NextResponse.json(
+        { error: "File type not allowed. Allowed types: JPEG, PNG, GIF, WebP, SVG, PDF, MP4, WebM, MOV" },
+        { status: 415 }
+      );
+    }
+
     const credentials = JSON.parse(keyRaw);
     const storage = new Storage({ credentials });
     const bucket = storage.bucket(bucketName);
 
-    const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
+    const ext = ALLOWED_TYPES[fileType.mime];
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
 
-    const buffer = Buffer.from(await file.arrayBuffer());
     const gcsFile = bucket.file(filename);
-
-    await gcsFile.save(buffer, { metadata: { contentType: file.type } });
+    await gcsFile.save(buffer, { metadata: { contentType: fileType.mime } });
 
     return NextResponse.json({
       url: `https://storage.googleapis.com/${bucketName}/${filename}`,

@@ -299,3 +299,26 @@ model Release {
   @@index([createdAt])
   @@index([status])
 }
+
+model PendingTwoFactorSetup {
+  id         String   @id @default(cuid())
+  targetKind String
+  targetId   String
+  secret     String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@unique([targetKind, targetId])
+  @@index([expiresAt])
+}
+
+model AccountLock {
+  id          String    @id @default(cuid())
+  targetKind  String
+  targetId    String
+  failedCount Int       @default(0)
+  lockedUntil DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([targetKind, targetId])
+}
