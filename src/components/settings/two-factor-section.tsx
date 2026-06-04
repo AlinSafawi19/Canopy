@@ -310,7 +310,6 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
                   variant="outline"
                   size="sm"
                   onClick={() => setShowBackupCodes(true)}
-                  loading={codesLoading}
                   className="flex-1"
                 >
                   View Codes

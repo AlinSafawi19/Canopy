@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { hashPassword, verifyPassword } from "@/lib/auth";
+import { verifyPassword } from "@/lib/auth";
 import type { SessionRole } from "@/lib/auth";
 
 const PASSWORD_HISTORY_COUNT = 5; // Prevent reuse of last 5 passwords

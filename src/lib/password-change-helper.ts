@@ -24,7 +24,7 @@ export async function performPasswordChange(
   }
 
   // Fetch current user
-  let user: any = null;
+  let user: { password?: string; id?: string } | null = null;
   if (role === "owner") {
     user = await prisma.platformOwner.findUnique({ where: { id: userId } });
   } else if (role === "admin") {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword, type SessionRole } from "@/lib/auth";
 import { validatePassword } from "@/lib/validation";
 import bcrypt from "bcryptjs";
 import { sendSecurityAlertEmail, getUserEmailAndName } from "@/lib/security-alerts";
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if password was used recently
-    const notInHistory = await checkPasswordNotInHistory(targetKind as any, targetId, password);
+    const notInHistory = await checkPasswordNotInHistory(targetKind as SessionRole, targetId, password);
     if (!notInHistory) {
       return NextResponse.json(
         { error: "You cannot reuse one of your recent passwords. Please choose a new password." },
@@ -97,11 +97,11 @@ export async function POST(request: NextRequest) {
       await prisma.contributor.update({ where: { id: targetId }, data: { password: newHash } });
     }
 
-    await addPasswordToHistory(targetKind as any, targetId, newHash);
+    await addPasswordToHistory(targetKind as SessionRole, targetId, newHash);
     await prisma.passwordResetChallenge.delete({ where: { id: challenge.id } });
 
     // Invalidate all active sessions for this user
-    await revokeAllUserSessions(targetKind as any, targetId);
+    await revokeAllUserSessions(targetKind as SessionRole, targetId);
 
     // Log security event
     await logSecurityEvent(

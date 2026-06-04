@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/email-verification";
 import { validateEmail, validateDisplayName } from "@/lib/validation";
 import { performPasswordChange } from "@/lib/password-change-helper";
+import { sendSecurityAlertEmail } from "@/lib/security-alerts";
 
 export async function PATCH(request: NextRequest) {
   const session = await getSession();
