@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface ModalProps {
@@ -28,20 +28,20 @@ export const Modal = forwardRef<ModalRef, ModalProps>(function Modal({
 }, ref) {
   const [confirmingClose, setConfirmingClose] = useState(false);
 
-  function attemptClose() {
+  const attemptClose = useCallback(() => {
     if (isDirty) {
       setConfirmingClose(true);
     } else {
       onClose();
     }
-  }
+  }, [isDirty, onClose]);
 
-  function forceClose() {
+  const forceClose = useCallback(() => {
     setConfirmingClose(false);
     onClose();
-  }
+  }, [onClose]);
 
-  useImperativeHandle(ref, () => ({ attemptClose }));
+  useImperativeHandle(ref, () => ({ attemptClose }), [attemptClose]);
 
   useEffect(() => {
     if (!open) setConfirmingClose(false);
