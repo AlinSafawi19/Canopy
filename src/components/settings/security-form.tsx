@@ -44,9 +44,13 @@ export function SecurityForm({ apiPath, twoFactorEnabled }: SecurityFormProps) {
     );
     if (res.ok) {
       setPw({ current: "", next: "", confirm: "" });
+      // Clear session cookie and redirect after brief delay
       setTimeout(() => {
-        router.push("/login");
-      }, 2000);
+        // Delete the session cookie on the client side
+        document.cookie = "cms_session=; path=/; max-age=0;";
+        // Force a full page navigation to login (not client-side routing)
+        window.location.href = "/login";
+      }, 1500);
     }
   }
 
