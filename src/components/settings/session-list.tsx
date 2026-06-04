@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LogOut, Shield, Zap } from "lucide-react";
+import { LogOut, Shield, Zap, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/api-fetch";
@@ -126,20 +126,32 @@ export function SessionList({ sessions, currentSessionId }: SessionListProps) {
           return (
             <div
               key={session.id}
-              className={`flex items-start justify-between p-4 rounded-lg border ${
-                isCurrent ? "bg-blue-50 border-blue-200" : "bg-slate-50 border-slate-200"
+              className={`flex items-start justify-between p-4 rounded-lg border transition-colors ${
+                isCurrent
+                  ? "bg-indigo-50 border-indigo-300 shadow-sm ring-1 ring-indigo-100"
+                  : "bg-slate-50 border-slate-200"
               }`}
             >
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield className={`w-4 h-4 flex-shrink-0 ${isCurrent ? "text-blue-600" : "text-slate-600"}`} />
-                  <span className="font-medium text-slate-900">
-                    {isCurrent ? "This Device" : "Active Session"}
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  {isCurrent ? (
+                    <Lock className="w-4 h-4 flex-shrink-0 text-indigo-600" />
+                  ) : (
+                    <Shield className="w-4 h-4 flex-shrink-0 text-slate-600" />
+                  )}
+                  <span className={`font-semibold ${isCurrent ? "text-indigo-900" : "text-slate-900"}`}>
+                    {isCurrent ? "This Device (Current Session)" : "Active Session"}
                   </span>
-                  {isCurrent && <Badge variant="success">Current</Badge>}
+                  {isCurrent && (
+                    <Badge className="bg-indigo-100 text-indigo-700 hover:bg-indigo-100">
+                      ✓ Current
+                    </Badge>
+                  )}
                 </div>
 
-                <p className="text-sm text-slate-600 mb-1">{deviceInfo}</p>
+                <p className={`text-sm mb-1 ${isCurrent ? "text-indigo-700" : "text-slate-600"}`}>
+                  {deviceInfo}
+                </p>
 
                 <div className="flex flex-wrap gap-3 text-xs text-slate-500">
                   {session.ipAddress && <span>{session.ipAddress}</span>}
