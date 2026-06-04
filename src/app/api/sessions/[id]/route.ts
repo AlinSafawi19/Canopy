@@ -1,10 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+interface Params {
+  id: string;
+}
+
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: unknown,
+  { params }: { params: Params }
 ) {
   const session = await getSession();
   if (!session) {
