@@ -7,11 +7,9 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, AlertTriangle } from "lucide-react";
-import { useToast } from "@/components/ui/toast";
 
 export function LoginForm() {
   const router = useRouter();
-  const toast = useToast();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,16 +37,12 @@ export function LoginForm() {
         const failureData = JSON.parse(failure);
         if (failureData.timestamp > Date.now() - 5 * 60 * 1000) { // Show for 5 min
           setRecentFailure(failureData);
-          toast.warning(
-            "Failed login detected",
-            "If this wasn't you, reset your password immediately."
-          );
         } else {
           localStorage.removeItem("login_recent_failure");
         }
       } catch {}
     }
-  }, [toast]);
+  }, []);
 
   // Lockout countdown timer
   useEffect(() => {
