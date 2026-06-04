@@ -15,9 +15,21 @@ export interface Toast {
 const toastContext: {
   listeners: ((toast: Toast) => void)[];
   add: (toast: Omit<Toast, "id">) => void;
+  lastToasts: Map<string, number>;
 } = {
   listeners: [],
+  lastToasts: new Map(),
   add(toast) {
+    const key = `${toast.type}:${toast.title}`;
+    const now = Date.now();
+    const lastTime = this.lastToasts.get(key) || 0;
+
+    // Prevent duplicate toasts within 5 seconds
+    if (now - lastTime < 5000) {
+      return;
+    }
+
+    this.lastToasts.set(key, now);
     const id = Math.random().toString(36).slice(2);
     this.listeners.forEach((listener) => listener({ ...toast, id }));
   },
