@@ -20,7 +20,6 @@ export function LoginForm() {
   // Initialize lockout state from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("login_lockout_end");
-    const failure = localStorage.getItem("login_recent_failure");
 
     if (stored) {
       const end = parseInt(stored);

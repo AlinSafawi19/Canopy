@@ -60,7 +60,7 @@ export function SecurityForm({ apiPath, twoFactorEnabled }: SecurityFormProps) {
               Important: Changing your password will log you out
             </p>
             <p className="text-sm text-amber-800 mt-0.5">
-              You'll be logged out of all sessions and need to sign in again.
+              You&apos;ll be logged out of all sessions and need to sign in again.
             </p>
             <button
               type="button"

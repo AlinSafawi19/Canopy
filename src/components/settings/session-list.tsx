@@ -72,7 +72,7 @@ export function SessionList({ sessions, currentSessionId }: SessionListProps) {
                 <span className="font-medium text-slate-900">
                   {isCurrent ? "This Device (Current Session)" : "Active Session"}
                 </span>
-                {isCurrent && <Badge variant="primary" size="sm">Current</Badge>}
+                {isCurrent && <Badge variant="success">Current</Badge>}
               </div>
               <p className="text-sm text-slate-500 mt-1">
                 {hoursAgo === 0 ? "Just now" : `${hoursAgo} hour${hoursAgo !== 1 ? "s" : ""} ago`}

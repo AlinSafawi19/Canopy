@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, CheckCircle, LogIn, LogOut, Lock, Shield, Eye } from "lucide-react";
+import { AlertCircle, LogIn, LogOut, Lock, Shield, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface AuditEvent {
@@ -48,9 +48,9 @@ const SEVERITY_COLORS: Record<string, string> = {
 };
 
 const SEVERITY_BADGES: Record<string, React.ReactNode> = {
-  info: <Badge variant="secondary" size="sm">Info</Badge>,
-  warning: <Badge variant="warning" size="sm">Warning</Badge>,
-  critical: <Badge variant="danger" size="sm">Critical</Badge>,
+  info: <Badge variant="info">Info</Badge>,
+  warning: <Badge variant="warning">Warning</Badge>,
+  critical: <Badge variant="danger">Critical</Badge>,
 };
 
 export function ActivityLog({ events, isLoading }: ActivityLogProps) {
