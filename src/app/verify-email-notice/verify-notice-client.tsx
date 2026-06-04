@@ -32,7 +32,7 @@ export function VerifyNoticeClient({ email, nextHref }: Props) {
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (code.length !== 6) return;
+    if (code.length !== 8) return;
     setError("");
     setVerifying(true);
     try {
@@ -87,7 +87,7 @@ export function VerifyNoticeClient({ email, nextHref }: Props) {
       ) : (
         <>
           <p className="text-slate-500 text-sm text-center mb-3">
-            We&apos;ve sent a 6-digit code to{" "}
+            We&apos;ve sent an 8-digit code to{" "}
             <strong className="text-slate-700">{email || "your email"}</strong>.
             Enter it below to confirm you own this address.
           </p>
@@ -102,14 +102,14 @@ export function VerifyNoticeClient({ email, nextHref }: Props) {
             <input
               type="text"
               inputMode="numeric"
-              pattern="\d{6}"
-              maxLength={6}
+              pattern="\d{8}"
+              maxLength={8}
               value={code}
               onChange={(e) => {
                 setError("");
-                setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                setCode(e.target.value.replace(/\D/g, "").slice(0, 8));
               }}
-              placeholder="000000"
+              placeholder="00000000"
               autoComplete="one-time-code"
               className="w-full text-center text-2xl font-bold tracking-[0.4em] h-14 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow"
             />
@@ -124,7 +124,7 @@ export function VerifyNoticeClient({ email, nextHref }: Props) {
               type="submit"
               className="w-full"
               loading={verifying}
-              disabled={code.length !== 6}
+              disabled={code.length !== 8}
             >
               Verify email
             </Button>
