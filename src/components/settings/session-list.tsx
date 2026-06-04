@@ -60,10 +60,21 @@ export function SessionList({ sessions, currentSessionId }: SessionListProps) {
 
     setRevokedBulk(true);
     try {
-      const otherSessions = activeSessions.filter((s) => s.id !== currentSessionId);
-      for (const session of otherSessions) {
-        await revokeSession(session.id);
+      const res = await apiFetch("/api/sessions/revoke-all", {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        const otherSessions = activeSessions.filter((s) => s.id !== currentSessionId);
+        for (const session of otherSessions) {
+          setRevoked((prev) => new Set(prev).add(session.id));
+        }
+      } else {
+        const data = await res.json();
+        console.error("Failed to revoke sessions:", data.error);
       }
+    } catch (err) {
+      console.error("Failed to revoke sessions:", err);
     } finally {
       setRevokedBulk(false);
     }
