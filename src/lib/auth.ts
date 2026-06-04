@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { cache } from "react";
+import { isSessionValid } from "./session-management";
 
 const rawSecret = process.env.JWT_SECRET;
 if (!rawSecret || rawSecret.length < 32) {
@@ -44,7 +45,21 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
   const cookieStore = await cookies();
   const token = cookieStore.get("cms_session")?.value;
   if (!token) return null;
-  return verifyToken(token);
+
+  // Verify JWT is valid
+  const payload = await verifyToken(token);
+  if (!payload) return null;
+
+  // Check if session has been explicitly revoked (e.g., after password change)
+  try {
+    const sessionValid = await isSessionValid(token);
+    if (!sessionValid) return null;
+  } catch {
+    // If session check fails, allow through since JWT is still valid
+    // This prevents lockouts during database issues
+  }
+
+  return payload;
 });
 
 export async function hashPassword(password: string): Promise<string> {
