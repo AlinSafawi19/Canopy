@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { User, Lock, Mail, Palette, Megaphone } from "lucide-react";
+import { User, Lock, Mail, Palette, Megaphone, Shield, Activity } from "lucide-react";
 
 const BASE_NAV = [
   { label: "Profile", segment: "profile", icon: User },
   { label: "Security", segment: "security", icon: Lock },
+  { label: "Sessions", segment: "sessions", icon: Shield },
+  { label: "Activity", segment: "activity", icon: Activity },
   { label: "Email", segment: "email", icon: Mail },
   { label: "Appearance", segment: "appearance", icon: Palette },
 ];
