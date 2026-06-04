@@ -3,7 +3,7 @@ import { verifyToken, ROLE_HOME, type SessionRole } from "@/lib/auth";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { validateApiKey, updateApiKeyLastUsed } from "@/lib/api-key-manager";
 import { hashApiKey } from "@/lib/api-key";
-import { isSessionValid } from "@/lib/session-management";
+import { isSessionValid } from "@/lib/session-validator-edge";
 
 const PUBLIC_PATHS = [
   "/login",

@@ -41,7 +41,7 @@ export function parseUserAgent(userAgent: string | null | undefined): ParsedUser
 }
 
 export function formatDeviceInfo(userAgent: string | null | undefined): string {
-  const { browser, os, device } = parseUserAgent(userAgent);
+  const { browser, os } = parseUserAgent(userAgent);
   if (browser === "Unknown" && os === "Unknown") return "Unknown Device";
   return `${browser} on ${os}`;
 }
