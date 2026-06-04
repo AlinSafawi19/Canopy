@@ -233,11 +233,13 @@ model ApiKey {
   projectId     String
   adminTenantId String
   createdAt     DateTime  @default(now())
+  expiresAt     DateTime? // null = no expiration (legacy), set to future date for new keys
   lastUsedAt    DateTime?
   revokedAt     DateTime?
 
   @@index([keyHash])
   @@index([projectId])
+  @@index([expiresAt])
   @@index([adminTenantId])
 }
 
@@ -321,4 +323,44 @@ model AccountLock {
   updatedAt   DateTime  @updatedAt
 
   @@unique([targetKind, targetId])
+}
+
+model PasswordHistory {
+  id         String   @id @default(cuid())
+  targetKind String
+  targetId   String
+  passwordHash String
+  createdAt  DateTime @default(now())
+
+  @@index([targetKind, targetId, createdAt])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  targetKind String
+  targetId   String
+  tokenHash  String
+  createdAt  DateTime @default(now())
+  revokedAt  DateTime?
+
+  @@index([targetKind, targetId])
+  @@index([tokenHash])
+  @@index([revokedAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  actorRole  String
+  action     String
+  resource   String
+  severity   String   @default("info") // info, warning, critical
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([severity, createdAt])
 }

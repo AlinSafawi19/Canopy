@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, ROLE_HOME, type SessionRole } from "@/lib/auth";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { validateApiKey, updateApiKeyLastUsed } from "@/lib/api-key-manager";
+import { hashApiKey } from "@/lib/api-key";
+import { isSessionValid } from "@/lib/session-management";
 
 const PUBLIC_PATHS = [
   "/login",
@@ -69,12 +72,32 @@ export async function middleware(request: NextRequest) {
     const { ok, retryAfter } = await rateLimit(`2fa-login:${ip}`, 15 * 60_000, 10);
     if (!ok) return rateLimitResponse(retryAfter);
 
-  // Public v1 API — rate limit by API key (or IP when no key is present)
+  // Public v1 API — validate API key and rate limit by API key (or IP when no key is present)
   } else if (pathname.startsWith("/api/v1/")) {
     const apiKey =
       request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
       request.nextUrl.searchParams.get("key") ??
       "";
+
+    if (apiKey) {
+      // Validate API key (checks expiration, revocation, etc.)
+      const validation = await validateApiKey(apiKey);
+      if (!validation || !validation.valid) {
+        return NextResponse.json(
+          { error: validation?.reason || "Invalid API key" },
+          { status: 401 }
+        );
+      }
+
+      // Update last used timestamp
+      try {
+        const keyHash = hashApiKey(apiKey);
+        await updateApiKeyLastUsed(keyHash).catch(() => {});
+      } catch {
+        // Don't fail request if we can't update last used
+      }
+    }
+
     const rlKey = apiKey ? `v1:${apiKey}` : `v1-ip:${ip}`;
     const max = apiKey ? 60 : 10;
     const { ok, retryAfter } = await rateLimit(rlKey, 60_000, max);
@@ -192,6 +215,14 @@ export async function middleware(request: NextRequest) {
   const session = await verifyToken(token);
 
   if (!session) {
+    const response = NextResponse.redirect(new URL("/login", request.url));
+    response.cookies.delete("cms_session");
+    return response;
+  }
+
+  // Check if session has been revoked (e.g., password change, logout)
+  const sessionValid = await isSessionValid(token).catch(() => false);
+  if (!sessionValid) {
     const response = NextResponse.redirect(new URL("/login", request.url));
     response.cookies.delete("cms_session");
     return response;

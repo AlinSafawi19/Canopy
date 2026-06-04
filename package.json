@@ -12,7 +12,9 @@
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "security:cleanup": "tsx scripts/security-cleanup.ts",
+    "security:audit": "npm audit --audit-level=moderate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

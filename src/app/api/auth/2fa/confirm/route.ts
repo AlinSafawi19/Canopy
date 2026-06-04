@@ -8,6 +8,7 @@ import {
 } from "@/lib/two-factor";
 import { prisma } from "@/lib/prisma";
 import { sendSecurityAlertEmail, getUserEmailAndName } from "@/lib/security-alerts";
+import { logSecurityEvent } from "@/lib/enhanced-audit-log";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -42,6 +43,14 @@ export async function POST(request: NextRequest) {
     await setTwoFactorEnabled(session.id, session.role, pending.secret, true);
     await saveBackupCodes(session.role, session.id, backupCodes);
     await prisma.pendingTwoFactorSetup.delete({ where: { id: pending.id } });
+
+    // Log security event
+    await logSecurityEvent(
+      session.id,
+      session.role,
+      "2fa_enabled",
+      { method: "totp", backupCodesGenerated: 10 }
+    );
 
     getUserEmailAndName(session.id, session.role).then((user) => {
       if (user) sendSecurityAlertEmail(user.email, user.displayName, "2fa_enabled").catch(() => {});

@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { signToken, verifyPassword, ROLE_HOME, type SessionPayload } from "@/lib/auth";
 import { checkAccountLock, recordFailedLoginAttempt, clearAccountLock } from "@/lib/account-lock";
 import { logActivity } from "@/lib/activity-log";
+import { trackSession } from "@/lib/session-management";
+import { logSecurityEvent } from "@/lib/enhanced-audit-log";
 
 // Pre-computed bcrypt-12 hash used for a dummy compare when no user is found,
 // so the "unknown username" path takes the same wall time as a real bcrypt check.
@@ -123,10 +125,14 @@ export async function POST(request: NextRequest) {
         path: "/",
       });
       response.cookies.set("cms_theme", userTheme, { path: "/", sameSite: "lax", maxAge: 60 * 60 * 24 * 365 });
+
+      // Log security event for 2FA flow
+      await logSecurityEvent(user.id, userRole, "login_2fa", { pending: true });
       return response;
     }
 
     const token = await signToken(session);
+    await trackSession(userRole, user.id, token);
     let redirectTo: string;
     if (mustShow2faReminder) {
       redirectTo = "/2fa-reminder";

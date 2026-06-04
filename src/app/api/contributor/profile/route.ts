@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession, hashPassword, verifyPassword } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/email-verification";
-import { validatePassword, validateEmail, validateDisplayName } from "@/lib/validation";
-import { sendSecurityAlertEmail } from "@/lib/security-alerts";
+import { validateEmail, validateDisplayName } from "@/lib/validation";
+import { performPasswordChange } from "@/lib/password-change-helper";
 
 export async function PATCH(request: NextRequest) {
   const session = await getSession();
@@ -19,16 +19,14 @@ export async function PATCH(request: NextRequest) {
       if (!body.currentPassword) {
         return NextResponse.json({ error: "Current password is required." }, { status: 400 });
       }
-      const pwErr = validatePassword(body.newPassword);
-      if (pwErr) return NextResponse.json({ error: pwErr }, { status: 400 });
 
-      const contributor = await prisma.contributor.findUnique({ where: { id } });
-      if (!contributor) return NextResponse.json({ error: "Not found." }, { status: 404 });
-      const valid = await verifyPassword(body.currentPassword, contributor.password);
-      if (!valid) return NextResponse.json({ error: "Current password is incorrect." }, { status: 400 });
+      const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+      const userAgent = request.headers.get("user-agent") || undefined;
 
-      await prisma.contributor.update({ where: { id }, data: { password: await hashPassword(body.newPassword) } });
-      sendSecurityAlertEmail(contributor.email, contributor.displayName, "password_changed").catch(() => {});
+      const result = await performPasswordChange(id, "contributor", body.currentPassword, body.newPassword, ipAddress, userAgent);
+      if (!result.success) {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
     } else {
       const nameErr = validateDisplayName(body.displayName);
       if (nameErr) return NextResponse.json({ error: nameErr }, { status: 400 });
