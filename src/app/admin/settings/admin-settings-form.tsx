@@ -125,7 +125,7 @@ export function AdminSettingsForm({ admin }: { admin: Admin }) {
             />
           </div>
           <div className="flex items-center gap-3">
-            <Button type="submit" size="sm" loading={pwLoading}>Change password</Button>
+            <Button type="submit" size="md" loading={pwLoading}>Change password</Button>
             {pwMsg && <span className={`text-sm ${pwMsgOk ? "text-emerald-600" : "text-red-600"}`}>{pwMsg}</span>}
           </div>
         </form>

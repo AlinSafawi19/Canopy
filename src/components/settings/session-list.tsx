@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LogOut, Shield, Zap, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { apiFetch } from "@/lib/api-fetch";
 import { formatDeviceInfo } from "@/lib/parse-user-agent";
 
@@ -24,6 +25,7 @@ export function SessionList({ sessions, currentSessionId }: SessionListProps) {
   const [revoking, setRevoking] = useState<string | null>(null);
   const [revokedBulk, setRevokedBulk] = useState(false);
   const [revoked, setRevoked] = useState<Set<string>>(new Set());
+  const [showRevokeAllModal, setShowRevokeAllModal] = useState(false);
 
   async function revokeSession(sessionId: string) {
     if (sessionId === currentSessionId) {
@@ -50,20 +52,10 @@ export function SessionList({ sessions, currentSessionId }: SessionListProps) {
   }
 
   async function revokeAllOthers() {
-    if (
-      !confirm(
-        "Are you sure? This will revoke all other sessions and you'll need to sign in again on those devices."
-      )
-    ) {
-      return;
-    }
-
     setRevokedBulk(true);
+    setShowRevokeAllModal(false);
     try {
-      const res = await apiFetch("/api/sessions/revoke-all", {
-        method: "POST",
-        body: JSON.stringify({ currentSessionId }),
-      });
+      const res = await apiFetch("/api/sessions/revoke-all", { method: "POST" });
 
       if (res.ok) {
         const otherSessions = activeSessions.filter((s) => s.id !== currentSessionId);
@@ -94,12 +86,13 @@ export function SessionList({ sessions, currentSessionId }: SessionListProps) {
   const otherSessionsCount = activeSessions.filter((s) => s.id !== currentSessionId).length;
 
   return (
+    <>
     <div className="space-y-4">
       {otherSessionsCount > 0 && (
         <Button
           variant="danger"
           size="sm"
-          onClick={revokeAllOthers}
+          onClick={() => setShowRevokeAllModal(true)}
           disabled={revokedBulk}
           className="w-full"
         >
@@ -178,5 +171,17 @@ export function SessionList({ sessions, currentSessionId }: SessionListProps) {
         })}
       </div>
     </div>
+
+    <ConfirmModal
+      open={showRevokeAllModal}
+      onClose={() => setShowRevokeAllModal(false)}
+      onConfirm={revokeAllOthers}
+      title="Revoke All Other Sessions"
+      message={`This will sign out ${otherSessionsCount} other device${otherSessionsCount !== 1 ? "s" : ""}. Your current session will remain active.`}
+      confirmLabel="Revoke All"
+      variant="danger"
+      loading={revokedBulk}
+    />
+    </>
   );
 }

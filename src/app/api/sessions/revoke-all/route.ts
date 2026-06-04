@@ -1,31 +1,35 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { hashToken } from "@/lib/session-management";
 
-export async function POST(request: Request) {
+export async function POST() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const { currentSessionId } = await request.json();
-    if (!currentSessionId) {
-      return NextResponse.json({ error: "Missing currentSessionId" }, { status: 400 });
-    }
+    // Identify the current session from the cookie — never trust client-supplied ID
+    const cookieStore = await cookies();
+    const token = cookieStore.get("cms_session")?.value;
+    const currentTokenHash = token ? hashToken(token) : null;
 
-    // Revoke all sessions except the current one
+    const currentDbSession = currentTokenHash
+      ? await prisma.session.findFirst({
+          where: { tokenHash: currentTokenHash, targetId: session.id, revokedAt: null },
+          select: { id: true },
+        })
+      : null;
+
     const result = await prisma.session.updateMany({
       where: {
         targetId: session.id,
         revokedAt: null,
-        id: {
-          not: currentSessionId, // Keep current session active
-        },
+        ...(currentDbSession ? { id: { not: currentDbSession.id } } : {}),
       },
-      data: {
-        revokedAt: new Date(),
-      },
+      data: { revokedAt: new Date() },
     });
 
     return NextResponse.json({ ok: true, revokedCount: result.count });
