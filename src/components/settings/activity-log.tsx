@@ -7,7 +7,7 @@ interface AuditEvent {
   id: string;
   action: string;
   resource: string;
-  severity: "info" | "warning" | "critical";
+  severity: string;
   ipAddress?: string;
   userAgent?: string;
   details?: Record<string, unknown>;
