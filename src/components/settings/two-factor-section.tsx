@@ -215,6 +215,7 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
 
             <form onSubmit={confirmSetup} className="space-y-4" id="2fa-confirm">
               <Input
+                type="text"
                 label="Verification Code"
                 value={verifyCode}
                 onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -276,6 +277,7 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
         <div className="space-y-3 mb-2">
           <p className="text-sm text-slate-500">Enter the code from your authenticator app (or a backup code) to confirm.</p>
           <Input
+            type="text"
             label="Authenticator or backup code"
             value={disableCode}
             onChange={(e) => setDisableCode(e.target.value)}
