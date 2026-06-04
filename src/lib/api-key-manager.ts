@@ -48,7 +48,7 @@ export async function validateApiKey(
 
   const apiKey = await prisma.apiKey.findUnique({
     where: { keyHash },
-    select: { projectId, expiresAt, revokedAt },
+    select: { projectId: true, expiresAt: true, revokedAt: true },
   });
 
   if (!apiKey) {
@@ -88,7 +88,7 @@ export async function rotateApiKey(
   // Get old key metadata
   const oldKey = await prisma.apiKey.findUnique({
     where: { keyHash: oldKeyHash },
-    select: { name },
+    select: { name: true },
   });
 
   if (!oldKey) {
