@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, AlertTriangle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 export function LoginForm() {
   const router = useRouter();
@@ -16,7 +16,6 @@ export function LoginForm() {
   const [error, setError] = useState("");
   const [lockoutEnd, setLockoutEnd] = useState<number | null>(null);
   const [lockoutCountdown, setLockoutCountdown] = useState<string>("");
-  const [recentFailure, setRecentFailure] = useState<{timestamp: number; ip?: string} | null>(null);
 
   // Initialize lockout state from localStorage
   useEffect(() => {
@@ -32,16 +31,6 @@ export function LoginForm() {
       }
     }
 
-    if (failure) {
-      try {
-        const failureData = JSON.parse(failure);
-        if (failureData.timestamp > Date.now() - 5 * 60 * 1000) { // Show for 5 min
-          setRecentFailure(failureData);
-        } else {
-          localStorage.removeItem("login_recent_failure");
-        }
-      } catch {}
-    }
   }, []);
 
   // Lockout countdown timer
@@ -95,21 +84,13 @@ export function LoginForm() {
           const lockoutTime = Date.now() + retryAfter * 1000;
           localStorage.setItem("login_lockout_end", lockoutTime.toString());
           setLockoutEnd(lockoutTime);
-        } else if (res.status === 401) {
-          // Failed login - store for alert
-          localStorage.setItem("login_recent_failure", JSON.stringify({
-            timestamp: Date.now(),
-            username: username,
-          }));
-          setRecentFailure({ timestamp: Date.now() });
         }
         setError(data.error ?? "Invalid credentials");
         return;
       }
 
-      // Clear lockout and failure states on success
+      // Clear lockout state on success
       localStorage.removeItem("login_lockout_end");
-      localStorage.removeItem("login_recent_failure");
 
       router.push(data.redirectTo);
       router.refresh();
@@ -122,19 +103,6 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Recent failure alert */}
-      {recentFailure && (
-        <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
-          <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="font-medium">Failed login detected</p>
-            <p className="text-xs text-amber-600 mt-0.5">
-              If this wasn&apos;t you, reset your password immediately.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Lockout alert with countdown */}
       {lockoutEnd && lockoutEnd > Date.now() && (
         <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
