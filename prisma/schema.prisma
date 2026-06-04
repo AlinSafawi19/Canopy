@@ -336,12 +336,15 @@ model PasswordHistory {
 }
 
 model Session {
-  id         String   @id @default(cuid())
-  targetKind String
-  targetId   String
-  tokenHash  String
-  createdAt  DateTime @default(now())
-  revokedAt  DateTime?
+  id             String   @id @default(cuid())
+  targetKind     String
+  targetId       String
+  tokenHash      String
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+  lastActivityAt DateTime @default(now()) @updatedAt
+  revokedAt      DateTime?
 
   @@index([targetKind, targetId])
   @@index([tokenHash])

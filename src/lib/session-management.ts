@@ -9,7 +9,9 @@ export function hashToken(token: string): string {
 export async function trackSession(
   targetKind: SessionRole,
   targetId: string,
-  token: string
+  token: string,
+  ipAddress?: string,
+  userAgent?: string
 ): Promise<void> {
   const tokenHash = hashToken(token);
   await prisma.session.create({
@@ -17,6 +19,8 @@ export async function trackSession(
       targetKind,
       targetId,
       tokenHash,
+      ipAddress: ipAddress || null,
+      userAgent: userAgent || null,
     },
   });
 }

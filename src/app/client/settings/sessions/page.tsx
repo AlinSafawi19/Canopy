@@ -11,7 +11,7 @@ export default async function ClientSessionsPage() {
   const sessions = await prisma.session.findMany({
     where: { targetId: session.id, revokedAt: null },
     orderBy: { createdAt: "desc" },
-    select: { id: true, createdAt: true },
+    select: { id: true, ipAddress: true, userAgent: true, createdAt: true, lastActivityAt: true },
   });
 
   return (
