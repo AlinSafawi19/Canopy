@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ToastContainer } from "@/components/ui/toast";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -49,6 +50,7 @@ export default async function RootLayout({
     <html lang="en" className="h-full" {...(dataTheme ? { "data-theme": dataTheme } : {})}>
       <body className="min-h-full">
         <ThemeProvider initialTheme={theme}>{children}</ThemeProvider>
+        <ToastContainer />
       </body>
     </html>
   );

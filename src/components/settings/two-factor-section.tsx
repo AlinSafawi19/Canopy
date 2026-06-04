@@ -33,6 +33,11 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
   const [disableLoading, setDisableLoading] = useState(false);
   const [disableError, setDisableError] = useState("");
 
+  // Backup codes view
+  const [codesOpen, setCodesOpen] = useState(false);
+  const [codesError, setCodesError] = useState("");
+  const [showBackupCodes, setShowBackupCodes] = useState(false);
+
   async function openSetup() {
     setSetupLoading(true);
     setSetupError("");
@@ -152,11 +157,16 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
           </div>
         </div>
 
-        <div className="sm:flex-shrink-0">
+        <div className="sm:flex-shrink-0 flex gap-2">
           {twoFactorEnabled ? (
-            <Button variant="outline" size="sm" onClick={() => { setDisableCode(""); setDisableError(""); setDisableOpen(true); }}>
-              Disable
-            </Button>
+            <>
+              <Button variant="outline" size="sm" onClick={() => { setCodesOpen(true); setCodesError(""); setShowBackupCodes(false); }}>
+                Backup codes
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => { setDisableCode(""); setDisableError(""); setDisableOpen(true); }}>
+                Disable
+              </Button>
+            </>
           ) : (
             <Button size="sm" onClick={openSetup} loading={setupLoading}>
               Enable
@@ -277,6 +287,74 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
           )}
         </div>
       </ConfirmModal>
+
+      {/* Backup codes modal */}
+      <Modal
+        open={codesOpen}
+        onClose={() => setCodesOpen(false)}
+        title="Your Backup Codes"
+      >
+        <div className="space-y-4">
+          {!showBackupCodes ? (
+            <>
+              <p className="text-sm text-slate-500">
+                Use these codes if you lose access to your authenticator app. Each code can only be used once.
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2.5">
+                <p className="text-sm text-blue-700">
+                  <strong>Keep these codes safe.</strong> Store them somewhere secure like a password manager.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2 border-t border-slate-100">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowBackupCodes(true)}
+                  loading={codesLoading}
+                  className="flex-1"
+                >
+                  View Codes
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowBackupCodes(true)}
+                  className="flex-1"
+                >
+                  Regenerate
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-slate-500">
+                Your current backup codes:
+              </p>
+              <div className="grid grid-cols-2 gap-2 bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-[300px] overflow-y-auto">
+                {backupCodes.map((code) => (
+                  <span key={code} className="font-mono text-sm text-slate-800 text-center tracking-widest">
+                    {code}
+                  </span>
+                ))}
+              </div>
+              {codesError && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{codesError}</p>
+              )}
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                <Button variant="outline" size="sm" onClick={downloadBackupCodes} className="gap-1.5">
+                  <Download size={14} />
+                  Download
+                </Button>
+                <Button variant="outline" size="sm" onClick={copyBackupCodes} className="gap-1.5">
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
+                  {copied ? "Copied" : "Copy all"}
+                </Button>
+                <Button size="sm" onClick={() => setCodesOpen(false)}>Done</Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

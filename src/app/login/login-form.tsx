@@ -1,23 +1,86 @@
 "use client";
 import { apiFetch } from "@/lib/api-fetch";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 
 export function LoginForm() {
   const router = useRouter();
+  const toast = useToast();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [lockoutEnd, setLockoutEnd] = useState<number | null>(null);
+  const [lockoutCountdown, setLockoutCountdown] = useState<string>("");
+  const [recentFailure, setRecentFailure] = useState<{timestamp: number; ip?: string} | null>(null);
+
+  // Initialize lockout state from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("login_lockout_end");
+    const failure = localStorage.getItem("login_recent_failure");
+
+    if (stored) {
+      const end = parseInt(stored);
+      if (end > Date.now()) {
+        setLockoutEnd(end);
+      } else {
+        localStorage.removeItem("login_lockout_end");
+      }
+    }
+
+    if (failure) {
+      try {
+        const failureData = JSON.parse(failure);
+        if (failureData.timestamp > Date.now() - 5 * 60 * 1000) { // Show for 5 min
+          setRecentFailure(failureData);
+          toast.warning(
+            "Failed login detected",
+            "If this wasn't you, reset your password immediately."
+          );
+        } else {
+          localStorage.removeItem("login_recent_failure");
+        }
+      } catch {}
+    }
+  }, [toast]);
+
+  // Lockout countdown timer
+  useEffect(() => {
+    if (!lockoutEnd) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      if (lockoutEnd <= now) {
+        setLockoutEnd(null);
+        localStorage.removeItem("login_lockout_end");
+        clearInterval(interval);
+        return;
+      }
+
+      const remaining = lockoutEnd - now;
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      setLockoutCountdown(`${mins}:${secs.toString().padStart(2, "0")}`);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lockoutEnd]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (lockoutEnd && lockoutEnd > Date.now()) {
+      setError("Account locked due to too many failed attempts. Please try again later.");
+      return;
+    }
+
     if (!username.trim()) { setError("Username is required."); return; }
     if (!password) { setError("Password is required."); return; }
     setLoading(true);
@@ -32,9 +95,27 @@ export function LoginForm() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 429) {
+          // Account locked
+          const retryAfter = parseInt(res.headers?.get("Retry-After") || "1800");
+          const lockoutTime = Date.now() + retryAfter * 1000;
+          localStorage.setItem("login_lockout_end", lockoutTime.toString());
+          setLockoutEnd(lockoutTime);
+        } else if (res.status === 401) {
+          // Failed login - store for alert
+          localStorage.setItem("login_recent_failure", JSON.stringify({
+            timestamp: Date.now(),
+            username: username,
+          }));
+          setRecentFailure({ timestamp: Date.now() });
+        }
         setError(data.error ?? "Invalid credentials");
         return;
       }
+
+      // Clear lockout and failure states on success
+      localStorage.removeItem("login_lockout_end");
+      localStorage.removeItem("login_recent_failure");
 
       router.push(data.redirectTo);
       router.refresh();
@@ -47,6 +128,32 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Recent failure alert */}
+      {recentFailure && (
+        <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+          <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-medium">Failed login detected</p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              If this wasn&apos;t you, reset your password immediately.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Lockout alert with countdown */}
+      {lockoutEnd && lockoutEnd > Date.now() && (
+        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
+          <AlertCircle size={16} className="flex-shrink-0" />
+          <div className="flex-1">
+            <p className="font-medium">Account locked</p>
+            <p className="text-xs text-red-600 mt-1">
+              Try again in: <span className="font-mono font-bold">{lockoutCountdown}</span>
+            </p>
+          </div>
+        </div>
+      )}
+
       <Input
         label="Username"
         type="text"
@@ -56,6 +163,7 @@ export function LoginForm() {
         autoComplete="username"
         required
         hideRequiredMark
+        disabled={lockoutEnd ? lockoutEnd > Date.now() : false}
       />
 
       <div className="flex flex-col gap-1.5">
@@ -79,6 +187,7 @@ export function LoginForm() {
           placeholder="Enter your password"
           autoComplete="current-password"
           required
+          disabled={lockoutEnd ? lockoutEnd > Date.now() : false}
         />
       </div>
 
@@ -89,8 +198,14 @@ export function LoginForm() {
         </div>
       )}
 
-      <Button type="submit" className="w-full" size="lg" loading={loading}>
-        Sign in
+      <Button
+        type="submit"
+        className="w-full"
+        size="lg"
+        loading={loading}
+        disabled={lockoutEnd ? lockoutEnd > Date.now() : false}
+      >
+        {lockoutEnd && lockoutEnd > Date.now() ? `Try again in ${lockoutCountdown}` : "Sign in"}
       </Button>
 
       <div className="relative">
