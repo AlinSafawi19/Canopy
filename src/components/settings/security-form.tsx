@@ -30,27 +30,34 @@ export function SecurityForm({ apiPath, twoFactorEnabled }: SecurityFormProps) {
     if (pw.next !== pw.confirm) { setMsgOk(false); setMsg("Passwords do not match."); return; }
     setLoading(true);
     setMsg("");
-    const res = await apiFetch(apiPath, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ currentPassword: pw.current, newPassword: pw.next }),
-    });
-    setLoading(false);
-    setMsgOk(res.ok);
-    setMsg(
-      res.ok
-        ? "Password changed successfully. You'll be logged out in a few seconds..."
-        : "Failed to change password."
-    );
-    if (res.ok) {
-      setPw({ current: "", next: "", confirm: "" });
-      // Clear session cookie and redirect after brief delay
-      setTimeout(() => {
-        // Delete the session cookie on the client side
-        document.cookie = "cms_session=; path=/; max-age=0;";
-        // Force a full page navigation to login (not client-side routing)
-        window.location.href = "/login";
-      }, 1500);
+    try {
+      const res = await apiFetch(apiPath, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: pw.current, newPassword: pw.next }),
+      });
+      setLoading(false);
+      setMsgOk(res.ok);
+
+      if (res.ok) {
+        setMsg("Password changed successfully. You'll be logged out in a few seconds...");
+        setPw({ current: "", next: "", confirm: "" });
+        // Clear session cookie and redirect after brief delay
+        setTimeout(() => {
+          // Delete the session cookie on the client side
+          document.cookie = "cms_session=; path=/; max-age=0;";
+          // Force a full page navigation to login (not client-side routing)
+          window.location.href = "/login";
+        }, 1500);
+      } else {
+        const data = await res.json();
+        setMsg(data.error ?? "Failed to change password.");
+      }
+    } catch (err) {
+      setLoading(false);
+      setMsgOk(false);
+      setMsg("Something went wrong. Please try again.");
+      console.error("Password change error:", err);
     }
   }
 
