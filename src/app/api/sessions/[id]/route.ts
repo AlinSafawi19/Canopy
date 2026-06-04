@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hashToken } from "@/lib/session-management";
+import { cookies } from "next/headers";
 
 export async function DELETE(
   _request: unknown,
@@ -24,8 +26,20 @@ export async function DELETE(
       return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
+    // Find the current session by token hash
+    const cookieStore = await cookies();
+    const currentToken = cookieStore.get("cms_session")?.value;
+    const currentSessionHash = currentToken ? hashToken(currentToken) : null;
+
+    const currentSessionRecord = currentSessionHash
+      ? await prisma.session.findFirst({
+          where: { tokenHash: currentSessionHash, targetId: session.id },
+          select: { id: true },
+        })
+      : null;
+
     // Prevent revoking the current session
-    if (sessionId === session.id) {
+    if (currentSessionRecord && sessionId === currentSessionRecord.id) {
       return NextResponse.json(
         { error: "Cannot revoke current session" },
         { status: 400 }
