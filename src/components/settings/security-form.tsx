@@ -14,7 +14,6 @@ interface SecurityFormProps {
 }
 
 export function SecurityForm({ apiPath, twoFactorEnabled }: SecurityFormProps) {
-  const router = useRouter();
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
