@@ -22,9 +22,9 @@ export async function logAuditEvent(options: AuditLogOptions): Promise<void> {
         action: options.action,
         resource: options.resource,
         severity: options.severity || "info",
-        details: options.details || null,
-        ipAddress: options.ipAddress || null,
-        userAgent: options.userAgent || null,
+        details: options.details as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+        ipAddress: options.ipAddress,
+        userAgent: options.userAgent,
       },
     });
   } catch (err) {
@@ -74,7 +74,7 @@ export async function logSecurityEvent(
         action,
         resource: "security",
         severity: "critical",
-        details,
+        details: details as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         ipAddress,
         userAgent,
       },
