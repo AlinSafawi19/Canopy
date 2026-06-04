@@ -62,6 +62,7 @@ export function SessionList({ sessions, currentSessionId }: SessionListProps) {
     try {
       const res = await apiFetch("/api/sessions/revoke-all", {
         method: "POST",
+        body: JSON.stringify({ currentSessionId }),
       });
 
       if (res.ok) {
