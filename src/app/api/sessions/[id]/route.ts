@@ -2,20 +2,16 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-interface Params {
-  id: string;
-}
-
 export async function DELETE(
   _request: unknown,
-  { params }: { params: Params }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id: sessionId } = params;
+  const { id: sessionId } = await params;
 
   try {
     // Verify the session belongs to the current user
