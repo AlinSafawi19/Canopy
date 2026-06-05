@@ -72,7 +72,7 @@ export function ClientSettingsForm({ client }: { client: Client }) {
           />
         </div>
         <div className="flex items-center gap-3">
-          <Button type="submit" size="sm" loading={loading}>Save changes</Button>
+          <Button type="submit" size="md" loading={loading}>Save changes</Button>
           {msg && <span className={`text-sm ${msgOk ? "text-emerald-600" : "text-red-600"}`}>{msg}</span>}
         </div>
       </form>

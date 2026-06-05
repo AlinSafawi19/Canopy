@@ -103,7 +103,7 @@ export function EmailVerificationForm({ email, emailVerified: initialVerified }:
                   required
                 />
               </div>
-              <Button type="submit" size="sm" loading={verifyLoading}>
+              <Button type="submit" size="md" loading={verifyLoading}>
                 Verify
               </Button>
             </div>

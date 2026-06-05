@@ -160,15 +160,15 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
         <div className="sm:flex-shrink-0 flex gap-2">
           {twoFactorEnabled ? (
             <>
-              <Button variant="outline" size="sm" onClick={() => { setCodesOpen(true); setCodesError(""); setShowBackupCodes(false); }}>
+              <Button variant="outline" size="md" onClick={() => { setCodesOpen(true); setCodesError(""); setShowBackupCodes(false); }}>
                 Backup codes
               </Button>
-              <Button variant="outline" size="sm" onClick={() => { setDisableCode(""); setDisableError(""); setDisableOpen(true); }}>
+              <Button variant="outline" size="md" onClick={() => { setDisableCode(""); setDisableError(""); setDisableOpen(true); }}>
                 Disable
               </Button>
             </>
           ) : (
-            <Button size="sm" onClick={openSetup} loading={setupLoading}>
+            <Button size="md" onClick={openSetup} loading={setupLoading}>
               Enable
             </Button>
           )}
@@ -249,15 +249,15 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
             </div>
 
             <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-              <Button variant="outline" size="sm" onClick={downloadBackupCodes} className="gap-1.5">
+              <Button variant="outline" size="md" onClick={downloadBackupCodes} className="gap-1.5">
                 <Download size={14} />
                 Download
               </Button>
-              <Button variant="outline" size="sm" onClick={copyBackupCodes} className="gap-1.5">
+              <Button variant="outline" size="md" onClick={copyBackupCodes} className="gap-1.5">
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 {copied ? "Copied" : "Copy all"}
               </Button>
-              <Button size="sm" onClick={closeSetup}>Done</Button>
+              <Button size="md" onClick={closeSetup}>Done</Button>
             </div>
           </div>
         )}
@@ -342,15 +342,15 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
                 <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{codesError}</p>
               )}
               <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-                <Button variant="outline" size="sm" onClick={downloadBackupCodes} className="gap-1.5">
+                <Button variant="outline" size="md" onClick={downloadBackupCodes} className="gap-1.5">
                   <Download size={14} />
                   Download
                 </Button>
-                <Button variant="outline" size="sm" onClick={copyBackupCodes} className="gap-1.5">
+                <Button variant="outline" size="md" onClick={copyBackupCodes} className="gap-1.5">
                   {copied ? <Check size={14} /> : <Copy size={14} />}
                   {copied ? "Copied" : "Copy all"}
                 </Button>
-                <Button size="sm" onClick={() => setCodesOpen(false)}>Done</Button>
+                <Button size="md" onClick={() => setCodesOpen(false)}>Done</Button>
               </div>
             </>
           )}

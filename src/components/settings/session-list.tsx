@@ -81,7 +81,13 @@ export function SessionList({ sessions, currentSessionId }: SessionListProps) {
     }
   }
 
-  const activeSessions = sessions.filter((s) => !revoked.has(s.id));
+  const activeSessions = sessions
+    .filter((s) => !revoked.has(s.id))
+    .sort((a, b) => {
+      if (a.id === currentSessionId) return -1;
+      if (b.id === currentSessionId) return 1;
+      return 0;
+    });
   const otherCount = activeSessions.filter((s) => s.id !== currentSessionId).length;
 
   if (activeSessions.length === 0) {
