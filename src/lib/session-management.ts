@@ -12,9 +12,9 @@ export async function trackSession(
   token: string,
   ipAddress?: string,
   userAgent?: string
-): Promise<void> {
+): Promise<string> {
   const tokenHash = hashToken(token);
-  await prisma.session.create({
+  const record = await prisma.session.create({
     data: {
       targetKind,
       targetId,
@@ -22,7 +22,9 @@ export async function trackSession(
       ipAddress: ipAddress || null,
       userAgent: userAgent || null,
     },
+    select: { id: true },
   });
+  return record.id;
 }
 
 export async function isSessionValid(token: string): Promise<boolean> {

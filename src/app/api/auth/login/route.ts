@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     const token = await signToken(session);
     const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || undefined;
     const userAgent = request.headers.get("user-agent") || undefined;
-    await trackSession(userRole, user.id, token, ipAddress, userAgent);
+    const sessionDbId = await trackSession(userRole, user.id, token, ipAddress, userAgent);
     let redirectTo: string;
     if (mustShow2faReminder) {
       redirectTo = "/2fa-reminder";
@@ -160,6 +160,13 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({ redirectTo });
     response.cookies.set("cms_session", token, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: "lax",
+      maxAge: 60 * 60 * 8,
+      path: "/",
+    });
+    response.cookies.set("cms_session_id", sessionDbId, {
       httpOnly: true,
       secure: isSecure,
       sameSite: "lax",

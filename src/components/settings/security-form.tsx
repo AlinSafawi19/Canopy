@@ -45,6 +45,7 @@ export function SecurityForm({ apiPath, twoFactorEnabled }: SecurityFormProps) {
         // Set expiry to past date to ensure deletion
         const pastDate = "Thu, 01 Jan 1970 00:00:00 UTC";
         document.cookie = `cms_session=; path=/; expires=${pastDate}; secure; samesite=lax;`;
+        document.cookie = `cms_session_id=; path=/; expires=${pastDate}; secure; samesite=lax;`;
         document.cookie = `cms_csrf=; path=/; expires=${pastDate}; secure; samesite=lax;`;
         document.cookie = `cms_2fa_pending=; path=/; expires=${pastDate}; secure; samesite=lax;`;
 

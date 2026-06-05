@@ -12,6 +12,7 @@ export async function POST() {
 
   const response = NextResponse.json({ ok: true });
   response.cookies.delete("cms_session");
+  response.cookies.delete("cms_session_id");
   response.cookies.delete("cms_csrf");
   response.cookies.delete("cms_2fa_pending");
   return response;
