@@ -63,7 +63,7 @@ interface EditProjectButtonProps {
 
 function deleteGcsUrl(url: string) {
   if (!url.startsWith("https://storage.googleapis.com/")) return;
-  fetch("/api/upload", {
+  apiFetch("/api/upload", {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url }),

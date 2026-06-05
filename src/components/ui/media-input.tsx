@@ -57,7 +57,7 @@ export function MediaInput({
     setUploading(true);
     setUploadError("");
     if (isGcsUrl(value)) {
-      fetch("/api/upload", {
+      apiFetch("/api/upload", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: value }),
@@ -86,7 +86,7 @@ export function MediaInput({
   async function handleClear() {
     setLocalPreviewUrl(null);
     if (isGcsUrl(value)) {
-      fetch("/api/upload", {
+      apiFetch("/api/upload", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: value }),
