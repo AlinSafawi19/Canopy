@@ -42,6 +42,7 @@ export async function GET(
 
   const responseHeaders: Record<string, string> = { ...CORS };
 
+  try {
   const project = await prisma.project.findFirst({
     where: { slug: projectSlug, id: apiKey.projectId },
     select: {
@@ -88,4 +89,11 @@ export async function GET(
     },
     { headers: responseHeaders }
   );
+  } catch (err) {
+    console.error("[v1/project GET]", err);
+    return NextResponse.json(
+      { error: "Internal server error", detail: err instanceof Error ? err.message : String(err) },
+      { status: 500, headers: CORS }
+    );
+  }
 }

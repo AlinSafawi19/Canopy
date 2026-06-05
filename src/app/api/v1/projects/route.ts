@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
   const limit = Number.isFinite(rawLimit) && rawLimit >= 1 ? Math.min(rawLimit, 100) : 20;
   const { skip, take } = paginationArgs(page, limit);
 
+  try {
   const where = { adminTenantId: apiKey.adminTenantId, archivedAt: null };
 
   const [total, projects] = await Promise.all([
@@ -91,4 +92,11 @@ export async function GET(request: NextRequest) {
     },
     { headers: responseHeaders }
   );
+  } catch (err) {
+    console.error("[v1/projects GET]", err);
+    return NextResponse.json(
+      { error: "Internal server error", detail: err instanceof Error ? err.message : String(err) },
+      { status: 500, headers: CORS }
+    );
+  }
 }
