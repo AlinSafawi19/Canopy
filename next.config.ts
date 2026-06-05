@@ -16,10 +16,8 @@ function generateCSP(nonce?: string): string {
     isProd
       ? "img-src 'self' data: blob: https://storage.googleapis.com"
       : "img-src 'self' data: blob: https: http:",
-    // Video backgrounds
-    isProd
-      ? "media-src 'self' blob: https://storage.googleapis.com"
-      : "media-src 'self' blob: https: http:",
+    // Video backgrounds — admins can paste external URLs so allow all HTTPS
+    "media-src 'self' blob: https:",
     "font-src 'self'",
     // All API calls go to same origin
     "connect-src 'self'",

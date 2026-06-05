@@ -23,6 +23,7 @@ const PUBLIC_PATHS = [
   "/api/auth/send-verification",
   "/api/auth/verify-email",
   "/api/auth/invite",
+  "/api/csp-report",
 ];
 
 // Paths accessible to any authenticated user regardless of role prefix
