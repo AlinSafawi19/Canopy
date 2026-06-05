@@ -33,17 +33,27 @@ export function MediaInput({
   const [uploadError, setUploadError] = useState("");
   const [imgError, setImgError] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Reset preview error whenever the URL changes so a new URL gets a fresh attempt
+  // Revoke the blob URL whenever it changes or the component unmounts
+  useEffect(() => {
+    return () => {
+      if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+    };
+  }, [localPreviewUrl]);
+
+  // Reset preview errors whenever the effective source changes
+  const previewSrc = localPreviewUrl ?? value;
   useEffect(() => {
     setImgError(false);
     setVideoError(false);
-  }, [value]);
+  }, [previewSrc]);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setLocalPreviewUrl(URL.createObjectURL(file));
     setUploading(true);
     setUploadError("");
     if (isGcsUrl(value)) {
@@ -74,6 +84,7 @@ export function MediaInput({
   }
 
   async function handleClear() {
+    setLocalPreviewUrl(null);
     if (isGcsUrl(value)) {
       fetch("/api/upload", {
         method: "DELETE",
@@ -84,8 +95,8 @@ export function MediaInput({
     onChange("");
   }
 
-  const showImagePreview = accept.includes("image") && !!value && !imgError;
-  const showVideoPreview = accept.includes("video") && !!value && !videoError;
+  const showImagePreview = accept.includes("image") && !!previewSrc && !imgError;
+  const showVideoPreview = accept.includes("video") && !!previewSrc && !videoError;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -126,7 +137,7 @@ export function MediaInput({
           <input
             type="url"
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => { setLocalPreviewUrl(null); onChange(e.target.value); }}
             readOnly={isGcsUrl(value)}
             placeholder={placeholder}
             maxLength={maxLength}
@@ -182,7 +193,7 @@ export function MediaInput({
         <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-50 h-20 flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={value}
+            src={previewSrc}
             alt="preview"
             className="max-h-full max-w-full object-contain"
             onError={() => setImgError(true)}
@@ -194,7 +205,7 @@ export function MediaInput({
       {showVideoPreview && (
         <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-950 h-28 flex items-center justify-center">
           <video
-            src={value}
+            src={previewSrc}
             controls
             className="max-h-full max-w-full"
             onError={() => setVideoError(true)}
