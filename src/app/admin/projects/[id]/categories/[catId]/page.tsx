@@ -38,7 +38,7 @@ export default async function CategoryDetailPage({
       project: { adminTenantId: session!.tenantId! },
     },
     include: {
-      project: { select: { id: true, name: true } },
+      project: { select: { id: true, name: true, previewUrl: true } },
     },
   });
 
@@ -137,6 +137,7 @@ export default async function CategoryDetailPage({
                 pagePath={basePath}
                 sortDir={sortDir}
                 sortExtras={sortExtras}
+                previewUrl={category.project.previewUrl ?? null}
               />
               <div className="px-4 border-t border-slate-100">
                 <Pagination total={total} page={page} limit={limit} basePath={basePath} extraParams={extraParams} />

@@ -46,6 +46,7 @@ const EMPTY_FORM = {
   host: "",
   liveUrl: "",
   githubUrl: "",
+  previewUrl: "",
   imageBg: "",
   videoBg: "",
   coverImageAlt: "",
@@ -239,6 +240,10 @@ export function CreateProjectButton() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input label="Live URL" value={form.liveUrl} onChange={(e) => set("liveUrl", e.target.value)} placeholder="https://app.example.com" maxLength={LIMITS.PROJECT_LIVE_URL} />
                 <Input label="GitHub URL" value={form.githubUrl} onChange={(e) => set("githubUrl", e.target.value)} placeholder="https://github.com/..." maxLength={LIMITS.PROJECT_GITHUB_URL} />
+              </div>
+              <div>
+                <Input label="Preview URL" value={form.previewUrl} onChange={(e) => set("previewUrl", e.target.value)} placeholder="https://mysite.com/preview?id={entryId}" maxLength={LIMITS.PROJECT_PREVIEW_URL} />
+                <p className="text-xs text-slate-400 mt-1">Use <code className="font-mono bg-slate-100 px-1 rounded">{"{entryId}"}</code> as a placeholder — it will be replaced with each entry&apos;s ID when previewing.</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <MediaInput label="Image Background" value={form.imageBg} onChange={(v) => set("imageBg", v)} accept="image/*" placeholder="https://..." maxLength={LIMITS.PROJECT_IMAGE_BG} />

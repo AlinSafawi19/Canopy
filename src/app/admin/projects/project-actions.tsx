@@ -32,6 +32,7 @@ interface Project {
   host: string | null;
   liveUrl: string | null;
   githubUrl: string | null;
+  previewUrl: string | null;
   imageBg: string | null;
   videoBg: string | null;
   coverImageAlt: string | null;

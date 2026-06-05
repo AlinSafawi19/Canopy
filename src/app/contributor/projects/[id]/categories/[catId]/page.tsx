@@ -42,7 +42,7 @@ export default async function ContributorCategoryPage({
   const category = await prisma.contentCategory.findFirst({
     where: { id: catId, projectId: id },
     include: {
-      project: { select: { id: true, name: true } },
+      project: { select: { id: true, name: true, previewUrl: true } },
     },
   });
 
@@ -148,6 +148,7 @@ export default async function ContributorCategoryPage({
                 canEdit={permissions.canEditEntries}
                 canArchive={permissions.canEditEntries}
                 canDelete={permissions.canDeleteEntries}
+                previewUrl={category.project.previewUrl ?? null}
               />
               <div className="px-4 border-t border-slate-100">
                 <Pagination total={total} page={page} limit={limit} basePath={basePath} extraParams={extraParams} />

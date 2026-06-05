@@ -9,7 +9,7 @@ import { EntryActions } from "./entry-actions";
 import { EntryStatusBadge } from "./entry-status-badge";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { stripRichText, formatDate } from "@/lib/utils";
-import { Trash2 } from "lucide-react";
+import { Trash2, ExternalLink } from "lucide-react";
 
 const TYPE_COLORS: Record<string, string> = {
   text:      "text-violet-500",
@@ -41,6 +41,7 @@ interface Props {
   canEdit?: boolean;
   canArchive?: boolean;
   canDelete?: boolean;
+  previewUrl?: string | null;
 }
 
 export function EntriesTable({
@@ -57,6 +58,7 @@ export function EntriesTable({
   canEdit = true,
   canArchive = true,
   canDelete = true,
+  previewUrl,
 }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -92,7 +94,8 @@ export function EntriesTable({
   }
 
   // Number of <td> columns for empty-state colspan
-  const colCount = fields.length + 2 + (canDelete ? 1 : 0) + (canEdit || canArchive || canDelete ? 1 : 0);
+  const hasActions = canEdit || canArchive || canDelete || !!previewUrl;
+  const colCount = fields.length + 2 + (canDelete ? 1 : 0) + (hasActions ? 1 : 0);
 
   return (
     <>
@@ -157,7 +160,7 @@ export function EntriesTable({
                   <span className="text-[10px] font-normal uppercase tracking-wide text-slate-400">system</span>
                 </div>
               </th>
-              {(canEdit || canArchive || canDelete) && (
+              {hasActions && (
                 <th className="px-4 py-2.5 text-left font-medium text-slate-700 whitespace-nowrap sticky right-0 bg-slate-50">
                   <div className="flex flex-col gap-0.5">
                     <span>Actions</span>
@@ -215,18 +218,32 @@ export function EntriesTable({
                   <td className="px-4 py-2.5 border-r border-slate-100">
                     <EntryStatusBadge entry={entry} categoryId={categoryId} projectId={projectId} basePath={apiBase} />
                   </td>
-                  {(canEdit || canArchive || canDelete) && (
+                  {hasActions && (
                     <td className={`px-4 py-2.5 sticky right-0 z-10 ${isSelected ? "bg-indigo-50/50" : "bg-white"}`}>
-                      <EntryActions
-                        entry={entry}
-                        categoryId={categoryId}
-                        projectId={projectId}
-                        fields={fields}
-                        basePath={apiBase}
-                        canEdit={canEdit}
-                        canArchive={canArchive}
-                        canDelete={canDelete}
-                      />
+                      <div className="flex items-center gap-1">
+                        {previewUrl && (
+                          <a
+                            href={previewUrl.replace("{entryId}", entry.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-slate-100 rounded transition-colors"
+                            title="Preview on site"
+                          >
+                            <ExternalLink size={12} />
+                            Preview
+                          </a>
+                        )}
+                        <EntryActions
+                          entry={entry}
+                          categoryId={categoryId}
+                          projectId={projectId}
+                          fields={fields}
+                          basePath={apiBase}
+                          canEdit={canEdit}
+                          canArchive={canArchive}
+                          canDelete={canDelete}
+                        />
+                      </div>
                     </td>
                   )}
                 </tr>
