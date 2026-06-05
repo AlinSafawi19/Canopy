@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { CopyButton } from "@/components/ui/copy-button";
 
 function MethodBadge({ method }: { method: "GET" | "POST" | "DELETE" | "PATCH" }) {
   const colors = {
@@ -28,9 +29,14 @@ function Endpoint({ method, path, description }: { method: "GET" | "POST" | "DEL
 
 function CodeBlock({ code }: { code: string; language?: string }) {
   return (
-    <pre className="bg-slate-900 rounded-lg p-4 overflow-x-auto text-xs font-mono leading-relaxed">
-      <code className="text-slate-100">{code}</code>
-    </pre>
+    <div className="relative group">
+      <pre className="bg-slate-900 rounded-lg p-4 pr-20 overflow-x-auto text-xs font-mono leading-relaxed">
+        <code className="text-slate-100">{code}</code>
+      </pre>
+      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <CopyButton text={code} />
+      </div>
+    </div>
   );
 }
 
@@ -67,9 +73,14 @@ export function ApiIntegrationDocs() {
           a portfolio site, a web app, a mobile app, or a static site generator.
           All endpoints are public and protected by API keys that you manage from each project&apos;s settings.
         </p>
-        <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
-          <p className="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wide">Base URL</p>
-          <code className="text-sm font-mono text-slate-800">https://your-domain.com/api/v1</code>
+        <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs text-slate-500 mb-1 font-medium uppercase tracking-wide">Base URL</p>
+            <code className="text-sm font-mono text-slate-800">https://your-domain.com/api/v1</code>
+          </div>
+          <div className="[&_button]:bg-slate-200 [&_button]:text-slate-600 [&_button:hover]:bg-slate-300 [&_button:hover]:text-slate-800">
+            <CopyButton text="https://your-domain.com/api/v1" />
+          </div>
         </div>
       </Section>
 
