@@ -2,6 +2,7 @@
 
 import { AlertCircle, LogIn, LogOut, Lock, Shield, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { formatDeviceInfo } from "@/lib/parse-user-agent";
 
 interface AuditEvent {
   id: string;
@@ -106,8 +107,8 @@ export function ActivityLog({ events, isLoading }: ActivityLogProps) {
                 )}
               </div>
               {event.userAgent && (
-                <p className="text-xs text-slate-500 mt-1 truncate" title={event.userAgent}>
-                  {event.userAgent}
+                <p className="text-xs text-slate-500 mt-1" title={event.userAgent}>
+                  {formatDeviceInfo(event.userAgent)}
                 </p>
               )}
             </div>
