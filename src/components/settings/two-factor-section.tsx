@@ -302,15 +302,15 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
               <p className="text-sm text-slate-500">
                 Use these codes if you lose access to your authenticator app. Each code can only be used once.
               </p>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2.5">
-                <p className="text-sm text-blue-700">
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2.5">
+                <p className="text-sm text-indigo-700">
                   <strong>Keep these codes safe.</strong> Store them somewhere secure like a password manager.
                 </p>
               </div>
               <div className="flex gap-3 pt-2 border-t border-slate-100">
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="md"
                   onClick={() => setShowBackupCodes(true)}
                   className="flex-1"
                 >
@@ -318,7 +318,7 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
                 </Button>
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="md"
                   onClick={() => setShowBackupCodes(true)}
                   className="flex-1"
                 >

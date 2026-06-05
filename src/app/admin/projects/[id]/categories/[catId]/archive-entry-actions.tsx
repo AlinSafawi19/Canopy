@@ -37,7 +37,7 @@ export function ArchiveProjectActions({
 
   return (
     <div className="flex items-center gap-1">
-      <Button variant="outline" size="sm" className="h-7 px-2" onClick={doRestore} disabled={loading}>
+      <Button variant="outline" size="sm" onClick={doRestore} disabled={loading}>
         Restore
       </Button>
       <ActionMenu>
@@ -95,7 +95,7 @@ export function ArchiveCategoryActions({
 
   return (
     <div className="flex items-center gap-1">
-      <Button variant="outline" size="sm" className="h-7 px-2" onClick={doRestore} disabled={loading}>
+      <Button variant="outline" size="sm" onClick={doRestore} disabled={loading}>
         Restore
       </Button>
       <ActionMenu>
@@ -165,7 +165,6 @@ export function ArchiveEntryActions({
         <Button
           variant="outline"
           size="sm"
-          className="h-7 px-2"
           onClick={doRestore}
           disabled={loading}
         >

@@ -90,7 +90,6 @@ export function EntryActions({
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 px-2"
           onClick={() => { setValues(entry.values as Record<string, string>); setError(""); setEditOpen(true); }}
         >
           Edit

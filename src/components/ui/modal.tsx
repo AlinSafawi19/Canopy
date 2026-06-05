@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import { Button } from "./button";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -109,18 +110,12 @@ export const Modal = forwardRef<ModalRef, ModalProps>(function Modal({
               <p className="text-sm font-semibold text-slate-800">Discard unsaved changes?</p>
               <p className="text-xs text-slate-500">Your changes will be lost if you close now.</p>
               <div className="flex gap-3 justify-center pt-1">
-                <button
-                  onClick={() => setConfirmingClose(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-                >
+                <Button variant="outline" type="button" onClick={() => setConfirmingClose(false)}>
                   Keep editing
-                </button>
-                <button
-                  onClick={forceClose}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                >
+                </Button>
+                <Button variant="danger" type="button" onClick={forceClose}>
                   Discard
-                </button>
+                </Button>
               </div>
             </div>
           </div>

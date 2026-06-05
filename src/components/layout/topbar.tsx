@@ -49,7 +49,7 @@ export function Topbar({ title, onMenuClick }: TopbarProps) {
           )}
         </div>
         <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(true)} className="gap-2">
-          <LogOut size={15} />
+          <LogOut size={16} />
           Sign out
         </Button>
       </header>
