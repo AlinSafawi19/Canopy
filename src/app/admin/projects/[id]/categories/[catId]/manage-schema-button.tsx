@@ -9,7 +9,8 @@ import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
 import { Plus, Trash2, Columns, X } from "lucide-react";
 
-interface Field { name: string; type: string; options?: string[] }
+interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string }
+interface Category { id: string; name: string }
 
 const FIELD_TYPES = [
   { value: "text",      label: "Text" },
@@ -21,17 +22,20 @@ const FIELD_TYPES = [
   { value: "email",     label: "Email" },
   { value: "boolean",   label: "Boolean" },
   { value: "enum",      label: "Enum" },
+  { value: "relation",  label: "Relation" },
 ];
 
 export function ManageSchemaButton({
   projectId,
   categoryId,
   fields: initialFields,
+  categories = [],
   basePath = "/api/admin/projects",
 }: {
   projectId: string;
   categoryId: string;
   fields: Field[];
+  categories?: Category[];
   basePath?: string;
 }) {
   const router = useRouter();
@@ -93,6 +97,10 @@ export function ManageSchemaButton({
         setError(`"${f.name || "Enum column"}" must have at least 2 options`);
         return;
       }
+      if (f.type === "relation" && !f.relationCategoryId) {
+        setError(`"${f.name || "Relation column"}" must have a target category selected`);
+        return;
+      }
     }
 
     setLoading(true);
@@ -105,6 +113,7 @@ export function ManageSchemaButton({
           name: f.name.trim(),
           type: f.type,
           ...(f.type === "enum" ? { options: f.options ?? [] } : {}),
+          ...(f.type === "relation" ? { relationCategoryId: f.relationCategoryId ?? "" } : {}),
         })),
       }),
     });
@@ -209,6 +218,24 @@ export function ManageSchemaButton({
                       Add
                     </button>
                   </div>
+                </div>
+              )}
+
+              {field.type === "relation" && (
+                <div className="ml-1 pl-3 border-l-2 border-pink-200 space-y-1.5">
+                  <Select
+                    value={field.relationCategoryId ?? ""}
+                    onChange={(v) => updateField(i, { relationCategoryId: v })}
+                    options={[
+                      { value: "", label: "Select target category…" },
+                      ...categories
+                        .filter((c) => c.id !== categoryId)
+                        .map((c) => ({ value: c.id, label: c.name })),
+                    ]}
+                  />
+                  {categories.filter((c) => c.id !== categoryId).length === 0 && (
+                    <p className="text-xs text-slate-400">No other categories in this project yet.</p>
+                  )}
                 </div>
               )}
             </div>

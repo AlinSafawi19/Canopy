@@ -10,9 +10,10 @@ import { Modal, ModalRef } from "@/components/ui/modal";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Select } from "@/components/ui/select";
+import { RelationSelect } from "@/components/ui/relation-select";
 import { LIMITS } from "@/lib/limits";
 
-interface Field { name: string; type: string; options?: string[] }
+interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string }
 
 export function CreateEntryButton({
   categoryId,
@@ -111,6 +112,17 @@ export function CreateEntryButton({
                   { value: "", label: "Select…" },
                   ...(field.options ?? []).map((o) => ({ value: o, label: o })),
                 ]}
+              />
+            );
+            if (field.type === "relation") return (
+              <RelationSelect
+                key={field.name}
+                label={field.name}
+                value={values[field.name] ?? ""}
+                onChange={(v) => setValue(field.name, v)}
+                projectId={projectId}
+                targetCategoryId={field.relationCategoryId ?? ""}
+                basePath={basePath}
               />
             );
             if (field.type === "boolean") {

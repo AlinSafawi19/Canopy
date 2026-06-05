@@ -47,6 +47,18 @@ export function stripRichText(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+/** Returns a human-readable label for an entry by finding its first non-HTML, non-empty string value. */
+export function getEntryLabel(values: Record<string, unknown>): string {
+  const strs = Object.values(values).filter(
+    (v): v is string => typeof v === "string" && v.trim().length > 0
+  );
+  if (!strs.length) return "(empty)";
+  const plain = strs.find((v) => !v.trimStart().startsWith("<")) ?? strs[0];
+  const text = plain.trimStart().startsWith("<") ? stripRichText(plain) : plain;
+  const trimmed = text.trim();
+  return trimmed.length > 60 ? trimmed.slice(0, 57) + "…" : trimmed || "(empty)";
+}
+
 export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")

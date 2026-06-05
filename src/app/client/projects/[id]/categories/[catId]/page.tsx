@@ -13,6 +13,7 @@ import { ArrowLeft } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { SearchInput } from "@/components/ui/search-input";
 import { parsePage, parseLimit, parseSearch, parseSortDir } from "@/lib/pagination";
+import { getEntryLabel } from "@/lib/utils";
 
 const BASE = "/api/client/projects";
 
@@ -74,9 +75,38 @@ export default async function ClientCategoryPage({
     }),
   ]);
 
-  const fields: Array<{ name: string; type: string }> = Array.isArray(category.fields)
-    ? (category.fields as unknown as Array<{ name: string; type: string }>)
+  const fields: Array<{ name: string; type: string; options?: string[]; relationCategoryId?: string }> = Array.isArray(category.fields)
+    ? (category.fields as unknown as Array<{ name: string; type: string; options?: string[]; relationCategoryId?: string }>)
     : [];
+
+  const projectCategories = await prisma.contentCategory.findMany({
+    where: { projectId: id, archivedAt: null },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
+  const relationFields = fields.filter((f) => f.type === "relation" && f.relationCategoryId);
+  let relatedEntries: Record<string, string> = {};
+  if (relationFields.length > 0) {
+    const referencedIds = new Set<string>();
+    for (const entry of entries) {
+      const vals = entry.values as Record<string, unknown>;
+      for (const f of relationFields) {
+        const v = vals[f.name];
+        if (typeof v === "string" && v) referencedIds.add(v);
+      }
+    }
+    if (referencedIds.size > 0) {
+      const referencedRows = await prisma.contentCategoryEntry.findMany({
+        where: { id: { in: Array.from(referencedIds) } },
+        select: { id: true, values: true },
+      });
+      relatedEntries = Object.fromEntries(
+        referencedRows.map((r) => [r.id, getEntryLabel(r.values as Record<string, unknown>)])
+      );
+    }
+  }
+
   const basePath = `/client/projects/${id}/categories/${catId}`;
 
   const extraParams: Record<string, string> = { limit: String(limit), sortDir };
@@ -101,7 +131,7 @@ export default async function ClientCategoryPage({
         <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
           <ExportEntriesButton projectId={id} categoryId={catId} categoryName={category.name} basePath={BASE} />
           <ImportEntriesButton projectId={id} categoryId={catId} fields={fields} totalEntries={total} basePath={BASE} />
-          <ManageSchemaButton projectId={id} categoryId={catId} fields={fields} basePath={BASE} />
+          <ManageSchemaButton projectId={id} categoryId={catId} fields={fields} categories={projectCategories} basePath={BASE} />
           <CreateEntryButton categoryId={catId} projectId={id} fields={fields} basePath={BASE} />
         </div>
       </div>
@@ -140,6 +170,7 @@ export default async function ClientCategoryPage({
                 sortExtras={sortExtras}
                 apiBase={BASE}
                 previewUrl={category.project.previewUrl ?? null}
+                relatedEntries={relatedEntries}
               />
               <div className="px-4 border-t border-slate-100">
                 <Pagination total={total} page={page} limit={limit} basePath={basePath} extraParams={extraParams} />

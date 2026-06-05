@@ -54,6 +54,7 @@ export function validateEntryValues(
 ): string | null {
   if (!values || !Array.isArray(fields)) return null;
   for (const field of fields) {
+    if (field.type === "relation") continue;
     const v = values[field.name];
     if (typeof v !== "string") continue;
     if (field.type === "enum" && v && Array.isArray(field.options) && field.options.length > 0) {

@@ -85,11 +85,40 @@ export async function GET(
   `;
 
   const fields = Array.isArray(category.fields)
-    ? (category.fields as Array<{ name: string; type: string }>)
+    ? (category.fields as Array<{ name: string; type: string; relationCategoryId?: string }>)
     : [];
 
+  // Resolve relation fields: replace raw entry IDs with the referenced entry's values
+  const relationFields = fields.filter((f) => f.type === "relation" && f.relationCategoryId);
+  const resolvedMap = new Map<string, Record<string, unknown>>();
+  if (relationFields.length > 0) {
+    const referencedIds = new Set<string>();
+    for (const entry of entries) {
+      const vals = entry.values as Record<string, unknown>;
+      for (const f of relationFields) {
+        const v = vals[f.name];
+        if (typeof v === "string" && v) referencedIds.add(v);
+      }
+    }
+    if (referencedIds.size > 0) {
+      const referencedRows = await prisma.contentCategoryEntry.findMany({
+        where: { id: { in: Array.from(referencedIds) } },
+        select: { id: true, values: true },
+      });
+      for (const row of referencedRows) {
+        resolvedMap.set(row.id, { id: row.id, ...(row.values as Record<string, unknown>) });
+      }
+    }
+  }
+
   const data = entries.map((entry) => {
-    const values = entry.values as Record<string, unknown>;
+    const values = { ...(entry.values as Record<string, unknown>) };
+    for (const f of relationFields) {
+      const refId = values[f.name];
+      if (typeof refId === "string" && resolvedMap.has(refId)) {
+        values[f.name] = resolvedMap.get(refId);
+      }
+    }
     return { id: entry.id, ...values };
   });
 

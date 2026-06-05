@@ -20,9 +20,10 @@ const TYPE_COLORS: Record<string, string> = {
   boolean:   "text-rose-500",
   url:       "text-cyan-500",
   email:     "text-indigo-500",
+  relation:  "text-pink-500",
 };
 
-interface Field { name: string; type: string }
+interface Field { name: string; type: string; relationCategoryId?: string }
 interface TableEntry { id: string; values: unknown; archivedAt: Date | null }
 
 interface Props {
@@ -42,6 +43,8 @@ interface Props {
   canArchive?: boolean;
   canDelete?: boolean;
   previewUrl?: string | null;
+  /** entryId → human-readable label for relation field display */
+  relatedEntries?: Record<string, string>;
 }
 
 export function EntriesTable({
@@ -59,6 +62,7 @@ export function EntriesTable({
   canArchive = true,
   canDelete = true,
   previewUrl,
+  relatedEntries,
 }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -205,12 +209,15 @@ export function EntriesTable({
                       const str = String(raw);
                       if (f.type === "rich_text") display = stripRichText(str);
                       else if (f.type === "date") display = formatDate(str);
+                      else if (f.type === "relation") display = relatedEntries?.[str] ?? `…${str.slice(-6)}`;
                       else display = str;
                     }
                     return (
                       <td key={f.name} className="px-4 py-2.5 border-r border-slate-100 max-w-[240px]">
                         {display
-                          ? <span className="block truncate text-slate-700">{display}</span>
+                          ? f.type === "relation"
+                            ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-pink-50 border border-pink-200 text-pink-700 text-xs font-medium truncate max-w-full">{display}</span>
+                            : <span className="block truncate text-slate-700">{display}</span>
                           : <span className="text-slate-300">—</span>}
                       </td>
                     );
