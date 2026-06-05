@@ -11,6 +11,15 @@ import { SortableHeader } from "@/components/ui/sortable-header";
 import { stripRichText, formatDate } from "@/lib/utils";
 import { Trash2, ExternalLink } from "lucide-react";
 
+function resolvePreviewUrl(template: string, entryId: string, values: Record<string, unknown>): string {
+  return template
+    .replace("{entryId}", entryId)
+    .replace(/\{([^}]+)\}/g, (match, field) => {
+      const v = values[field];
+      return typeof v === "string" && v ? encodeURIComponent(v) : match;
+    });
+}
+
 const TYPE_COLORS: Record<string, string> = {
   text:      "text-violet-500",
   textarea:  "text-blue-500",
@@ -230,7 +239,7 @@ export function EntriesTable({
                       <div className="flex items-center gap-1">
                         {previewUrl && (
                           <a
-                            href={previewUrl.replace("{entryId}", entry.id)}
+                            href={resolvePreviewUrl(previewUrl, entry.id, values)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-slate-100 rounded transition-colors"

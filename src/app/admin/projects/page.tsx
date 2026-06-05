@@ -56,7 +56,7 @@ export default async function ProjectsPage({
       select: {
         id: true, name: true, slug: true, status: true, featured: true,
         description: true, shortDescription: true, industry: true,
-        domain: true, host: true, liveUrl: true, githubUrl: true, previewUrl: true,
+        domain: true, host: true, liveUrl: true, githubUrl: true,
         imageBg: true, videoBg: true, coverImageAlt: true,
         role: true, teamSize: true, techStack: true, highlights: true,
         startDate: true, endDate: true, archivedAt: true, updatedAt: true,

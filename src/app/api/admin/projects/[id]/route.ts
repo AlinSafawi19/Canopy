@@ -36,7 +36,7 @@ export async function PATCH(
         name, description, slug, status, domain, host, liveUrl, githubUrl,
         shortDescription, industry, featured, role, teamSize,
         imageBg, videoBg, coverImageAlt, techStack, highlights,
-        startDate, endDate, previewUrl,
+        startDate, endDate,
       } = body;
       const lenErr = firstError(
         maxLen(name, LIMITS.PROJECT_NAME, "Project name"),
@@ -53,7 +53,6 @@ export async function PATCH(
         maxLen(imageBg, LIMITS.PROJECT_IMAGE_BG, "Image background"),
         maxLen(videoBg, LIMITS.PROJECT_VIDEO_BG, "Video background"),
         maxLen(coverImageAlt, LIMITS.PROJECT_COVER_IMAGE_ALT, "Cover image alt"),
-        maxLen(previewUrl, LIMITS.PROJECT_PREVIEW_URL, "Preview URL"),
       );
       if (lenErr) return NextResponse.json({ error: lenErr }, { status: 400 });
       await prisma.project.update({
@@ -75,7 +74,6 @@ export async function PATCH(
           ...(imageBg !== undefined && { imageBg }),
           ...(videoBg !== undefined && { videoBg }),
           ...(coverImageAlt !== undefined && { coverImageAlt }),
-          ...(previewUrl !== undefined && { previewUrl: previewUrl || null }),
           ...(techStack !== undefined && { techStack }),
           ...(highlights !== undefined && { highlights }),
           ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),

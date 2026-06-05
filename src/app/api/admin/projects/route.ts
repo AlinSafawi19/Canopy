@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const {
       name, description, slug, industry, status, domain, liveUrl, githubUrl,
       shortDescription, role, teamSize, featured, host, imageBg, videoBg,
-      coverImageAlt, techStack, highlights, previewUrl,
+      coverImageAlt, techStack, highlights,
     } = body;
 
     if (!name?.trim()) {
@@ -42,7 +42,6 @@ export async function POST(request: NextRequest) {
       maxLen(imageBg, LIMITS.PROJECT_IMAGE_BG, "Image background"),
       maxLen(videoBg, LIMITS.PROJECT_VIDEO_BG, "Video background"),
       maxLen(coverImageAlt, LIMITS.PROJECT_COVER_IMAGE_ALT, "Cover image alt"),
-      maxLen(previewUrl, LIMITS.PROJECT_PREVIEW_URL, "Preview URL"),
     );
     if (lenErr) return NextResponse.json({ error: lenErr }, { status: 400 });
 
@@ -67,7 +66,6 @@ export async function POST(request: NextRequest) {
         imageBg: imageBg || null,
         videoBg: videoBg || null,
         coverImageAlt: coverImageAlt || null,
-        previewUrl: previewUrl || null,
         techStack: Array.isArray(techStack) ? techStack : [],
         highlights: Array.isArray(highlights) ? highlights : [],
         categories: [],

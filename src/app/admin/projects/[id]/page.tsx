@@ -182,7 +182,6 @@ export default async function ProjectDetailPage({
           host: project.host ?? null,
           liveUrl: project.liveUrl ?? null,
           githubUrl: project.githubUrl ?? null,
-          previewUrl: project.previewUrl ?? null,
           imageBg: project.imageBg ?? null,
           videoBg: project.videoBg ?? null,
           coverImageAlt: project.coverImageAlt ?? null,
@@ -266,7 +265,7 @@ export default async function ProjectDetailPage({
       )}
 
       {/* Links meta */}
-      {(project.domain || project.host || project.liveUrl || project.githubUrl || project.previewUrl) && (
+      {(project.domain || project.host || project.liveUrl || project.githubUrl) && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {project.domain && (
             <Card><CardContent className="py-4">
@@ -301,15 +300,6 @@ export default async function ProjectDetailPage({
               <div className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
                 <GitBranch size={14} className="text-slate-400 flex-shrink-0" />
                 <span className="truncate">{project.githubUrl}</span>
-              </div>
-            </CardContent></Card>
-          )}
-          {project.previewUrl && (
-            <Card><CardContent className="py-4">
-              <p className="text-xs text-slate-500 mb-1">Preview URL</p>
-              <div className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
-                <ExternalLink size={14} className="text-slate-400 flex-shrink-0" />
-                <span className="truncate font-mono text-xs">{project.previewUrl}</span>
               </div>
             </CardContent></Card>
           )}

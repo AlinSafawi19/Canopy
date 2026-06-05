@@ -40,11 +40,12 @@ export async function PATCH(
   } else if (body.fields !== undefined) {
     await prisma.contentCategory.update({ where: { id: catId }, data: { fields: body.fields } });
   } else {
-    const { name, slug, description } = body;
+    const { name, slug, description, previewUrl } = body;
     const lenErr = firstError(
       maxLen(name, LIMITS.CATEGORY_NAME, "Category name"),
       maxLen(slug, LIMITS.CATEGORY_SLUG, "Slug"),
       maxLen(description, LIMITS.CATEGORY_DESCRIPTION, "Description"),
+      maxLen(previewUrl, LIMITS.CATEGORY_PREVIEW_URL, "Preview URL"),
     );
     if (lenErr) return NextResponse.json({ error: lenErr }, { status: 400 });
     await prisma.contentCategory.update({
@@ -53,6 +54,7 @@ export async function PATCH(
         ...(name && { name }),
         ...(slug !== undefined && { slug }),
         ...(description !== undefined && { description }),
+        ...(previewUrl !== undefined && { previewUrl: previewUrl || null }),
       },
     });
   }

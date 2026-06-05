@@ -39,7 +39,7 @@ export default async function CategoryDetailPage({
       project: { adminTenantId: session!.tenantId! },
     },
     include: {
-      project: { select: { id: true, name: true, previewUrl: true } },
+      project: { select: { id: true, name: true } },
     },
   });
 
@@ -169,7 +169,7 @@ export default async function CategoryDetailPage({
                 pagePath={basePath}
                 sortDir={sortDir}
                 sortExtras={sortExtras}
-                previewUrl={category.project.previewUrl ?? null}
+                previewUrl={category.previewUrl ?? null}
                 relatedEntries={relatedEntries}
               />
               <div className="px-4 border-t border-slate-100">

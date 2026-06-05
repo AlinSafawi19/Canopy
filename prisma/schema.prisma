@@ -35,7 +35,6 @@ model Project {
   techStack        Json      @default("[]")
   githubUrl        String?   @db.VarChar(500)
   liveUrl          String?   @db.VarChar(500)
-  previewUrl       String?   @db.VarChar(500)
   role             String?   @db.VarChar(100)
   featured         Boolean   @default(false)
   status           String    @default("live") @db.VarChar(20)
@@ -64,6 +63,7 @@ model ContentCategory {
   iconIndex   Int?
   defaults    Json?
   fields      Json
+  previewUrl  String?   @db.VarChar(500)
   archivedAt  DateTime?
   archivedBy  String?
   entries     ContentCategoryEntry[]
