@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, ROLE_HOME, type SessionRole } from "@/lib/auth";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
-import { validateApiKey, updateApiKeyLastUsed } from "@/lib/api-key-manager";
-import { hashApiKey } from "@/lib/api-key";
 import { isSessionValid } from "@/lib/session-validator-edge";
 
 const PUBLIC_PATHS = [
@@ -73,35 +71,12 @@ export async function middleware(request: NextRequest) {
     const { ok, retryAfter } = await rateLimit(`2fa-login:${ip}`, 15 * 60_000, 10);
     if (!ok) return rateLimitResponse(retryAfter);
 
-  // Public v1 API — validate API key and rate limit by API key (or IP when no key is present)
+  // Public v1 API — rate limit by IP only.
+  // API key validation (Prisma + Node crypto) is done in the route handlers,
+  // which run in Node.js runtime. Middleware runs in Edge Runtime where those
+  // APIs are not available.
   } else if (pathname.startsWith("/api/v1/")) {
-    const apiKey =
-      request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
-      request.nextUrl.searchParams.get("key") ??
-      "";
-
-    if (apiKey) {
-      // Validate API key (checks expiration, revocation, etc.)
-      const validation = await validateApiKey(apiKey);
-      if (!validation || !validation.valid) {
-        return NextResponse.json(
-          { error: validation?.reason || "Invalid API key" },
-          { status: 401 }
-        );
-      }
-
-      // Update last used timestamp
-      try {
-        const keyHash = hashApiKey(apiKey);
-        await updateApiKeyLastUsed(keyHash).catch(() => {});
-      } catch {
-        // Don't fail request if we can't update last used
-      }
-    }
-
-    const rlKey = apiKey ? `v1:${apiKey}` : `v1-ip:${ip}`;
-    const max = apiKey ? 60 : 10;
-    const { ok, retryAfter } = await rateLimit(rlKey, 60_000, max);
+    const { ok, retryAfter } = await rateLimit(`v1-ip:${ip}`, 60_000, 60);
     if (!ok) return rateLimitResponse(retryAfter);
 
   // Email verification — own bucket so it can't be exhausted by other auth ops.
