@@ -100,16 +100,16 @@ export function ForgotForm() {
     return (
       <form onSubmit={resetPassword} className="space-y-5">
         <div className="text-sm text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
-          A 6-digit code was sent to <span className="font-medium text-slate-700">{email}</span>. Enter it below along with your new password.
+          An 8-digit code was sent to <span className="font-medium text-slate-700">{email}</span>. Enter it below along with your new password.
         </div>
 
         <Input
-          label="6-digit code"
+          label="8-digit code"
           inputMode="numeric"
-          maxLength={6}
+          maxLength={8}
           value={code}
-          onChange={(e) => { setCode(e.target.value.replace(/\D/g, "").slice(0, 6)); setError(""); }}
-          placeholder="000000"
+          onChange={(e) => { setCode(e.target.value.replace(/\D/g, "").slice(0, 8)); setError(""); }}
+          placeholder="00000000"
           className="tracking-widest font-mono text-center text-lg"
           autoFocus
           required
@@ -187,7 +187,7 @@ export function ForgotForm() {
   return (
     <form onSubmit={sendCode} className="space-y-5">
       <p className="text-sm text-slate-500">
-        Enter your email address and we&apos;ll send you a 6-digit code to reset your password.
+        Enter your email address and we&apos;ll send you an 8-digit code to reset your password.
       </p>
 
       <Input

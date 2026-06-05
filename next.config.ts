@@ -28,6 +28,8 @@ function generateCSP(nonce?: string): string {
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
+    // CSP violation reporting
+    "report-uri /api/csp-report",
     // Upgrade insecure requests in production
     ...(isProd ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
@@ -43,9 +45,6 @@ const nextConfig: NextConfig = {
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
       { key: "Content-Security-Policy", value: generateCSP() },
-      // Additional security headers
-      { key: "X-XSS-Protection", value: "1; mode=block" },
-      { key: "X-Content-Type-Options", value: "nosniff" },
     ];
 
     // HSTS only in production

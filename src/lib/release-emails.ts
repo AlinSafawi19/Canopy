@@ -1,5 +1,6 @@
 import { sendMail } from "@/lib/mailer";
 import { prisma } from "@/lib/prisma";
+import { escapeHtml } from "@/lib/utils";
 
 interface ReleasePayload {
   version: string;
@@ -33,10 +34,10 @@ function buildHtml(displayName: string, release: ReleasePayload): string {
   return `
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:480px;margin:0 auto;padding:24px;">
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 16px;margin-bottom:24px;">
-        <p style="margin:0;font-size:12px;font-weight:600;color:#166534;text-transform:uppercase;letter-spacing:0.05em;">New release · ${release.version}</p>
+        <p style="margin:0;font-size:12px;font-weight:600;color:#166534;text-transform:uppercase;letter-spacing:0.05em;">New release · ${escapeHtml(release.version)}</p>
       </div>
-      <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 16px;">${release.title}</h2>
-      <p style="color:#475569;margin:0 0 24px;">Hi ${displayName}, here&rsquo;s what&rsquo;s new in this release.</p>
+      <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin:0 0 16px;">${escapeHtml(release.title)}</h2>
+      <p style="color:#475569;margin:0 0 24px;">Hi ${escapeHtml(displayName)}, here&rsquo;s what&rsquo;s new in this release.</p>
       <style>
         .rn p { color:#475569; margin:0 0 8px; font-size:14px; }
         .rn ul { color:#475569; margin:0 0 8px; padding-left:20px; }

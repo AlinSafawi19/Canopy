@@ -14,9 +14,14 @@ export async function OPTIONS() {
 }
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
-  const queryKey = request.nextUrl.searchParams.get("key");
-  const rawKey = authHeader ?? queryKey ?? "";
+  if (request.nextUrl.searchParams.has("key")) {
+    return NextResponse.json(
+      { error: "API key in URL is not supported. Use Authorization: Bearer <key> header instead." },
+      { status: 400, headers: CORS }
+    );
+  }
+
+  const rawKey = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
 
   if (!rawKey) {
     return NextResponse.json({ error: "API key required" }, { status: 401, headers: CORS });
@@ -24,7 +29,7 @@ export async function GET(request: NextRequest) {
 
   const keyHash = hashApiKey(rawKey);
   const [apiKey] = await prisma.$queryRaw<Array<{ adminTenantId: string }>>`
-    SELECT "adminTenantId" FROM "ApiKey" WHERE "keyHash" = ${keyHash} AND "revokedAt" IS NULL LIMIT 1
+    SELECT "adminTenantId" FROM "ApiKey" WHERE "keyHash" = ${keyHash} AND "revokedAt" IS NULL AND ("expiresAt" IS NULL OR "expiresAt" > NOW()) LIMIT 1
   `;
 
   if (!apiKey) {
@@ -32,10 +37,6 @@ export async function GET(request: NextRequest) {
   }
 
   const responseHeaders: Record<string, string> = { ...CORS };
-  if (queryKey) {
-    responseHeaders["X-Deprecation-Warning"] =
-      "API key in URL is deprecated; use Authorization: Bearer <key> instead";
-  }
 
   const sp = request.nextUrl.searchParams;
   const page = parsePage(sp.get("page") ?? undefined);

@@ -1,5 +1,6 @@
 import { sendMail } from "@/lib/mailer";
 import { prisma } from "@/lib/prisma";
+import { escapeHtml } from "@/lib/utils";
 
 type SecurityEvent = "password_changed" | "email_changed" | "2fa_enabled" | "2fa_disabled";
 
@@ -45,8 +46,8 @@ export async function sendSecurityAlertEmail(
         <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 16px;margin-bottom:24px;">
           <p style="margin:0;font-size:12px;font-weight:600;color:#991b1b;text-transform:uppercase;letter-spacing:0.05em;">Security alert</p>
         </div>
-        <h2 style="font-size:18px;font-weight:600;color:#0f172a;margin:0 0 16px;">${subject}</h2>
-        <p style="color:#475569;margin:0 0 12px;">Hi ${displayName},</p>
+        <h2 style="font-size:18px;font-weight:600;color:#0f172a;margin:0 0 16px;">${escapeHtml(subject)}</h2>
+        <p style="color:#475569;margin:0 0 12px;">Hi ${escapeHtml(displayName)},</p>
         <p style="color:#475569;margin:0 0 12px;">${detail}</p>
         <p style="color:#475569;margin:0 0 32px;">${action}</p>
         <p style="color:#94a3b8;font-size:12px;margin:0;">This is an automated security notification from Canopy.</p>

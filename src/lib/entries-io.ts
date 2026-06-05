@@ -68,6 +68,14 @@ const MAX_IMPORT_ROWS = 500;
 const HTML_RE = /<[a-z][\s\S]*?>/i;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(T[\d:.Z+-]*)?\s*$/;
 const BOOL_RE = /^(true|false)$/i;
+const SAFE_FIELD_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_ ]{0,63}$/;
+
+function stripHtml(value: string): string {
+  return value.replace(/<[^>]*>/g, "").replace(/&[a-z]+;/gi, (e) => {
+    const map: Record<string, string> = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" };
+    return map[e] ?? e;
+  });
+}
 
 function inferFieldType(value: unknown): string {
   if (typeof value === "boolean") return "boolean";
@@ -89,7 +97,19 @@ function normalizeValue(raw: unknown, type: string): string {
     const m = String(raw ?? "").trim().match(/^(\d{4}-\d{2}-\d{2})/);
     return m ? m[1] : String(raw ?? "");
   }
-  return String(raw ?? "");
+  const str = String(raw ?? "");
+  // Strip HTML from plain text fields to prevent stored XSS
+  if (type === "text") return stripHtml(str);
+  return str;
+}
+
+function validateFieldNames(keys: string[]): string | null {
+  for (const key of keys) {
+    if (!SAFE_FIELD_NAME_RE.test(key)) {
+      return `Invalid field name "${key}". Field names must start with a letter or underscore and contain only letters, digits, underscores, or spaces (max 64 chars).`;
+    }
+  }
+  return null;
 }
 
 export async function handleImport(
@@ -118,6 +138,8 @@ export async function handleImport(
 
     // Rebuild field schema from imported data (preserve type where column name matches)
     const firstRow = rows[0] as Record<string, unknown>;
+    const fieldNameErr = validateFieldNames(Object.keys(firstRow));
+    if (fieldNameErr) return NextResponse.json({ error: fieldNameErr }, { status: 400 });
     fields = Object.keys(firstRow).map((key) => {
       const existing = fields.find((f) => f.name === key);
       return existing ?? { name: key, type: inferFieldType(firstRow[key]) };
@@ -151,6 +173,8 @@ export async function handleImport(
   } else {
     // Merge: ensure field schema includes every imported column
     const firstRow = rows[0] as Record<string, unknown>;
+    const fieldNameErr = validateFieldNames(Object.keys(firstRow));
+    if (fieldNameErr) return NextResponse.json({ error: fieldNameErr }, { status: 400 });
     if (fields.length === 0) {
       fields = Object.keys(firstRow).map((key) => ({ name: key, type: inferFieldType(firstRow[key]) }));
       await prisma.contentCategory.update({

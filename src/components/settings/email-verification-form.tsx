@@ -87,7 +87,7 @@ export function EmailVerificationForm({ email, emailVerified: initialVerified }:
             Verifying confirms this address is real and belongs to you, so we can reach you when it matters.
           </p>
           <p className="text-sm text-slate-500">
-            Enter the 6-digit code sent to your email address to complete verification.
+            Enter the 8-digit code sent to your email address to complete verification.
           </p>
 
           <form onSubmit={handleVerify} className="space-y-4">
@@ -96,9 +96,10 @@ export function EmailVerificationForm({ email, emailVerified: initialVerified }:
                 <Input
                   label="Verification Code"
                   value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
                   inputMode="numeric"
-                  placeholder="000000"
+                  maxLength={8}
+                  placeholder="00000000"
                   className="text-center tracking-widest font-mono text-base"
                   required
                 />

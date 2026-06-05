@@ -8,7 +8,6 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/png": ".png",
   "image/gif": ".gif",
   "image/webp": ".webp",
-  "image/svg+xml": ".svg",
   "application/pdf": ".pdf",
   "video/mp4": ".mp4",
   "video/webm": ".webm",
@@ -39,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     if (!fileType || !ALLOWED_TYPES[fileType.mime]) {
       return NextResponse.json(
-        { error: "File type not allowed. Allowed types: JPEG, PNG, GIF, WebP, SVG, PDF, MP4, WebM, MOV" },
+        { error: "File type not allowed. Allowed types: JPEG, PNG, GIF, WebP, PDF, MP4, WebM, MOV" },
         { status: 415 }
       );
     }

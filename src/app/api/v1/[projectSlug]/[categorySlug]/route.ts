@@ -19,9 +19,14 @@ export async function GET(
 ) {
   const { projectSlug, categorySlug } = await params;
 
-  const authHeader = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
-  const queryKey = request.nextUrl.searchParams.get("key");
-  const rawKey = authHeader ?? queryKey ?? "";
+  if (request.nextUrl.searchParams.has("key")) {
+    return NextResponse.json(
+      { error: "API key in URL is not supported. Use Authorization: Bearer <key> header instead." },
+      { status: 400, headers: CORS }
+    );
+  }
+
+  const rawKey = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
 
   if (!rawKey) {
     return NextResponse.json({ error: "API key required" }, { status: 401, headers: CORS });
@@ -29,7 +34,7 @@ export async function GET(
 
   const keyHash = hashApiKey(rawKey);
   const [apiKey] = await prisma.$queryRaw<Array<{ id: string; projectId: string }>>`
-    SELECT id, "projectId" FROM "ApiKey" WHERE "keyHash" = ${keyHash} AND "revokedAt" IS NULL LIMIT 1
+    SELECT id, "projectId" FROM "ApiKey" WHERE "keyHash" = ${keyHash} AND "revokedAt" IS NULL AND ("expiresAt" IS NULL OR "expiresAt" > NOW()) LIMIT 1
   `;
 
   if (!apiKey) {
@@ -37,10 +42,6 @@ export async function GET(
   }
 
   const responseHeaders: Record<string, string> = { ...CORS };
-  if (queryKey) {
-    responseHeaders["X-Deprecation-Warning"] =
-      "API key in URL is deprecated; use Authorization: Bearer <key> instead";
-  }
 
   const project = await prisma.project.findFirst({
     where: { slug: projectSlug, id: apiKey.projectId },
