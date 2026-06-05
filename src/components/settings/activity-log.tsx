@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, LogIn, LogOut, Lock, Shield, Eye } from "lucide-react";
+import { LogIn, LogOut, Lock, Shield, Mail, AlertTriangle, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDeviceInfo } from "@/lib/parse-user-agent";
 
@@ -20,97 +20,70 @@ interface ActivityLogProps {
   isLoading?: boolean;
 }
 
-const ACTION_ICONS: Record<string, React.ReactNode> = {
-  login: <LogIn className="w-4 h-4 text-blue-600" />,
-  logout: <LogOut className="w-4 h-4 text-slate-600" />,
-  password_changed: <Lock className="w-4 h-4 text-green-600" />,
-  password_reset: <Lock className="w-4 h-4 text-green-600" />,
-  "2fa_enabled": <Shield className="w-4 h-4 text-green-600" />,
-  "2fa_disabled": <Shield className="w-4 h-4 text-red-600" />,
-  email_changed: <AlertCircle className="w-4 h-4 text-amber-600" />,
-  login_failed: <AlertCircle className="w-4 h-4 text-red-600" />,
+const ACTION_CONFIG: Record<string, { label: string; icon: React.ReactNode; badge: React.ReactNode }> = {
+  login:            { label: "Signed in",              icon: <LogIn className="w-4 h-4 text-indigo-500" />,  badge: <Badge variant="info">Auth</Badge> },
+  logout:           { label: "Signed out",             icon: <LogOut className="w-4 h-4 text-slate-400" />,  badge: <Badge variant="default">Auth</Badge> },
+  password_changed: { label: "Password changed",       icon: <Lock className="w-4 h-4 text-emerald-500" />,  badge: <Badge variant="success">Security</Badge> },
+  password_reset:   { label: "Password reset",         icon: <Lock className="w-4 h-4 text-amber-500" />,    badge: <Badge variant="warning">Security</Badge> },
+  "2fa_enabled":    { label: "Two-factor enabled",     icon: <Shield className="w-4 h-4 text-emerald-500" />,badge: <Badge variant="success">Security</Badge> },
+  "2fa_disabled":   { label: "Two-factor disabled",    icon: <Shield className="w-4 h-4 text-red-400" />,    badge: <Badge variant="danger">Security</Badge> },
+  email_changed:    { label: "Email address changed",  icon: <Mail className="w-4 h-4 text-amber-500" />,    badge: <Badge variant="warning">Account</Badge> },
+  login_failed:     { label: "Failed sign-in attempt", icon: <AlertTriangle className="w-4 h-4 text-red-500" />, badge: <Badge variant="danger">Alert</Badge> },
 };
 
-const ACTION_LABELS: Record<string, string> = {
-  login: "Signed in",
-  logout: "Signed out",
-  password_changed: "Password changed",
-  password_reset: "Password reset",
-  "2fa_enabled": "2FA enabled",
-  "2fa_disabled": "2FA disabled",
-  email_changed: "Email changed",
-  login_failed: "Failed sign-in attempt",
-};
-
-const SEVERITY_COLORS: Record<string, string> = {
-  info: "bg-blue-50 border-blue-200",
-  warning: "bg-amber-50 border-amber-200",
-  critical: "bg-red-50 border-red-200",
-};
-
-const SEVERITY_BADGES: Record<string, React.ReactNode> = {
-  info: <Badge variant="info">Info</Badge>,
-  warning: <Badge variant="warning">Warning</Badge>,
-  critical: <Badge variant="danger">Critical</Badge>,
-};
+function formatDate(date: Date): string {
+  return new Date(date).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export function ActivityLog({ events, isLoading }: ActivityLogProps) {
   if (isLoading) {
-    return (
-      <div className="text-center py-8 text-slate-500">
-        <p>Loading activity...</p>
-      </div>
-    );
+    return <p className="text-sm text-slate-500 py-4">Loading activity…</p>;
   }
 
   if (events.length === 0) {
-    return (
-      <div className="text-center py-8 text-slate-500">
-        <p>No activity yet</p>
-      </div>
-    );
+    return <p className="text-sm text-slate-500 py-4">No activity recorded yet.</p>;
   }
 
   return (
-    <div className="space-y-3">
+    <div className="divide-y divide-slate-100">
       {events.map((event) => {
-        const eventDate = new Date(event.createdAt);
-        const timeStr = eventDate.toLocaleTimeString("en-US", {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+        const config = ACTION_CONFIG[event.action] ?? {
+          label: event.action,
+          icon: <Eye className="w-4 h-4 text-slate-400" />,
+          badge: <Badge variant="default">Event</Badge>,
+        };
 
         return (
-          <div
-            key={event.id}
-            className={`flex items-start gap-3 p-4 rounded-lg border ${SEVERITY_COLORS[event.severity]}`}
-          >
-            <div className="flex-shrink-0 mt-0.5">
-              {ACTION_ICONS[event.action] || <Eye className="w-4 h-4 text-slate-600" />}
+          <div key={event.id} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
+            <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center mt-0.5">
+              {config.icon}
             </div>
+
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium text-slate-900">
-                  {ACTION_LABELS[event.action] || event.action}
-                </span>
-                {SEVERITY_BADGES[event.severity]}
+                <span className="text-sm font-medium text-slate-900">{config.label}</span>
+                {config.badge}
               </div>
-              <div className="flex items-center gap-4 mt-2 text-sm text-slate-600">
-                <span>{timeStr}</span>
+              <div className="flex items-center gap-2 mt-1 text-xs text-slate-400 flex-wrap">
+                <span>{formatDate(event.createdAt)}</span>
                 {event.ipAddress && (
                   <>
-                    <span>•</span>
-                    <span title="IP Address">{event.ipAddress}</span>
+                    <span>·</span>
+                    <span>{event.ipAddress}</span>
+                  </>
+                )}
+                {event.userAgent && (
+                  <>
+                    <span>·</span>
+                    <span>{formatDeviceInfo(event.userAgent)}</span>
                   </>
                 )}
               </div>
-              {event.userAgent && (
-                <p className="text-xs text-slate-500 mt-1" title={event.userAgent}>
-                  {formatDeviceInfo(event.userAgent)}
-                </p>
-              )}
             </div>
           </div>
         );
