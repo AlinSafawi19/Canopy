@@ -12,9 +12,9 @@ function generateCSP(nonce?: string): string {
     // Tailwind and component inline styles with nonce
     `style-src 'self'${nonceAttr}`,
     // Same-origin + GCS uploads + data URIs (QR codes)
-    // Restrict to HTTPS only in production
+    // Admins can paste external image URLs, so allow all HTTPS (same as media-src)
     isProd
-      ? "img-src 'self' data: blob: https://storage.googleapis.com"
+      ? "img-src 'self' data: blob: https:"
       : "img-src 'self' data: blob: https: http:",
     // Video backgrounds — admins can paste external URLs so allow all HTTPS
     "media-src 'self' blob: https:",
