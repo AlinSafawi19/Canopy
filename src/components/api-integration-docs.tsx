@@ -76,24 +76,19 @@ export function ApiIntegrationDocs() {
       {/* Authentication */}
       <Section id="authentication" title="Authentication">
         <p className="text-sm text-slate-600">
-          Every request must include an API key. You can pass it in two ways:
+          Every request must include an API key in the <code className="text-xs bg-slate-100 px-1 rounded font-mono">Authorization</code> header.
+          API keys in the URL query string are not supported and will return a <code className="text-xs bg-slate-100 px-1 rounded font-mono">400</code> error.
         </p>
-        <div className="space-y-3">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Option 1 — Authorization header (recommended)</p>
-            <CodeBlock code={`GET /api/v1/projects
+        <div>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Authorization header</p>
+          <CodeBlock code={`GET /api/v1/projects
 Authorization: Bearer cms_your_api_key_here`} language="http" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Option 2 — Query parameter (for quick testing in the browser)</p>
-            <CodeBlock code={`GET /api/v1/projects?key=cms_your_api_key_here`} language="http" />
-          </div>
         </div>
         <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-lg">
           <span className="text-amber-600 text-sm mt-0.5">⚠</span>
           <p className="text-sm text-amber-800">
-            Keep your API key secret. Do not expose it in client-side code or public repositories.
-            For browser-based apps, proxy requests through your own backend.
+            Keep your API key secret. Never expose it in client-side code or public repositories.
+            For browser-based apps, proxy requests through your own backend and store the key in an environment variable.
           </p>
         </div>
       </Section>
@@ -103,15 +98,22 @@ Authorization: Bearer cms_your_api_key_here`} language="http" />
         <div className="border border-slate-200 rounded-lg px-4 divide-y divide-slate-100">
           <Endpoint method="GET" path="/api/v1/projects" description="List all projects for your account" />
           <Endpoint method="GET" path="/api/v1/{projectSlug}" description="Get a single project with its category list" />
-          <Endpoint method="GET" path="/api/v1/{projectSlug}/{categorySlug}" description="Get all entries in a category" />
+          <Endpoint method="GET" path="/api/v1/{projectSlug}/{categorySlug}" description="Get all entries in a category, with relation fields expanded" />
         </div>
       </Section>
 
       {/* GET /api/v1/projects */}
       <Section id="get-projects" title="GET /api/v1/projects">
         <p className="text-sm text-slate-600">
-          Returns all non-archived projects associated with your API key&apos;s account. Useful for listing your work on a portfolio.
+          Returns all non-archived projects associated with your API key&apos;s account, ordered by last updated.
         </p>
+        <div>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Query parameters</p>
+          <div className="border border-slate-200 rounded-lg px-4">
+            <ParamRow name="page" type="number" description="Page number, starting at 1 (default: 1)" />
+            <ParamRow name="limit" type="number" description="Results per page, max 100 (default: 20)" />
+          </div>
+        </div>
         <div>
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Response</p>
           <CodeBlock code={`{
@@ -124,6 +126,8 @@ Authorization: Bearer cms_your_api_key_here`} language="http" />
       "description": "A personal portfolio site...",
       "shortDescription": "Personal portfolio",
       "industry": "Technology",
+      "role": "Lead Developer",
+      "teamSize": "3",
       "techStack": [
         { "icon": "https://cdn.example.com/react.svg", "name": "React" },
         { "icon": "⚡", "name": "Next.js" }
@@ -132,12 +136,18 @@ Authorization: Bearer cms_your_api_key_here`} language="http" />
       "featured": true,
       "liveUrl": "https://example.com",
       "githubUrl": "https://github.com/you/project",
-      "imageBg": "https://...",
+      "imageBg": "https://storage.googleapis.com/...",
+      "coverImageAlt": "Screenshot of the app",
       "startDate": "2024-01-01T00:00:00.000Z",
       "endDate": null
     }
   ],
-  "count": 1
+  "pagination": {
+    "total": 5,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 1
+  }
 }`} />
         </div>
       </Section>
@@ -163,7 +173,7 @@ Authorization: Bearer cms_your_api_key_here`} language="http" />
     "description": "...",
     "shortDescription": "...",
     "industry": "Technology",
-    "techStack": [...],
+    "techStack": [...]
   },
   "categories": [
     {
@@ -172,7 +182,8 @@ Authorization: Bearer cms_your_api_key_here`} language="http" />
       "description": "Articles and writings",
       "fields": [
         { "name": "title", "type": "text" },
-        { "name": "body", "type": "richtext" },
+        { "name": "body", "type": "rich_text" },
+        { "name": "author", "type": "relation" },
         { "name": "publishedAt", "type": "date" }
       ],
       "entryCount": 12
@@ -185,13 +196,22 @@ Authorization: Bearer cms_your_api_key_here`} language="http" />
       {/* GET /api/v1/{projectSlug}/{categorySlug} */}
       <Section id="get-category" title="GET /api/v1/{projectSlug}/{categorySlug}">
         <p className="text-sm text-slate-600">
-          Returns all non-archived entries in a category, sorted by their sort order. Each entry&apos;s fields are spread at the top level for easy access.
+          Returns all non-archived entries in a category, sorted by their sort order.
+          Each entry&apos;s fields are spread at the top level for easy access.
+          Relation fields are automatically expanded — the raw entry ID is replaced with the full referenced entry&apos;s fields.
         </p>
         <div>
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Path parameters</p>
           <div className="border border-slate-200 rounded-lg px-4">
             <ParamRow name="projectSlug" type="string" required description="The slug of the project" />
             <ParamRow name="categorySlug" type="string" required description="The slug of the content category" />
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Query parameters</p>
+          <div className="border border-slate-200 rounded-lg px-4">
+            <ParamRow name="page" type="number" description="Page number, starting at 1 (default: 1)" />
+            <ParamRow name="limit" type="number" description="Results per page, max 100 (default: 20)" />
           </div>
         </div>
         <div>
@@ -203,23 +223,61 @@ Authorization: Bearer cms_your_api_key_here`} language="http" />
     "description": "Articles and writings",
     "fields": [
       { "name": "title", "type": "text" },
-      { "name": "body", "type": "richtext" }
+      { "name": "body", "type": "rich_text" },
+      { "name": "author", "type": "relation" }
     ]
   },
   "data": [
     {
       "id": "clx...",
       "title": "Hello World",
-      "body": "<p>My first post...</p>"
-    },
-    {
-      "id": "clx...",
-      "title": "Second Post",
-      "body": "<p>Another post...</p>"
+      "body": "<p>My first post...</p>",
+      "author": {
+        "id": "clx...",
+        "name": "Jane Smith",
+        "role": "Editor"
+      }
     }
   ],
-  "count": 2
+  "pagination": {
+    "total": 8,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 1
+  }
 }`} />
+        </div>
+        <div className="flex items-start gap-2.5 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+          <span className="text-indigo-500 text-sm mt-0.5">ℹ</span>
+          <p className="text-sm text-indigo-800">
+            <strong>Relation fields</strong> are resolved automatically. If an entry has a field of type <code className="text-xs bg-indigo-100 px-1 rounded font-mono">relation</code>, its value in the response will be the full referenced entry object rather than a raw ID string.
+          </p>
+        </div>
+      </Section>
+
+      {/* Field types */}
+      <Section id="field-types" title="Field Types">
+        <p className="text-sm text-slate-600">
+          The <code className="text-xs bg-slate-100 px-1 rounded font-mono">fields</code> array on each category describes the shape of its entries.
+        </p>
+        <div className="border border-slate-200 rounded-lg divide-y divide-slate-100">
+          {[
+            { type: "text", desc: "Short plain text" },
+            { type: "textarea", desc: "Multi-line plain text" },
+            { type: "rich_text", desc: "HTML string from the rich text editor" },
+            { type: "number", desc: "Numeric value (returned as a string)" },
+            { type: "date", desc: "ISO 8601 date string (e.g. 2024-06-01)" },
+            { type: "boolean", desc: 'String "true" or "false"' },
+            { type: "url", desc: "URL string" },
+            { type: "email", desc: "Email address string" },
+            { type: "enum", desc: "One of the predefined option values" },
+            { type: "relation", desc: "Expanded to the full referenced entry object (see above)" },
+          ].map(({ type, desc }) => (
+            <div key={type} className="flex items-start gap-3 px-4 py-2.5">
+              <code className="text-xs font-mono text-pink-700 bg-pink-50 px-1.5 py-0.5 rounded w-24 flex-shrink-0">{type}</code>
+              <span className="text-sm text-slate-600">{desc}</span>
+            </div>
+          ))}
         </div>
       </Section>
 
@@ -228,8 +286,10 @@ Authorization: Bearer cms_your_api_key_here`} language="http" />
         <p className="text-sm text-slate-600">All errors return a JSON object with an <code className="text-xs bg-slate-100 px-1 rounded font-mono">error</code> field.</p>
         <div className="border border-slate-200 rounded-lg divide-y divide-slate-100">
           {[
-            { code: "401", label: "Unauthorized", desc: "No API key provided or the key is invalid" },
+            { code: "400", label: "Bad Request", desc: 'API key passed as a query parameter (?key=...) — use the Authorization header instead' },
+            { code: "401", label: "Unauthorized", desc: "No API key provided, or the key is invalid, expired, or revoked" },
             { code: "404", label: "Not Found", desc: "The project or category slug does not exist or is archived" },
+            { code: "429", label: "Too Many Requests", desc: "Rate limit exceeded — slow down requests" },
             { code: "500", label: "Server Error", desc: "An internal error occurred" },
           ].map(({ code, label, desc }) => (
             <div key={code} className="flex items-start gap-3 px-4 py-3">
@@ -255,31 +315,33 @@ const { projects } = await fetch(\`\${BASE}/projects\`, {
   headers: { Authorization: \`Bearer \${API_KEY}\` },
 }).then((r) => r.json());
 
-// Fetch a specific category
-const { data } = await fetch(\`\${BASE}/my-project/blog-posts\`, {
-  headers: { Authorization: \`Bearer \${API_KEY}\` },
-}).then((r) => r.json());`} />
+// Fetch entries in a category (with pagination)
+const { data, pagination } = await fetch(
+  \`\${BASE}/my-project/blog-posts?page=1&limit=10\`,
+  { headers: { Authorization: \`Bearer \${API_KEY}\` } }
+).then((r) => r.json());`} />
           </div>
 
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Next.js — Server Component</p>
-            <CodeBlock language="tsx" code={`// app/works/page.tsx
+            <CodeBlock language="tsx" code={`// app/blog/page.tsx
 const API_KEY = process.env.CMS_API_KEY!;
 const BASE = process.env.CMS_BASE_URL!; // https://your-domain.com/api/v1
 
-export default async function WorksPage() {
-  const res = await fetch(\`\${BASE}/projects\`, {
+export default async function BlogPage() {
+  const res = await fetch(\`\${BASE}/my-project/blog-posts\`, {
     headers: { Authorization: \`Bearer \${API_KEY}\` },
     next: { revalidate: 60 }, // ISR — refresh every 60 seconds
   });
-  const { projects } = await res.json();
+  const { data: posts } = await res.json();
 
   return (
     <ul>
-      {projects.map((p) => (
-        <li key={p.id}>
-          <a href={p.liveUrl}>{p.name}</a>
-          <p>{p.shortDescription}</p>
+      {posts.map((post) => (
+        <li key={post.id}>
+          <a href={\`/blog/\${post.slug}\`}>{post.title}</a>
+          {/* relation field is already expanded */}
+          <p>By {post.author?.name}</p>
         </li>
       ))}
     </ul>
@@ -306,8 +368,8 @@ CMS_BASE_URL=https://your-domain.com/api/v1`} />
 Access-Control-Allow-Methods: GET, OPTIONS
 Access-Control-Allow-Headers: Authorization, Content-Type`} />
         <p className="text-sm text-slate-600">
-          Note: calling the API directly from a browser exposes your API key in network requests.
-          For production, prefer server-side fetching and store the key in environment variables.
+          Calling the API directly from a browser exposes your API key in network requests.
+          For production, prefer server-side fetching and store the key in an environment variable.
         </p>
       </Section>
 
