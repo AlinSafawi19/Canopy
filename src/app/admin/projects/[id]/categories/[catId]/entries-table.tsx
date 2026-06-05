@@ -15,7 +15,9 @@ function resolvePreviewUrl(template: string, entryId: string, values: Record<str
   return template
     .replace("{entryId}", entryId)
     .replace(/\{([^}]+)\}/g, (match, field) => {
-      const v = values[field];
+      // Case-insensitive field lookup
+      const key = Object.keys(values).find((k) => k.toLowerCase() === field.toLowerCase());
+      const v = key ? values[key] : undefined;
       return typeof v === "string" && v ? encodeURIComponent(v) : match;
     });
 }
