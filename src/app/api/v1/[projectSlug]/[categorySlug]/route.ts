@@ -139,12 +139,6 @@ export async function GET(
     );
   } catch (err) {
     console.error("[v1/category GET]", err);
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        detail: err instanceof Error ? err.message : String(err),
-      },
-      { status: 500, headers: CORS }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: CORS });
   }
 }
