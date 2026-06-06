@@ -9,7 +9,7 @@ import { EntryActions } from "./entry-actions";
 import { EntryStatusBadge } from "./entry-status-badge";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { stripRichText, formatDate } from "@/lib/utils";
-import { Trash2, ExternalLink } from "lucide-react";
+import { Trash2, ExternalLink, Download } from "lucide-react";
 
 function resolvePreviewUrl(template: string, entryId: string, values: Record<string, unknown>): string {
   return template
@@ -56,6 +56,7 @@ interface Props {
   previewUrl?: string | null;
   /** entryId → human-readable label for relation field display */
   relatedEntries?: Record<string, string>;
+  categoryName?: string;
 }
 
 export function EntriesTable({
@@ -74,6 +75,7 @@ export function EntriesTable({
   canDelete = true,
   previewUrl,
   relatedEntries,
+  categoryName = "entries",
 }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -93,6 +95,21 @@ export function EntriesTable({
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+  }
+
+  async function handleBulkExport(format: "csv" | "json") {
+    const ids = Array.from(selected).join(",");
+    const url = `${apiBase}/${projectId}/categories/${categoryId}/entries/export?format=${format}&ids=${ids}`;
+    const res = await apiFetch(url);
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${categoryName.replace(/[^a-z0-9_-]/gi, "_")}-selected.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
   }
 
   async function handleBulkDelete() {
@@ -120,15 +137,32 @@ export function EntriesTable({
           <span className="text-sm font-medium text-indigo-700">
             {selected.size} {selected.size === 1 ? "entry" : "entries"} selected
           </span>
-          <Button
-            variant="danger"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setConfirmOpen(true)}
-          >
-            <Trash2 size={13} />
-            Delete selected
-          </Button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleBulkExport("csv")}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 rounded transition-colors"
+            >
+              <Download size={12} />
+              CSV
+            </button>
+            <button
+              onClick={() => handleBulkExport("json")}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 rounded transition-colors"
+            >
+              <Download size={12} />
+              JSON
+            </button>
+            <div className="w-px h-4 bg-indigo-200" />
+            <Button
+              variant="danger"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setConfirmOpen(true)}
+            >
+              <Trash2 size={13} />
+              Delete selected
+            </Button>
+          </div>
         </div>
       )}
 
@@ -228,6 +262,10 @@ export function EntriesTable({
                         {display
                           ? f.type === "relation"
                             ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-pink-50 border border-pink-200 text-pink-700 text-xs font-medium truncate max-w-full">{display}</span>
+                            : f.type === "enum"
+                            ? <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-xs font-medium truncate max-w-full">{display}</span>
+                            : f.type === "boolean"
+                            ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${display === "true" ? "bg-emerald-50 border border-emerald-200 text-emerald-700" : "bg-red-50 border border-red-200 text-red-600"}`}>{display}</span>
                             : f.type === "url"
                             ? <a href={display} target="_blank" rel="noopener noreferrer" className="block truncate text-indigo-600 hover:underline">{display}</a>
                             : <span className="block truncate text-slate-700">{display}</span>

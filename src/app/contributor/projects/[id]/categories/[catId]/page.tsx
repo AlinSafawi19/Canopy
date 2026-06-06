@@ -174,6 +174,7 @@ export default async function ContributorCategoryPage({
                 canDelete={permissions.canDeleteEntries}
                 previewUrl={category.previewUrl ?? null}
                 relatedEntries={relatedEntries}
+                categoryName={category.name}
               />
               <div className="px-4 border-t border-slate-100">
                 <Pagination total={total} page={page} limit={limit} basePath={basePath} extraParams={extraParams} />

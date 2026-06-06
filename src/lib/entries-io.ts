@@ -30,11 +30,17 @@ export async function handleExport(
   category: { id: string; name: string; slug: string | null; fields: unknown },
 ): Promise<NextResponse | Response> {
   const format = request.nextUrl.searchParams.get("format") === "csv" ? "csv" : "json";
+  const idsParam = request.nextUrl.searchParams.get("ids");
+  const ids = idsParam ? idsParam.split(",").filter(Boolean) : null;
   const fields = (Array.isArray(category.fields) ? category.fields : []) as IoField[];
   const filename = (category.slug ?? category.name).replace(/[^a-z0-9_-]/gi, "_");
 
   const entries = await prisma.contentCategoryEntry.findMany({
-    where: { categoryId: category.id, archivedAt: null },
+    where: {
+      categoryId: category.id,
+      archivedAt: null,
+      ...(ids ? { id: { in: ids } } : {}),
+    },
     orderBy: { sortIndex: "asc" },
     select: { values: true },
     take: 10_000,

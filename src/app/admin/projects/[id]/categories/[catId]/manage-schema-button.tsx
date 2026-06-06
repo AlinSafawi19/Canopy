@@ -196,7 +196,7 @@ export function ManageSchemaButton({
 
           {/* Header row */}
           {fields.length > 0 && (
-            <div className="hidden sm:grid grid-cols-[20px_1fr_148px_32px] gap-2 px-1 pb-1 items-center">
+            <div className="hidden sm:grid grid-cols-[20px_1fr_148px_32px] gap-2 pb-1 items-center">
               <input
                 type="checkbox"
                 checked={allSelected}
