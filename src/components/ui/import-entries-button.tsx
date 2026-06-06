@@ -349,6 +349,7 @@ export function ImportEntriesButton({
           <ManageColumnsPanel
             columns={columns}
             setColumns={setColumns}
+            rows={rows}
             setRows={setRows}
             nextKey={nextKey}
             categories={categories}
@@ -652,10 +653,11 @@ function FieldEditor({
 
 // ── Manage columns panel — mirrors the page's ManageSchemaButton, in-memory ────
 function ManageColumnsPanel({
-  columns, setColumns, setRows, nextKey, categories, categoryId, onDone,
+  columns, setColumns, rows, setRows, nextKey, categories, categoryId, onDone,
 }: {
   columns: Col[];
   setColumns: React.Dispatch<React.SetStateAction<Col[]>>;
+  rows: Record<string, string>[];
   setRows: React.Dispatch<React.SetStateAction<Record<string, string>[]>>;
   nextKey: () => string;
   categories: { id: string; name: string }[];
@@ -669,6 +671,18 @@ function ManageColumnsPanel({
   function update(key: string, patch: Partial<Col>) {
     setColumns((cs) => cs.map((c) => (c.key === key ? { ...c, ...patch } : c)));
     setError("");
+  }
+  // Changing type to enum seeds the options from the distinct values already
+  // in that column, so users don't re-type what the file already contains.
+  function changeType(key: string, type: string) {
+    if (type !== "enum") { update(key, { type, options: [] }); return; }
+    const existing = columns.find((c) => c.key === key)?.options ?? [];
+    const merged = [...existing];
+    for (const r of rows) {
+      const v = (r[key] ?? "").trim();
+      if (v && !merged.includes(v)) merged.push(v);
+    }
+    update(key, { type, options: merged });
   }
   function add() {
     const key = nextKey();
@@ -772,7 +786,7 @@ function ManageColumnsPanel({
               <div className="col-span-2 order-3 sm:col-span-1 sm:order-none">
                 <Select
                   value={c.type}
-                  onChange={(v) => update(c.key, { type: v, ...(v !== "enum" ? { options: [] } : {}) })}
+                  onChange={(v) => changeType(c.key, v)}
                   options={COLUMN_TYPES}
                 />
               </div>
