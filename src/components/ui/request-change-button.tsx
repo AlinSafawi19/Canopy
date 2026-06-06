@@ -27,13 +27,14 @@ interface Props {
 
 export function RequestChangeButton({ entryId, projectId, categoryId, apiBase, openCount }: Props) {
   const router = useRouter();
-  const modalRef = useRef<ModalRef>(null);
-  const [open, setOpen] = useState(false);
-  const [requests, setRequests] = useState<ChangeRequest[]>([]);
-  const [fetching, setFetching] = useState(false);
-  const [note, setNote] = useState("");
+  const modalRef    = useRef<ModalRef>(null);
+  const inFlight    = useRef(false);           // ref guard — synchronous, unlike state
+  const [open, setOpen]           = useState(false);
+  const [requests, setRequests]   = useState<ChangeRequest[]>([]);
+  const [fetching, setFetching]   = useState(false);
+  const [note, setNote]           = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError]         = useState("");
 
   const baseUrl = `${apiBase}/${projectId}/categories/${categoryId}/entries/${entryId}/change-requests`;
 
@@ -53,6 +54,8 @@ export function RequestChangeButton({ entryId, projectId, categoryId, apiBase, o
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (inFlight.current) return;   // drop duplicate submissions
+    inFlight.current = true;
     setSubmitting(true);
     setError("");
     const res = await apiFetch(baseUrl, {
@@ -61,6 +64,7 @@ export function RequestChangeButton({ entryId, projectId, categoryId, apiBase, o
       body: JSON.stringify({ note }),
     });
     setSubmitting(false);
+    inFlight.current = false;
     if (!res.ok) {
       const data = await res.json();
       setError(data.error ?? "Failed to submit request");
