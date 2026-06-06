@@ -83,9 +83,7 @@ export default async function ClientCategoryPage({
         _count: { entryId: true },
       })
     : [];
-  const openRequestsByEntry = Object.fromEntries(
-    requestCounts.map((r) => [r.entryId, r._count.entryId])
-  );
+  const openRequestsByEntry = Object.fromEntries(requestCounts.map((r) => [r.entryId, r._count.entryId]));
 
   const fields: Array<{ name: string; type: string; options?: string[]; relationCategoryId?: string }> = Array.isArray(category.fields)
     ? (category.fields as unknown as Array<{ name: string; type: string; options?: string[]; relationCategoryId?: string }>)

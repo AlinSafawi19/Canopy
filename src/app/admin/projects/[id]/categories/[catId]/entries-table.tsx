@@ -61,9 +61,11 @@ interface Props {
   categoryName?: string;
   /** entryId → count of open change requests; drives the amber indicator */
   openRequestsByEntry?: Record<string, number>;
+  /** entryId → count of resolved change requests; drives the muted history indicator */
+  resolvedRequestsByEntry?: Record<string, number>;
   /** When true, shows Request Change button (client view). When false/absent, shows ChangeRequestsIndicator (admin/contributor view). */
   canRequestChange?: boolean;
-  /** When true, admin can reopen resolved requests */
+  /** When true, admin can reopen resolved requests from the indicator modal */
   canReopenRequests?: boolean;
 }
 
@@ -85,6 +87,7 @@ export function EntriesTable({
   relatedEntries,
   categoryName = "entries",
   openRequestsByEntry,
+  resolvedRequestsByEntry,
   canRequestChange = false,
   canReopenRequests = false,
 }: Props) {
@@ -287,13 +290,17 @@ export function EntriesTable({
                   <td className="px-4 py-2.5 border-r border-slate-100">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <EntryStatusBadge entry={entry} categoryId={categoryId} projectId={projectId} basePath={apiBase} />
-                      {!canRequestChange && (openRequestsByEntry?.[entry.id] ?? 0) > 0 && (
+                      {!canRequestChange && (
+                        (openRequestsByEntry?.[entry.id] ?? 0) > 0 ||
+                        (resolvedRequestsByEntry?.[entry.id] ?? 0) > 0
+                      ) && (
                         <ChangeRequestsIndicator
                           entryId={entry.id}
                           projectId={projectId}
                           categoryId={categoryId}
                           apiBase={apiBase}
-                          openCount={openRequestsByEntry![entry.id]}
+                          openCount={openRequestsByEntry?.[entry.id] ?? 0}
+                          resolvedCount={resolvedRequestsByEntry?.[entry.id] ?? 0}
                           canReopen={canReopenRequests}
                         />
                       )}

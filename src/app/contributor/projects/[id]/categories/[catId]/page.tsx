@@ -77,16 +77,22 @@ export default async function ContributorCategoryPage({
   ]);
 
   const entryIds = entries.map((e) => e.id);
-  const requestCounts = entryIds.length > 0
-    ? await prisma.changeRequest.groupBy({
-        by: ["entryId"],
-        where: { entryId: { in: entryIds }, resolvedAt: null },
-        _count: { entryId: true },
-      })
-    : [];
-  const openRequestsByEntry = Object.fromEntries(
-    requestCounts.map((r) => [r.entryId, r._count.entryId])
-  );
+  const [openCounts, resolvedCounts] = entryIds.length > 0
+    ? await Promise.all([
+        prisma.changeRequest.groupBy({
+          by: ["entryId"],
+          where: { entryId: { in: entryIds }, resolvedAt: null },
+          _count: { entryId: true },
+        }),
+        prisma.changeRequest.groupBy({
+          by: ["entryId"],
+          where: { entryId: { in: entryIds }, resolvedAt: { not: null } },
+          _count: { entryId: true },
+        }),
+      ])
+    : [[], []];
+  const openRequestsByEntry = Object.fromEntries(openCounts.map((r) => [r.entryId, r._count.entryId]));
+  const resolvedRequestsByEntry = Object.fromEntries(resolvedCounts.map((r) => [r.entryId, r._count.entryId]));
 
   const fields: Array<{ name: string; type: string; options?: string[]; relationCategoryId?: string }> = Array.isArray(category.fields)
     ? (category.fields as unknown as Array<{ name: string; type: string; options?: string[]; relationCategoryId?: string }>)
@@ -188,6 +194,7 @@ export default async function ContributorCategoryPage({
                 relatedEntries={relatedEntries}
                 categoryName={category.name}
                 openRequestsByEntry={openRequestsByEntry}
+                resolvedRequestsByEntry={resolvedRequestsByEntry}
               />
               <div className="px-4 border-t border-slate-100">
                 <Pagination total={total} page={page} limit={limit} basePath={basePath} extraParams={extraParams} />
