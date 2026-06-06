@@ -315,8 +315,17 @@ export function ImportEntriesButton({
       <Modal open={open} onClose={handleClose} title="Import Entries" size="lg">
         <div className="space-y-4">
 
-          {/* Format note + file picker — hidden once an import has completed */}
-          {!result && (
+          {/* Hidden file input — always mounted so it survives when the dropzone is hidden */}
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv,.json"
+            className="hidden"
+            onChange={handleFile}
+          />
+
+          {/* Format note + dropzone — only before any file is loaded */}
+          {columns.length === 0 && !result && (
             <>
               <p className="text-sm text-slate-500">
                 Upload a <span className="font-medium text-slate-700">.csv</span> or{" "}
@@ -325,22 +334,15 @@ export function ImportEntriesButton({
                 objects. Up to 500 rows per import.
               </p>
 
-              <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-lg py-8 px-4 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="w-full flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-lg py-8 px-4 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors"
+              >
                 <Upload size={20} className="text-slate-400" />
-                <span className="text-sm text-slate-600 font-medium">
-                  {rows.length > 0
-                    ? `${rows.length} row${rows.length !== 1 ? "s" : ""} ready to import`
-                    : "Click to choose file"}
-                </span>
+                <span className="text-sm text-slate-600 font-medium">Click to choose file</span>
                 <span className="text-xs text-slate-400">CSV or JSON</span>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".csv,.json"
-                  className="hidden"
-                  onChange={handleFile}
-                />
-              </label>
+              </button>
             </>
           )}
 
@@ -394,10 +396,17 @@ export function ImportEntriesButton({
           {/* Editable preview — manage rows & columns before importing */}
           {columns.length > 0 && !result && (
             <div>
-              <div className="mb-2">
+              <div className="flex items-center justify-between gap-3 mb-2">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   Review &amp; edit — {rows.length} row{rows.length !== 1 ? "s" : ""}, {columns.length} column{columns.length !== 1 ? "s" : ""}
                 </p>
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors flex-shrink-0"
+                >
+                  <Upload size={12} /> Choose another file
+                </button>
               </div>
 
               <div className="border border-slate-200 rounded-lg overflow-hidden">
