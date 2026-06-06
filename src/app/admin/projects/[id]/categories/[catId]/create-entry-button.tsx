@@ -11,9 +11,10 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Select } from "@/components/ui/select";
 import { RelationSelect } from "@/components/ui/relation-select";
+import { RelationMultiSelect } from "@/components/ui/relation-multi-select";
 import { LIMITS } from "@/lib/limits";
 
-interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string }
+interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean }
 
 export function CreateEntryButton({
   categoryId,
@@ -30,14 +31,24 @@ export function CreateEntryButton({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<string, unknown>>({});
   const [touched, setTouched] = useState(false);
   const modalRef = useRef<ModalRef>(null);
 
-  function setValue(name: string, value: string) {
+  function setValue(name: string, value: unknown) {
     setValues((v) => ({ ...v, [name]: value }));
     setTouched(true);
   }
+
+  const str = (name: string): string => {
+    const v = values[name];
+    return typeof v === "string" ? v : "";
+  };
+  const arr = (name: string): string[] => {
+    const v = values[name];
+    if (Array.isArray(v)) return v.filter((x): x is string => typeof x === "string");
+    return typeof v === "string" && v ? [v] : [];
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -80,7 +91,7 @@ export function CreateEntryButton({
               <RichTextEditor
                 key={field.name}
                 label={field.name}
-                value={values[field.name] ?? ""}
+                value={str(field.name)}
                 onChange={(v) => setValue(field.name, v)}
               />
             );
@@ -88,7 +99,7 @@ export function CreateEntryButton({
               <Textarea
                 key={field.name}
                 label={field.name}
-                value={values[field.name] ?? ""}
+                value={str(field.name)}
                 onChange={(e) => setValue(field.name, e.target.value)}
                 rows={2}
                 maxLength={LIMITS.ENTRY_TEXTAREA}
@@ -98,7 +109,7 @@ export function CreateEntryButton({
               <DatePicker
                 key={field.name}
                 label={field.name}
-                value={values[field.name] ?? null}
+                value={str(field.name) || null}
                 onChange={(v) => setValue(field.name, v ?? "")}
               />
             );
@@ -106,7 +117,7 @@ export function CreateEntryButton({
               <Select
                 key={field.name}
                 label={field.name}
-                value={values[field.name] ?? ""}
+                value={str(field.name)}
                 onChange={(v) => setValue(field.name, v)}
                 options={[
                   { value: "", label: "Select…" },
@@ -114,11 +125,21 @@ export function CreateEntryButton({
                 ]}
               />
             );
-            if (field.type === "relation") return (
+            if (field.type === "relation") return field.multiple ? (
+              <RelationMultiSelect
+                key={field.name}
+                label={field.name}
+                value={arr(field.name)}
+                onChange={(v) => setValue(field.name, v)}
+                projectId={projectId}
+                targetCategoryId={field.relationCategoryId ?? ""}
+                basePath={basePath}
+              />
+            ) : (
               <RelationSelect
                 key={field.name}
                 label={field.name}
-                value={values[field.name] ?? ""}
+                value={str(field.name)}
                 onChange={(v) => setValue(field.name, v)}
                 projectId={projectId}
                 targetCategoryId={field.relationCategoryId ?? ""}
@@ -126,7 +147,7 @@ export function CreateEntryButton({
               />
             );
             if (field.type === "boolean") {
-              const isTrue = (values[field.name] ?? "false") === "true";
+              const isTrue = str(field.name) === "true";
               return (
                 <div key={field.name} className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium text-slate-700">{field.name}</span>
@@ -160,7 +181,7 @@ export function CreateEntryButton({
                 label={field.name}
                 type={field.type === "number" ? "number" : field.type === "url" ? "url" : "text"}
                 inputMode={field.type === "email" ? "email" : undefined}
-                value={values[field.name] ?? ""}
+                value={str(field.name)}
                 onChange={(e) => setValue(field.name, e.target.value)}
                 maxLength={maxLengthByType[field.type]}
               />

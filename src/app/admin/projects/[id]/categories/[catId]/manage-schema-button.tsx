@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
 import { Plus, Trash2, Columns, X } from "lucide-react";
 
-interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string }
+interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean }
 interface Category { id: string; name: string }
 
 const FIELD_TYPES = [
@@ -151,7 +151,7 @@ export function ManageSchemaButton({
           name: f.name.trim(),
           type: f.type,
           ...(f.type === "enum" ? { options: f.options ?? [] } : {}),
-          ...(f.type === "relation" ? { relationCategoryId: f.relationCategoryId ?? "" } : {}),
+          ...(f.type === "relation" ? { relationCategoryId: f.relationCategoryId ?? "", multiple: !!f.multiple } : {}),
         })),
       }),
     });
@@ -297,7 +297,7 @@ export function ManageSchemaButton({
               )}
 
               {field.type === "relation" && (
-                <div className="ml-5 pl-3 border-l-2 border-pink-200 space-y-1.5">
+                <div className="ml-5 pl-3 border-l-2 border-pink-200 space-y-2">
                   <Select
                     value={field.relationCategoryId ?? ""}
                     onChange={(v) => updateField(i, { relationCategoryId: v })}
@@ -311,6 +311,15 @@ export function ManageSchemaButton({
                   {categories.filter((c) => c.id !== categoryId).length === 0 && (
                     <p className="text-xs text-slate-400">No other categories in this project yet.</p>
                   )}
+                  <label className="flex items-center gap-2 cursor-pointer w-fit">
+                    <input
+                      type="checkbox"
+                      checked={!!field.multiple}
+                      onChange={(e) => updateField(i, { multiple: e.target.checked })}
+                      className="w-4 h-4 rounded border-slate-300 accent-indigo-600 cursor-pointer"
+                    />
+                    <span className="text-xs font-medium text-slate-600">Allow multiple references</span>
+                  </label>
                 </div>
               )}
             </div>

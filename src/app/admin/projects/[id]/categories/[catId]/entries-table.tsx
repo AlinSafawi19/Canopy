@@ -36,7 +36,7 @@ const TYPE_COLORS: Record<string, string> = {
   relation:  "text-pink-500",
 };
 
-interface Field { name: string; type: string; relationCategoryId?: string }
+interface Field { name: string; type: string; relationCategoryId?: string; multiple?: boolean }
 interface TableEntry { id: string; values: unknown; archivedAt: Date | null }
 
 interface Props {
@@ -263,20 +263,40 @@ export function EntriesTable({
                   </td>
                   {fields.map((f) => {
                     const raw = values[f.name];
+
+                    // Relation: render one or more chips (supports multi-value arrays)
+                    if (f.type === "relation") {
+                      const ids = Array.isArray(raw)
+                        ? raw.filter((x): x is string => typeof x === "string" && !!x)
+                        : typeof raw === "string" && raw ? [raw] : [];
+                      return (
+                        <td key={f.name} className="px-4 py-2.5 border-r border-slate-100 max-w-[240px]">
+                          {ids.length === 0 ? (
+                            <span className="text-slate-300">—</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {ids.map((id) => (
+                                <span key={id} className="inline-flex items-center px-2 py-0.5 rounded-full bg-pink-50 border border-pink-200 text-pink-700 text-xs font-medium truncate max-w-full">
+                                  {relatedEntries?.[id] ?? id}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      );
+                    }
+
                     let display: string | null = null;
                     if (raw !== undefined && raw !== null && raw !== "") {
                       const str = String(raw);
                       if (f.type === "rich_text") display = stripRichText(str);
                       else if (f.type === "date") display = formatDate(str);
-                      else if (f.type === "relation") display = relatedEntries?.[str] ?? str;
                       else display = str;
                     }
                     return (
                       <td key={f.name} className="px-4 py-2.5 border-r border-slate-100 max-w-[240px]">
                         {display
-                          ? f.type === "relation"
-                            ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-pink-50 border border-pink-200 text-pink-700 text-xs font-medium truncate max-w-full">{display}</span>
-                            : f.type === "enum"
+                          ? f.type === "enum"
                             ? <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-xs font-medium truncate max-w-full">{display}</span>
                             : f.type === "boolean"
                             ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${display === "true" ? "bg-emerald-50 border border-emerald-200 text-emerald-700" : "bg-red-50 border border-red-200 text-red-600"}`}>{display}</span>

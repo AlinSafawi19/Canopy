@@ -13,9 +13,10 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Select } from "@/components/ui/select";
 import { RelationSelect } from "@/components/ui/relation-select";
+import { RelationMultiSelect } from "@/components/ui/relation-multi-select";
 import { LIMITS } from "@/lib/limits";
 
-interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string }
+interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean }
 interface Entry { id: string; values: unknown; archivedAt: Date | null }
 
 export function EntryActions({
@@ -47,9 +48,19 @@ export function EntryActions({
   const [error, setError] = useState("");
   const [touched, setTouched] = useState(false);
   const editModalRef = useRef<ModalRef>(null);
-  const [values, setValues] = useState<Record<string, string>>(
-    entry.values as Record<string, string>
+  const [values, setValues] = useState<Record<string, unknown>>(
+    entry.values as Record<string, unknown>
   );
+
+  const str = (name: string): string => {
+    const v = values[name];
+    return typeof v === "string" ? v : "";
+  };
+  const arr = (name: string): string[] => {
+    const v = values[name];
+    if (Array.isArray(v)) return v.filter((x): x is string => typeof x === "string");
+    return typeof v === "string" && v ? [v] : [];
+  };
 
   const baseUrl = `${basePath}/${projectId}/categories/${categoryId}/entries/${entry.id}`;
 
@@ -94,7 +105,7 @@ export function EntryActions({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => { setValues(entry.values as Record<string, string>); setError(""); setEditOpen(true); }}
+          onClick={() => { setValues(entry.values as Record<string, unknown>); setError(""); setEditOpen(true); }}
         >
           Edit
         </Button>
@@ -133,18 +144,18 @@ export function EntryActions({
               <RichTextEditor
                 key={field.name}
                 label={field.name}
-                value={values[field.name] ?? ""}
+                value={str(field.name)}
                 onChange={(v) => { setValues(vals => ({ ...vals, [field.name]: v })); setTouched(true); }}
               />
             );
             if (field.type === "textarea") return (
-              <Textarea key={field.name} label={field.name} value={values[field.name] ?? ""} onChange={(e) => { setValues(v => ({ ...v, [field.name]: e.target.value })); setTouched(true); }} rows={2} maxLength={LIMITS.ENTRY_TEXTAREA} />
+              <Textarea key={field.name} label={field.name} value={str(field.name)} onChange={(e) => { setValues(v => ({ ...v, [field.name]: e.target.value })); setTouched(true); }} rows={2} maxLength={LIMITS.ENTRY_TEXTAREA} />
             );
             if (field.type === "date") return (
               <DatePicker
                 key={field.name}
                 label={field.name}
-                value={values[field.name] ?? null}
+                value={str(field.name) || null}
                 onChange={(v) => { setValues(vals => ({ ...vals, [field.name]: v ?? "" })); setTouched(true); }}
               />
             );
@@ -152,7 +163,7 @@ export function EntryActions({
               <Select
                 key={field.name}
                 label={field.name}
-                value={values[field.name] ?? ""}
+                value={str(field.name)}
                 onChange={(v) => { setValues(vals => ({ ...vals, [field.name]: v })); setTouched(true); }}
                 options={[
                   { value: "", label: "Select…" },
@@ -161,7 +172,21 @@ export function EntryActions({
               />
             );
             if (field.type === "relation") {
-              const current = values[field.name] ?? "";
+              if (field.multiple) {
+                return (
+                  <RelationMultiSelect
+                    key={field.name}
+                    label={field.name}
+                    value={arr(field.name)}
+                    onChange={(v) => { setValues(vals => ({ ...vals, [field.name]: v })); setTouched(true); }}
+                    projectId={projectId}
+                    targetCategoryId={field.relationCategoryId ?? ""}
+                    basePath={basePath}
+                    valueLabels={relatedEntries}
+                  />
+                );
+              }
+              const current = str(field.name);
               return (
                 <RelationSelect
                   key={field.name}
@@ -176,7 +201,7 @@ export function EntryActions({
               );
             }
             if (field.type === "boolean") {
-              const isTrue = (values[field.name] ?? "false") === "true";
+              const isTrue = str(field.name) === "true";
               return (
                 <div key={field.name} className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium text-slate-700">{field.name}</span>
@@ -205,7 +230,7 @@ export function EntryActions({
               email: LIMITS.ENTRY_EMAIL,
             };
             return (
-              <Input key={field.name} label={field.name} type={field.type === "number" ? "number" : field.type === "url" ? "url" : "text"} inputMode={field.type === "email" ? "email" : undefined} value={values[field.name] ?? ""} onChange={(e) => { setValues(v => ({ ...v, [field.name]: e.target.value })); setTouched(true); }} maxLength={maxLengthByType[field.type]} />
+              <Input key={field.name} label={field.name} type={field.type === "number" ? "number" : field.type === "url" ? "url" : "text"} inputMode={field.type === "email" ? "email" : undefined} value={str(field.name)} onChange={(e) => { setValues(v => ({ ...v, [field.name]: e.target.value })); setTouched(true); }} maxLength={maxLengthByType[field.type]} />
             );
           })}
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}

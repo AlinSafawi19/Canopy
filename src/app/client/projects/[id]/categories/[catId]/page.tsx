@@ -103,7 +103,11 @@ export default async function ClientCategoryPage({
       const vals = entry.values as Record<string, unknown>;
       for (const f of relationFields) {
         const v = vals[f.name];
-        if (typeof v === "string" && v) referencedIds.add(v);
+        if (Array.isArray(v)) {
+          for (const item of v) if (typeof item === "string" && item) referencedIds.add(item);
+        } else if (typeof v === "string" && v) {
+          referencedIds.add(v);
+        }
       }
     }
     if (referencedIds.size > 0) {

@@ -99,7 +99,11 @@ export async function GET(
         const vals = entry.values as Record<string, unknown>;
         for (const f of relationFields) {
           const v = vals[f.name];
-          if (typeof v === "string" && v) referencedIds.add(v);
+          if (Array.isArray(v)) {
+            for (const item of v) if (typeof item === "string" && item) referencedIds.add(item);
+          } else if (typeof v === "string" && v) {
+            referencedIds.add(v);
+          }
         }
       }
       if (referencedIds.size > 0) {
@@ -116,9 +120,14 @@ export async function GET(
     const data = entries.map((entry) => {
       const values = { ...(entry.values as Record<string, unknown>) };
       for (const f of relationFields) {
-        const refId = values[f.name];
-        if (typeof refId === "string" && resolvedMap.has(refId)) {
-          values[f.name] = resolvedMap.get(refId);
+        const ref = values[f.name];
+        if (Array.isArray(ref)) {
+          // Multi-value relation → array of expanded objects (unresolved ids dropped)
+          values[f.name] = ref
+            .map((id) => (typeof id === "string" ? resolvedMap.get(id) : undefined))
+            .filter((x): x is Record<string, unknown> => x !== undefined);
+        } else if (typeof ref === "string" && resolvedMap.has(ref)) {
+          values[f.name] = resolvedMap.get(ref);
         }
       }
       return { id: entry.id, ...values };
