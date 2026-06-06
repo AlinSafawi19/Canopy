@@ -204,8 +204,49 @@ export function ImportEntriesButton({
     reset();
   }
 
+  // Fetches a sibling category's entry labels (lowercased) for relation matching.
+  async function fetchLabelSet(catId: string): Promise<Set<string>> {
+    try {
+      const res = await apiFetch(`${basePath}/${projectId}/categories/${catId}/entries/select?limit=200`);
+      const data = await res.json().catch(() => ({}));
+      const items: Array<{ label?: string }> = Array.isArray(data.items) ? data.items : [];
+      return new Set(items.map((it) => String(it.label ?? "").trim().toLowerCase()).filter(Boolean));
+    } catch {
+      return new Set();
+    }
+  }
+
+  // A new (non-existing) text/enum column whose values mostly match the labels of
+  // one sibling category is retyped as a relation pointing at that category.
+  async function detectRelations(cols: Col[], parsed: Record<string, string>[]) {
+    const targets = categories.filter((c) => c.id !== categoryId);
+    const candidates = cols.filter(
+      (c) => !fields.some((f) => f.name === c.name) && (c.type === "text" || c.type === "enum"),
+    );
+    if (targets.length === 0 || candidates.length === 0) return;
+
+    const labelSets = await Promise.all(targets.map((t) => fetchLabelSet(t.id)));
+    for (const col of candidates) {
+      const distinct = distinctValues(parsed, col.name).map((v) => v.toLowerCase());
+      if (distinct.length === 0) continue;
+      let best = { idx: -1, rate: 0 };
+      labelSets.forEach((set, idx) => {
+        if (set.size === 0) return;
+        const matched = distinct.filter((v) => set.has(v)).length;
+        const rate = matched / distinct.length;
+        if (rate > best.rate) best = { idx, rate };
+      });
+      // Require a strong match so plain text columns aren't misread as relations.
+      if (best.idx >= 0 && best.rate >= 0.8) {
+        col.type = "relation";
+        col.relationCategoryId = targets[best.idx].id;
+        col.options = undefined;
+      }
+    }
+  }
+
   // ── parsing ──────────────────────────────────────────────
-  function ingest(parsed: Record<string, string>[]) {
+  async function ingest(parsed: Record<string, string>[]) {
     const names: string[] = [];
     for (const r of parsed) for (const k of Object.keys(r)) if (!names.includes(k)) names.push(k);
 
@@ -223,6 +264,8 @@ export function ImportEntriesButton({
         relationCategoryId: existing?.relationCategoryId,
       };
     });
+
+    await detectRelations(cols, parsed);
 
     const keyed = parsed.map((r) => {
       const o: Record<string, string> = {};
@@ -243,13 +286,13 @@ export function ImportEntriesButton({
     setResult(null);
 
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const text = ev.target?.result as string;
       try {
         if (file.name.endsWith(".json")) {
           const parsed = JSON.parse(text);
           if (!Array.isArray(parsed)) throw new Error("JSON must be an array of objects.");
-          ingest(parsed.map((r: unknown) =>
+          await ingest(parsed.map((r: unknown) =>
             typeof r === "object" && r !== null
               ? Object.fromEntries(Object.entries(r as Record<string, unknown>).map(([k, v]) => [k, flattenValue(v)]))
               : {}
@@ -257,7 +300,7 @@ export function ImportEntriesButton({
         } else {
           const parsed = parseCSV(text);
           if (parsed.length === 0) throw new Error("No data rows found in file.");
-          ingest(parsed);
+          await ingest(parsed);
         }
       } catch (err: unknown) {
         setParseError(err instanceof Error ? err.message : "Failed to parse file.");
@@ -690,19 +733,22 @@ function ManageColumnsPanel({
   categoryId: string;
   onDone: () => void;
 }) {
+  // Edits happen on a local draft so "Back" discards them — only "Done" commits
+  // to the parent. (The panel unmounts on Back, so the draft is simply dropped.)
+  const [draft, setDraft] = useState<Col[]>(columns);
   const [optionInputs, setOptionInputs] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
 
   function update(key: string, patch: Partial<Col>) {
-    setColumns((cs) => cs.map((c) => (c.key === key ? { ...c, ...patch } : c)));
+    setDraft((cs) => cs.map((c) => (c.key === key ? { ...c, ...patch } : c)));
     setError("");
   }
   // Changing type to enum seeds the options from the distinct values already
   // in that column, so users don't re-type what the file already contains.
   function changeType(key: string, type: string) {
     if (type !== "enum") { update(key, { type, options: [] }); return; }
-    const existing = columns.find((c) => c.key === key)?.options ?? [];
+    const existing = draft.find((c) => c.key === key)?.options ?? [];
     const merged = [...existing];
     for (const r of rows) {
       const v = (r[key] ?? "").trim();
@@ -711,42 +757,40 @@ function ManageColumnsPanel({
     update(key, { type, options: merged });
   }
   function add() {
-    const key = nextKey();
-    setColumns((cs) => [...cs, { key, name: "", type: "text" }]);
-    setRows((rs) => rs.map((r) => ({ ...r, [key]: "" })));
+    setDraft((cs) => [...cs, { key: nextKey(), name: "", type: "text" }]);
   }
   function remove(key: string) {
-    setColumns((cs) => cs.filter((c) => c.key !== key));
+    setDraft((cs) => cs.filter((c) => c.key !== key));
     setSelected((prev) => { const n = new Set(prev); n.delete(key); return n; });
   }
   function removeSelected() {
-    setColumns((cs) => cs.filter((c) => !selected.has(c.key)));
+    setDraft((cs) => cs.filter((c) => !selected.has(c.key)));
     setSelected(new Set());
   }
   function toggleSelect(key: string) {
     setSelected((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
   }
   function toggleAll() {
-    setSelected(selected.size === columns.length ? new Set() : new Set(columns.map((c) => c.key)));
+    setSelected(selected.size === draft.length ? new Set() : new Set(draft.map((c) => c.key)));
   }
   function addOption(key: string) {
     const v = (optionInputs[key] ?? "").trim();
     if (!v) return;
-    const col = columns.find((c) => c.key === key);
+    const col = draft.find((c) => c.key === key);
     if (col?.options?.includes(v)) return;
     update(key, { options: [...(col?.options ?? []), v] });
     setOptionInputs((p) => ({ ...p, [key]: "" }));
   }
   function removeOption(key: string, idx: number) {
-    const col = columns.find((c) => c.key === key);
+    const col = draft.find((c) => c.key === key);
     update(key, { options: (col?.options ?? []).filter((_, i) => i !== idx) });
   }
 
   function done() {
-    const names = columns.map((c) => c.name.trim());
+    const names = draft.map((c) => c.name.trim());
     if (names.some((n) => !n)) { setError("All columns must have a name"); return; }
     if (new Set(names).size !== names.length) { setError("Column names must be unique"); return; }
-    for (const c of columns) {
+    for (const c of draft) {
       if (c.type === "enum" && (!c.options || c.options.length < 2)) {
         setError(`"${c.name || "Enum column"}" must have at least 2 options`); return;
       }
@@ -755,12 +799,23 @@ function ManageColumnsPanel({
       }
     }
     setError("");
+    // Commit the draft, backfilling row cells for any columns added here.
+    setColumns(draft);
+    const originalKeys = new Set(columns.map((c) => c.key));
+    const addedKeys = draft.filter((c) => !originalKeys.has(c.key)).map((c) => c.key);
+    if (addedKeys.length > 0) {
+      setRows((rs) => rs.map((r) => {
+        const o = { ...r };
+        for (const k of addedKeys) if (!(k in o)) o[k] = "";
+        return o;
+      }));
+    }
     onDone();
   }
 
   const targetCategories = categories.filter((c) => c.id !== categoryId);
-  const allSelected = columns.length > 0 && selected.size === columns.length;
-  const someSelected = selected.size > 0 && selected.size < columns.length;
+  const allSelected = draft.length > 0 && selected.size === draft.length;
+  const someSelected = selected.size > 0 && selected.size < draft.length;
 
   return (
       <div className="space-y-3">
@@ -778,7 +833,7 @@ function ManageColumnsPanel({
         )}
 
         {/* Header row */}
-        {columns.length > 0 && (
+        {draft.length > 0 && (
           <div className="hidden sm:grid grid-cols-[20px_1fr_148px_32px] gap-2 pb-1 items-center">
             <input
               type="checkbox"
@@ -793,11 +848,11 @@ function ManageColumnsPanel({
           </div>
         )}
 
-        {columns.length === 0 && (
+        {draft.length === 0 && (
           <p className="text-sm text-slate-400 text-center py-6">No columns yet — add your first one below.</p>
         )}
 
-        {columns.map((c) => (
+        {draft.map((c) => (
           <div key={c.key} className="space-y-2">
             <div className="grid grid-cols-[20px_1fr_32px] sm:grid-cols-[20px_1fr_148px_32px] gap-2 items-start">
               <div className="h-9 flex items-center">
