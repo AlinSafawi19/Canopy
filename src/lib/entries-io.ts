@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { generateId } from "@/lib/utils";
 import { validateEntryValues } from "@/lib/limits";
 
-export type IoField = { name: string; type: string; options?: string[] };
+export type IoField = { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean };
 export type ImportMode = "replace" | "merge";
 
 // ── CSV helpers ────────────────────────────────────────────────────────────────
@@ -193,7 +193,14 @@ function normalizeSchemaField(s: IoField): IoField {
   if (s.type === "enum" && (!Array.isArray(s.options) || s.options.length < 2)) {
     return { name: s.name, type: "text" };
   }
-  return { name: s.name, type: s.type, ...(s.options ? { options: s.options } : {}) };
+  return {
+    name: s.name,
+    type: s.type,
+    ...(s.options ? { options: s.options } : {}),
+    ...(s.type === "relation"
+      ? { ...(s.relationCategoryId ? { relationCategoryId: s.relationCategoryId } : {}), multiple: !!s.multiple }
+      : {}),
+  };
 }
 
 export async function handleImport(

@@ -15,7 +15,7 @@ import { LIMITS } from "@/lib/limits";
 import { stripRichText, formatDate } from "@/lib/utils";
 import { Upload, Trash2, Plus, X, Columns, Pencil } from "lucide-react";
 
-interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string }
+interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean }
 
 interface Props {
   projectId: string;
@@ -27,7 +27,7 @@ interface Props {
 }
 
 // Editable column with a stable key, so renaming a header never loses cell data.
-type Col = { key: string; name: string; type: string; options?: string[]; relationCategoryId?: string };
+type Col = { key: string; name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean };
 type ImportMode = "replace" | "merge" | null;
 type ImportResult = { created: number; updated: number; errors: Array<{ row: number; error: string }> };
 
@@ -252,14 +252,19 @@ export function ImportEntriesButton({
 
     const labelSets = await Promise.all(targets.map((t) => fetchLabelSet(t.id)));
     for (const col of candidates) {
-      const distinct = distinctValues(parsed, col.name);
-      if (distinct.length === 0) continue;
+      // Each cell may hold several comma-separated references, so match on the
+      // individual tokens — and remember when a cell carries more than one.
+      const tokenized = parsed
+        .map((r) => (r[col.name] ?? "").split(",").map((t) => t.trim()).filter(Boolean))
+        .filter((toks) => toks.length > 0);
+      const distinctTokens = [...new Set(tokenized.flat())];
+      if (distinctTokens.length === 0) continue;
       let best = { idx: -1, rate: 0 };
       labelSets.forEach((set, idx) => {
         if (set.size === 0) return;
-        // A value matches if any of its case/plural variants is a known label key.
-        const matched = distinct.filter((v) => relationMatchKeys(v).some((k) => set.has(k))).length;
-        const rate = matched / distinct.length;
+        // A token matches if any of its case/plural variants is a known label key.
+        const matched = distinctTokens.filter((v) => relationMatchKeys(v).some((k) => set.has(k))).length;
+        const rate = matched / distinctTokens.length;
         if (rate > best.rate) best = { idx, rate };
       });
       // Require a strong match so plain text columns aren't misread as relations.
@@ -267,6 +272,8 @@ export function ImportEntriesButton({
         col.type = "relation";
         col.relationCategoryId = targets[best.idx].id;
         col.options = undefined;
+        // Any cell referencing more than one entry makes this a multiple relation.
+        col.multiple = tokenized.some((toks) => toks.length > 1);
       }
     }
   }
@@ -288,6 +295,7 @@ export function ImportEntriesButton({
         type,
         options,
         relationCategoryId: existing?.relationCategoryId,
+        multiple: existing?.multiple,
       };
     });
 
@@ -390,6 +398,7 @@ export function ImportEntriesButton({
       name: c.name.trim(),
       type: c.type,
       ...(c.options && c.options.length > 0 ? { options: c.options } : {}),
+      ...(c.type === "relation" ? { relationCategoryId: c.relationCategoryId, multiple: !!c.multiple } : {}),
     }));
 
     setLoading(true);
@@ -476,7 +485,7 @@ export function ImportEntriesButton({
         )}
 
         <div className={`${view === "main" ? "flex" : "hidden"} flex-col h-[70vh] -m-6`}>
-         <div className={`${VIEW_BODY} space-y-4`}>
+         <div className={`${VIEW_BODY} flex flex-col gap-4`}>
 
           {/* Hidden input — always mounted so it survives when the dropzone is hidden */}
           <input ref={fileRef} type="file" accept=".csv,.json" className="hidden" onChange={handleFile} />
@@ -492,7 +501,7 @@ export function ImportEntriesButton({
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="w-full flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-lg py-8 px-4 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors"
+                className="w-full flex-1 min-h-[200px] flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-lg py-8 px-4 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors"
               >
                 <Upload size={20} className="text-slate-400" />
                 <span className="text-sm text-slate-600 font-medium">Click to choose file</span>
@@ -942,7 +951,7 @@ function ManageColumnsPanel({
             )}
 
             {c.type === "relation" && (
-              <div className="ml-5 pl-3 border-l-2 border-pink-200 space-y-1.5">
+              <div className="ml-5 pl-3 border-l-2 border-pink-200 space-y-2">
                 <Select
                   value={c.relationCategoryId ?? ""}
                   onChange={(v) => update(c.key, { relationCategoryId: v })}
@@ -954,6 +963,15 @@ function ManageColumnsPanel({
                 {targetCategories.length === 0 && (
                   <p className="text-xs text-slate-400">No other categories in this project yet.</p>
                 )}
+                <label className="flex items-center gap-2 cursor-pointer w-fit">
+                  <input
+                    type="checkbox"
+                    checked={!!c.multiple}
+                    onChange={(e) => update(c.key, { multiple: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300 accent-indigo-600 cursor-pointer"
+                  />
+                  <span className="text-xs font-medium text-slate-600">Allow multiple references</span>
+                </label>
               </div>
             )}
           </div>
