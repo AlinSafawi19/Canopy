@@ -23,47 +23,70 @@ interface PendingRequest {
 }
 
 function RequestsButton({ count, role }: { count: number; role: SessionRole }) {
-  const [open, setOpen] = useState(false);
-  const [requests, setRequests] = useState<PendingRequest[]>([]);
-  const [total, setTotal] = useState(count);
-  const [fetching, setFetching] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [open,        setOpen]        = useState(false);
+  const [requests,    setRequests]    = useState<PendingRequest[]>([]);
+  const [total,       setTotal]       = useState(count);
+  const [page,        setPage]        = useState(1);
+  const [hasMore,     setHasMore]     = useState(false);
+  const [fetching,    setFetching]    = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
+  const panelRef  = useRef<HTMLDivElement>(null);
+  const listRef   = useRef<HTMLDivElement>(null);
+  const didFetch  = useRef(false);
+
+  // Close on outside click
   useEffect(() => {
     if (!open) return;
     function handler(e: MouseEvent) {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+      if (!panelRef.current?.contains(e.target as Node)) setOpen(false);
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  async function handleOpen() {
-    if (open) { setOpen(false); return; }
-    setOpen(true);
-    if (requests.length > 0) return;
-    setFetching(true);
+  async function fetchPage(pageNum: number) {
+    if (pageNum === 1) setFetching(true);
+    else setLoadingMore(true);
     try {
-      const res = await apiFetch("/api/change-requests");
+      const res = await apiFetch(`/api/change-requests?page=${pageNum}`);
       if (res.ok) {
         const data = await res.json();
-        setRequests(data.requests ?? []);
+        setRequests((prev) => pageNum === 1 ? (data.requests ?? []) : [...prev, ...(data.requests ?? [])]);
         setTotal(data.total ?? 0);
+        setHasMore(data.hasMore ?? false);
+        setPage(pageNum);
       }
     } finally {
-      setFetching(false);
+      if (pageNum === 1) setFetching(false);
+      else setLoadingMore(false);
     }
   }
 
+  function handleOpen() {
+    if (open) { setOpen(false); return; }
+    setOpen(true);
+    if (!didFetch.current) {
+      didFetch.current = true;
+      fetchPage(1);
+    }
+  }
+
+  function handleScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+    if (nearBottom && hasMore && !loadingMore) fetchPage(page + 1);
+  }
+
   const base =
-    role === "admin" ? "/admin"
+    role === "admin"       ? "/admin"
     : role === "contributor" ? "/contributor"
     : "/client";
 
   const title = role === "client" ? "My Requests" : "Pending Requests";
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative" ref={panelRef}>
       <button
         onClick={handleOpen}
         title={title}
@@ -97,7 +120,11 @@ function RequestsButton({ count, role }: { count: number; role: SessionRole }) {
               <p className="text-sm text-slate-400">No pending requests</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+            <div
+              ref={listRef}
+              onScroll={handleScroll}
+              className="divide-y divide-slate-100 max-h-80 overflow-y-auto"
+            >
               {requests.map((req) => (
                 <Link
                   key={req.id}
@@ -113,12 +140,12 @@ function RequestsButton({ count, role }: { count: number; role: SessionRole }) {
                   </p>
                 </Link>
               ))}
-            </div>
-          )}
 
-          {total > 10 && !fetching && (
-            <div className="px-4 py-2.5 border-t border-slate-100 text-center">
-              <p className="text-xs text-slate-400">{total - 10} more not shown</p>
+              {loadingMore && (
+                <div className="flex items-center justify-center py-3">
+                  <div className="w-4 h-4 rounded-full border-2 border-slate-200 border-t-indigo-500 animate-spin" />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -137,7 +164,7 @@ interface TopbarProps {
 export function Topbar({ title, onMenuClick, pendingRequestsCount = 0, role }: TopbarProps) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading,     setLoading]     = useState(false);
 
   async function handleLogout() {
     setLoading(true);

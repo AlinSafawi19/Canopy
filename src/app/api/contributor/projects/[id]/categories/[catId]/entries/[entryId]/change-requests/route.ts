@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+const LIMIT = 15;
+
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string; catId: string; entryId: string }> }
 ) {
   const session = await getSession();
@@ -23,10 +25,23 @@ export async function GET(
   });
   if (!entry) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const requests = await prisma.changeRequest.findMany({
-    where: { entryId, categoryId: catId, projectId },
-    orderBy: { createdAt: "desc" },
-  });
+  const sp     = request.nextUrl.searchParams;
+  const status = sp.get("status");
+  const page   = Math.max(1, parseInt(sp.get("page") ?? "1", 10));
+  const skip   = (page - 1) * LIMIT;
 
-  return NextResponse.json({ requests });
+  const where = {
+    entryId,
+    categoryId: catId,
+    projectId,
+    ...(status === "open"     ? { resolvedAt: null }          : {}),
+    ...(status === "resolved" ? { resolvedAt: { not: null } } : {}),
+  };
+
+  const [total, requests] = await Promise.all([
+    prisma.changeRequest.count({ where }),
+    prisma.changeRequest.findMany({ where, orderBy: { createdAt: "desc" }, skip, take: LIMIT }),
+  ]);
+
+  return NextResponse.json({ requests, total, hasMore: skip + requests.length < total });
 }
