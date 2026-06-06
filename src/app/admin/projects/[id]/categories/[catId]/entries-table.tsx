@@ -228,6 +228,8 @@ export function EntriesTable({
                         {display
                           ? f.type === "relation"
                             ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-pink-50 border border-pink-200 text-pink-700 text-xs font-medium truncate max-w-full">{display}</span>
+                            : f.type === "url"
+                            ? <a href={display} target="_blank" rel="noopener noreferrer" className="block truncate text-indigo-600 hover:underline">{display}</a>
                             : <span className="block truncate text-slate-700">{display}</span>
                           : <span className="text-slate-300">—</span>}
                       </td>

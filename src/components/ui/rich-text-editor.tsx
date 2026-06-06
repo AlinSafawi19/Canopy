@@ -2,10 +2,12 @@
 
 import { apiFetch } from "@/lib/api-fetch";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { Extension } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
 
 // Preserve HTML attributes that TipTap strips by default (e.g. dir="auto",
 // data-* on list items) so imported HTML round-trips through the editor intact.
@@ -31,6 +33,16 @@ const PreserveAttributes = Extension.create({
             parseHTML: (el) => el.getAttribute("data-preset-tag") || null,
             renderHTML: (attrs) =>
               attrs["data-preset-tag"] ? { "data-preset-tag": attrs["data-preset-tag"] } : {},
+          },
+        },
+      },
+      {
+        types: ["bulletList", "orderedList"],
+        attributes: {
+          style: {
+            default: null,
+            parseHTML: (el) => el.getAttribute("style") || null,
+            renderHTML: (attrs) => (attrs.style ? { style: attrs.style } : {}),
           },
         },
       },
@@ -96,9 +108,11 @@ function ToolbarBtn({
 // ── Image insert popover ───────────────────────────────────────────────────────
 
 function ImagePopover({
+  anchorRect,
   onInsert,
   onClose,
 }: {
+  anchorRect: DOMRect;
   onInsert: (src: string) => void;
   onClose: () => void;
 }) {
@@ -157,10 +171,13 @@ function ImagePopover({
     }
   }
 
-  return (
+  const left = Math.min(anchorRect.left, window.innerWidth - 296);
+
+  return createPortal(
     <div
       ref={popoverRef}
-      className="absolute top-full left-0 mt-1 z-50 w-72 bg-white border border-slate-200 rounded-lg shadow-lg p-3 space-y-3"
+      style={{ top: anchorRect.bottom + 4, left }}
+      className="fixed z-[9999] w-72 bg-white border border-slate-200 rounded-lg shadow-lg p-3 space-y-3"
     >
       {/* Tabs */}
       <div className="flex gap-1 text-xs">
@@ -239,7 +256,8 @@ function ImagePopover({
           {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -253,6 +271,8 @@ export function RichTextEditor({
   minHeight = "120px",
 }: RichTextEditorProps) {
   const [imgPopoverOpen, setImgPopoverOpen] = useState(false);
+  const [imgBtnRect, setImgBtnRect] = useState<DOMRect | null>(null);
+  const imgBtnRef = useRef<HTMLButtonElement>(null);
 
   // Track GCS URLs currently in the editor so we can delete them from storage
   // when the user removes an image node.
@@ -270,6 +290,10 @@ export function RichTextEditor({
         HTMLAttributes: {
           class: "max-w-full rounded-lg my-2 border border-slate-200",
         },
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: { rel: "noopener noreferrer" },
       }),
     ],
     content: value || "",
@@ -361,11 +385,20 @@ export function RichTextEditor({
           </ToolbarBtn>
           <div className="w-px h-4 bg-slate-200 mx-1" />
           {/* Image button with popover */}
-          <div className="relative">
-            <button
+          <button
+              ref={imgBtnRef}
               type="button"
               title="Insert image"
-              onClick={() => setImgPopoverOpen((v) => !v)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                if (imgPopoverOpen) {
+                  setImgPopoverOpen(false);
+                  setImgBtnRect(null);
+                } else {
+                  setImgBtnRect(imgBtnRef.current?.getBoundingClientRect() ?? null);
+                  setImgPopoverOpen(true);
+                }
+              }}
               className={cn(
                 "p-1.5 rounded transition-colors",
                 imgPopoverOpen
@@ -375,13 +408,13 @@ export function RichTextEditor({
             >
               <ImageIcon size={13} />
             </button>
-            {imgPopoverOpen && (
+            {imgPopoverOpen && imgBtnRect && (
               <ImagePopover
+                anchorRect={imgBtnRect}
                 onInsert={insertImage}
-                onClose={() => setImgPopoverOpen(false)}
+                onClose={() => { setImgPopoverOpen(false); setImgBtnRect(null); }}
               />
             )}
-          </div>
         </div>
         {/* Editor */}
         <EditorContent editor={editor} />

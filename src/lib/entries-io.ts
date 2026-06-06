@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { generateId } from "@/lib/utils";
 import { validateEntryValues } from "@/lib/limits";
 
-export type IoField = { name: string; type: string };
+export type IoField = { name: string; type: string; options?: string[] };
 export type ImportMode = "replace" | "merge";
 
 // ── CSV helpers ────────────────────────────────────────────────────────────────
@@ -68,6 +68,8 @@ const MAX_IMPORT_ROWS = 500;
 const HTML_RE = /<[a-z][\s\S]*?>/i;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(T[\d:.Z+-]*)?\s*$/;
 const BOOL_RE = /^(true|false)$/i;
+const NUMBER_RE = /^-?\d+(\.\d+)?([eE][+-]?\d+)?$/;
+const URL_RE = /^https?:\/\/.+/i;
 const SAFE_FIELD_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_ ]{0,63}$/;
 
 function stripHtml(value: string): string {
@@ -88,6 +90,34 @@ function inferFieldType(value: unknown): string {
   return "text";
 }
 
+// Returns inferred type (and options for enum) by inspecting all rows in a column.
+function inferColumnType(rows: Record<string, unknown>[], key: string): Pick<IoField, "type" | "options"> {
+  const nonEmpty = rows.map(r => r[key]).filter(v => v !== "" && v !== null && v !== undefined);
+
+  // All numeric → number
+  if (nonEmpty.length > 0 && nonEmpty.every(v =>
+    (typeof v === "number" && isFinite(v)) ||
+    (typeof v === "string" && NUMBER_RE.test((v as string).trim()))
+  )) return { type: "number" };
+
+  // All URLs → url
+  if (nonEmpty.length > 0 && nonEmpty.every(v =>
+    typeof v === "string" && URL_RE.test((v as string).trim())
+  )) return { type: "url" };
+
+  // Repeated values from a small finite set → enum
+  const strValues = nonEmpty.map(v => String(v));
+  const distinct = new Set(strValues);
+  if (
+    distinct.size >= 2 &&
+    distinct.size <= 20 &&
+    distinct.size < strValues.length &&
+    strValues.every(v => !HTML_RE.test(v) && !ISO_DATE_RE.test(v.trim()) && !BOOL_RE.test(v.trim()))
+  ) return { type: "enum", options: Array.from(distinct) };
+
+  return { type: inferFieldType(rows[0]?.[key]) };
+}
+
 function normalizeValue(raw: unknown, type: string): string {
   if (type === "boolean") {
     if (typeof raw === "boolean") return String(raw);
@@ -96,6 +126,10 @@ function normalizeValue(raw: unknown, type: string): string {
   if (type === "date") {
     const m = String(raw ?? "").trim().match(/^(\d{4}-\d{2}-\d{2})/);
     return m ? m[1] : String(raw ?? "");
+  }
+  if (type === "number") {
+    const n = Number(String(raw ?? "").trim());
+    return isNaN(n) ? "" : String(n);
   }
   const str = String(raw ?? "");
   // Strip HTML from plain text fields to prevent stored XSS
@@ -131,6 +165,9 @@ export async function handleImport(
   const errors: Array<{ row: number; error: string }> = [];
   let created = 0;
   let updated = 0;
+  const validRows = rows.filter(
+    (r): r is Record<string, unknown> => typeof r === "object" && r !== null && !Array.isArray(r)
+  );
 
   if (mode === "replace") {
     // Wipe all existing entries for this category
@@ -142,7 +179,7 @@ export async function handleImport(
     if (fieldNameErr) return NextResponse.json({ error: fieldNameErr }, { status: 400 });
     fields = Object.keys(firstRow).map((key) => {
       const existing = fields.find((f) => f.name === key);
-      return existing ?? { name: key, type: inferFieldType(firstRow[key]) };
+      return existing ?? { name: key, ...inferColumnType(validRows, key) };
     });
     await prisma.contentCategory.update({
       where: { id: category.id },
@@ -176,7 +213,7 @@ export async function handleImport(
     const fieldNameErr = validateFieldNames(Object.keys(firstRow));
     if (fieldNameErr) return NextResponse.json({ error: fieldNameErr }, { status: 400 });
     if (fields.length === 0) {
-      fields = Object.keys(firstRow).map((key) => ({ name: key, type: inferFieldType(firstRow[key]) }));
+      fields = Object.keys(firstRow).map((key) => ({ name: key, ...inferColumnType(validRows, key) }));
       await prisma.contentCategory.update({
         where: { id: category.id },
         data: { fields: fields as never },
@@ -185,7 +222,7 @@ export async function handleImport(
       const existingNames = new Set(fields.map((f) => f.name));
       const newFields = Object.keys(firstRow)
         .filter((key) => !existingNames.has(key))
-        .map((key) => ({ name: key, type: inferFieldType(firstRow[key]) }));
+        .map((key) => ({ name: key, ...inferColumnType(validRows, key) }));
       if (newFields.length > 0) {
         fields = [...fields, ...newFields];
         await prisma.contentCategory.update({

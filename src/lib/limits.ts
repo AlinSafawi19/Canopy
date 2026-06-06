@@ -46,6 +46,7 @@ export function maxLen(value: unknown, max: number, label: string): string | nul
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const URL_RE = /^https?:\/\/.+/i;
 
 /** Validates entry values against their category field types. Returns first error or null. */
 export function validateEntryValues(
@@ -64,6 +65,9 @@ export function validateEntryValues(
     }
     if (field.type === "email" && v.trim() && !EMAIL_RE.test(v.trim())) {
       return `"${field.name}" must be a valid email address.`;
+    }
+    if (field.type === "url" && v.trim() && !URL_RE.test(v.trim())) {
+      return `"${field.name}" must be a valid URL starting with http:// or https://.`;
     }
     const limits: Record<string, number> = {
       text: LIMITS.ENTRY_TEXT,

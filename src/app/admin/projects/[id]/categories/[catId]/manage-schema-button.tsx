@@ -44,11 +44,13 @@ export function ManageSchemaButton({
   const [error, setError] = useState("");
   const [fields, setFields] = useState<Field[]>(initialFields);
   const [optionInputs, setOptionInputs] = useState<Record<number, string>>({});
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   function handleOpen() {
     setFields(initialFields);
     setError("");
     setOptionInputs({});
+    setSelected(new Set());
     setOpen(true);
   }
 
@@ -56,17 +58,53 @@ export function ManageSchemaButton({
     setFields((f) => [...f, { name: "", type: "text" }]);
   }
 
+  function remapOptionInputs(p: Record<number, string>, removedIndices: Set<number>): Record<number, string> {
+    const next: Record<number, string> = {};
+    Object.entries(p).forEach(([k, v]) => {
+      const ki = Number(k);
+      if (!removedIndices.has(ki)) {
+        const shift = Array.from(removedIndices).filter((idx) => idx < ki).length;
+        next[ki - shift] = v;
+      }
+    });
+    return next;
+  }
+
   function removeField(i: number) {
+    const removed = new Set([i]);
     setFields((f) => f.filter((_, idx) => idx !== i));
-    setOptionInputs((p) => {
-      const next: Record<number, string> = {};
-      Object.entries(p).forEach(([k, v]) => {
-        const ki = Number(k);
-        if (ki < i) next[ki] = v;
-        else if (ki > i) next[ki - 1] = v;
+    setOptionInputs((p) => remapOptionInputs(p, removed));
+    setSelected((prev) => {
+      const next = new Set<number>();
+      prev.forEach((idx) => {
+        if (idx < i) next.add(idx);
+        else if (idx > i) next.add(idx - 1);
       });
       return next;
     });
+  }
+
+  function removeSelected() {
+    setFields((f) => f.filter((_, idx) => !selected.has(idx)));
+    setOptionInputs((p) => remapOptionInputs(p, selected));
+    setSelected(new Set());
+  }
+
+  function toggleSelect(i: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (selected.size === fields.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(fields.map((_, i) => i)));
+    }
   }
 
   function updateField(i: number, patch: Partial<Field>) {
@@ -123,6 +161,9 @@ export function ManageSchemaButton({
     router.refresh();
   }
 
+  const allSelected = fields.length > 0 && selected.size === fields.length;
+  const someSelected = selected.size > 0 && selected.size < fields.length;
+
   return (
     <>
       <Button variant="outline" size="sm" onClick={handleOpen} className="gap-1.5">
@@ -135,8 +176,34 @@ export function ManageSchemaButton({
 
       <Modal open={open} onClose={() => setOpen(false)} title="Manage Columns">
         <div className="space-y-3">
+
+          {/* Bulk selection action bar */}
+          {selected.size > 0 && (
+            <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <span className="text-sm text-red-700 font-medium">
+                {selected.size} column{selected.size !== 1 ? "s" : ""} selected
+              </span>
+              <button
+                type="button"
+                onClick={removeSelected}
+                className="flex items-center gap-1.5 text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
+              >
+                <Trash2 size={13} />
+                Delete selected
+              </button>
+            </div>
+          )}
+
+          {/* Header row */}
           {fields.length > 0 && (
-            <div className="hidden sm:grid grid-cols-[1fr_148px_32px] gap-2 px-1 pb-1">
+            <div className="hidden sm:grid grid-cols-[20px_1fr_148px_32px] gap-2 px-1 pb-1 items-center">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                onChange={toggleAll}
+                className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
               <span className="text-xs font-medium text-slate-500">Column Name</span>
               <span className="text-xs font-medium text-slate-500">Type</span>
               <span />
@@ -151,13 +218,21 @@ export function ManageSchemaButton({
 
           {fields.map((field, i) => (
             <div key={i} className="space-y-2">
-              <div className="grid grid-cols-[1fr_32px] sm:grid-cols-[1fr_148px_32px] gap-2 items-start">
+              <div className="grid grid-cols-[20px_1fr_32px] sm:grid-cols-[20px_1fr_148px_32px] gap-2 items-start">
+                <div className="h-9 flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(i)}
+                    onChange={() => toggleSelect(i)}
+                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  />
+                </div>
                 <Input
                   value={field.name}
                   placeholder="e.g. Title"
                   onChange={(e) => updateField(i, { name: e.target.value })}
                 />
-                {/* On mobile: drops to row 2, spans both columns. On sm+: normal column 2. */}
+                {/* On mobile: drops to row 2, spans both columns. On sm+: normal column 3. */}
                 <div className="col-span-2 order-3 sm:col-span-1 sm:order-none">
                   <Select
                     value={field.type}
@@ -168,7 +243,7 @@ export function ManageSchemaButton({
                     options={FIELD_TYPES}
                   />
                 </div>
-                {/* On mobile: stays row 1 col 2 next to input. On sm+: normal column 3. */}
+                {/* On mobile: stays row 1 col 3 next to input. On sm+: normal column 4. */}
                 <button
                   type="button"
                   onClick={() => removeField(i)}
@@ -179,7 +254,7 @@ export function ManageSchemaButton({
               </div>
 
               {field.type === "enum" && (
-                <div className="ml-1 pl-3 border-l-2 border-slate-200 space-y-2">
+                <div className="ml-5 pl-3 border-l-2 border-slate-200 space-y-2">
                   <div className="flex flex-wrap gap-1.5 items-center min-h-[24px]">
                     {(field.options ?? []).length === 0 && (
                       <span className="text-xs text-slate-400">No options yet — add at least 2</span>
@@ -222,7 +297,7 @@ export function ManageSchemaButton({
               )}
 
               {field.type === "relation" && (
-                <div className="ml-1 pl-3 border-l-2 border-pink-200 space-y-1.5">
+                <div className="ml-5 pl-3 border-l-2 border-pink-200 space-y-1.5">
                   <Select
                     value={field.relationCategoryId ?? ""}
                     onChange={(v) => updateField(i, { relationCategoryId: v })}
