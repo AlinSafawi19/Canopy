@@ -27,6 +27,7 @@ export function EntryActions({
   canEdit = true,
   canArchive = true,
   canDelete = true,
+  relatedEntries,
 }: {
   entry: Entry;
   categoryId: string;
@@ -36,6 +37,8 @@ export function EntryActions({
   canEdit?: boolean;
   canArchive?: boolean;
   canDelete?: boolean;
+  /** entryId → label, for pre-filling relation selects with the current value. */
+  relatedEntries?: Record<string, string>;
 }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -157,17 +160,21 @@ export function EntryActions({
                 ]}
               />
             );
-            if (field.type === "relation") return (
-              <RelationSelect
-                key={field.name}
-                label={field.name}
-                value={values[field.name] ?? ""}
-                onChange={(v) => { setValues(vals => ({ ...vals, [field.name]: v })); setTouched(true); }}
-                projectId={projectId}
-                targetCategoryId={field.relationCategoryId ?? ""}
-                basePath={basePath}
-              />
-            );
+            if (field.type === "relation") {
+              const current = values[field.name] ?? "";
+              return (
+                <RelationSelect
+                  key={field.name}
+                  label={field.name}
+                  value={current}
+                  onChange={(v) => { setValues(vals => ({ ...vals, [field.name]: v })); setTouched(true); }}
+                  projectId={projectId}
+                  targetCategoryId={field.relationCategoryId ?? ""}
+                  basePath={basePath}
+                  valueLabel={current ? relatedEntries?.[current] : undefined}
+                />
+              );
+            }
             if (field.type === "boolean") {
               const isTrue = (values[field.name] ?? "false") === "true";
               return (

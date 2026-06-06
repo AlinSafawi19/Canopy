@@ -339,6 +339,7 @@ export function EntriesTable({
                           canEdit={canEdit}
                           canArchive={canArchive}
                           canDelete={canDelete}
+                          relatedEntries={relatedEntries}
                         />
                       </div>
                     </td>

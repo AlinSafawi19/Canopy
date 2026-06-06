@@ -15,6 +15,7 @@ export function RelationSelect({
   projectId,
   targetCategoryId,
   basePath,
+  valueLabel,
 }: {
   label: string;
   value: string;
@@ -22,6 +23,8 @@ export function RelationSelect({
   projectId: string;
   targetCategoryId: string;
   basePath: string;
+  /** Known label for the current value — shown even if that entry is archived or beyond the fetch limit. */
+  valueLabel?: string;
 }) {
   const [options, setOptions] = useState<RelationOption[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -58,6 +61,10 @@ export function RelationSelect({
     );
   }
 
+  // Always ensure the current value is selectable, even if it's archived or
+  // beyond the fetch limit (otherwise the Select would render an empty placeholder).
+  const valueMissing = !!value && !options.some((o) => o.id === value);
+
   return (
     <Select
       label={label}
@@ -66,6 +73,7 @@ export function RelationSelect({
       disabled={status === "loading"}
       options={[
         { value: "", label: status === "loading" ? "Loading…" : options.length === 0 ? "No entries yet" : "Select…" },
+        ...(valueMissing ? [{ value, label: valueLabel || `…${value.slice(-6)}` }] : []),
         ...options.map((o) => ({ value: o.id, label: o.label })),
       ]}
     />
