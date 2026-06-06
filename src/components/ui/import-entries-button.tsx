@@ -548,8 +548,8 @@ export function ImportEntriesButton({
 
           {/* Review table (page-style display) + actions */}
           {columns.length > 0 && !result && (
-            <div>
-              <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+            <div className="flex-1 min-h-0 flex flex-col">
+              <div className="flex items-center justify-between gap-3 mb-2 flex-wrap flex-shrink-0">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   Review &amp; edit — {rows.length} row{rows.length !== 1 ? "s" : ""}, {columns.length} column{columns.length !== 1 ? "s" : ""}
                 </p>
@@ -570,14 +570,14 @@ export function ImportEntriesButton({
                 </div>
               </div>
 
-              <div className="border border-slate-200 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
+              <div className="border border-slate-200 rounded-lg overflow-hidden flex-1 min-h-0">
+                <div className="overflow-auto h-full">
                   <table className="w-full text-sm border-collapse">
-                    <thead>
+                    <thead className="sticky top-0 z-20">
                       <tr className="bg-slate-50 border-b border-slate-200">
-                        <th className="w-10 px-3 py-2.5 text-left border-r border-slate-200 sticky left-0 bg-slate-50 z-10 text-xs font-medium text-slate-400">#</th>
+                        <th className="w-10 px-3 py-2.5 text-left border-r border-slate-200 sticky left-0 bg-slate-50 z-30 text-xs font-medium text-slate-400">#</th>
                         {columns.map((c) => (
-                          <th key={c.key} className="px-4 py-2.5 text-left font-medium text-slate-700 border-r border-slate-200 min-w-[160px] whitespace-nowrap">
+                          <th key={c.key} className="px-4 py-2.5 text-left font-medium text-slate-700 border-r border-slate-200 min-w-[160px] whitespace-nowrap bg-slate-50">
                             <div className="flex flex-col gap-0.5">
                               <span>{c.name || <span className="text-slate-300 italic">unnamed</span>}</span>
                               <span className={`text-[10px] font-normal uppercase tracking-wide ${TYPE_COLORS[c.type] ?? "text-slate-400"}`}>
@@ -586,7 +586,7 @@ export function ImportEntriesButton({
                             </div>
                           </th>
                         ))}
-                        <th className="px-4 py-2.5 text-left font-medium text-slate-700 whitespace-nowrap sticky right-0 bg-slate-50">
+                        <th className="px-4 py-2.5 text-left font-medium text-slate-700 whitespace-nowrap sticky right-0 bg-slate-50 z-30">
                           <span className="text-[10px] font-normal uppercase tracking-wide text-slate-400">actions</span>
                         </th>
                       </tr>
@@ -685,7 +685,17 @@ function DisplayCell({ type, value }: { type: string; value: string }) {
   if (!value) return <span className="text-slate-300">—</span>;
   if (type === "rich_text") return <span className="block truncate text-slate-700">{stripRichText(value)}</span>;
   if (type === "date") return <span className="block truncate text-slate-700">{formatDate(value)}</span>;
-  if (type === "relation") return <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-pink-50 border border-pink-200 text-pink-700 text-xs font-medium truncate max-w-full">{value}</span>;
+  if (type === "relation") {
+    // A multiple-reference cell is comma-separated — render each as its own tag.
+    const refs = value.split(",").map((s) => s.trim()).filter(Boolean);
+    return (
+      <span className="flex flex-wrap gap-1">
+        {refs.map((ref, i) => (
+          <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full bg-pink-50 border border-pink-200 text-pink-700 text-xs font-medium max-w-full truncate">{ref}</span>
+        ))}
+      </span>
+    );
+  }
   if (type === "enum") return <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-xs font-medium truncate max-w-full">{value}</span>;
   if (type === "boolean") return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${value === "true" ? "bg-emerald-50 border border-emerald-200 text-emerald-700" : "bg-red-50 border border-red-200 text-red-600"}`}>{value}</span>;
   if (type === "url") return <a href={value} target="_blank" rel="noopener noreferrer" className="block truncate text-indigo-600 hover:underline">{value}</a>;
