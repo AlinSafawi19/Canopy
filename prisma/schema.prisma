@@ -352,6 +352,24 @@ model Session {
   @@index([revokedAt])
 }
 
+model ChangeRequest {
+  id             String    @id @default(cuid())
+  entryId        String
+  categoryId     String
+  projectId      String
+  authorId       String
+  authorRole     String
+  authorName     String
+  note           String    @db.VarChar(1000)
+  resolvedAt     DateTime?
+  resolvedBy     String?
+  resolvedByName String?
+  createdAt      DateTime  @default(now())
+
+  @@index([entryId])
+  @@index([projectId, resolvedAt])
+}
+
 model AuditLog {
   id         String   @id @default(cuid())
   actorId    String

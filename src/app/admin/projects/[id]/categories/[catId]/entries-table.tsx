@@ -8,6 +8,8 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { EntryActions } from "./entry-actions";
 import { EntryStatusBadge } from "./entry-status-badge";
 import { SortableHeader } from "@/components/ui/sortable-header";
+import { RequestChangeButton } from "@/components/ui/request-change-button";
+import { ChangeRequestsIndicator } from "@/components/ui/change-requests-indicator";
 import { stripRichText, formatDate } from "@/lib/utils";
 import { Trash2, ExternalLink, Download } from "lucide-react";
 
@@ -57,6 +59,12 @@ interface Props {
   /** entryId → human-readable label for relation field display */
   relatedEntries?: Record<string, string>;
   categoryName?: string;
+  /** entryId → count of open change requests; drives the amber indicator */
+  openRequestsByEntry?: Record<string, number>;
+  /** When true, shows Request Change button (client view). When false/absent, shows ChangeRequestsIndicator (admin/contributor view). */
+  canRequestChange?: boolean;
+  /** When true, admin can reopen resolved requests */
+  canReopenRequests?: boolean;
 }
 
 export function EntriesTable({
@@ -76,6 +84,9 @@ export function EntriesTable({
   previewUrl,
   relatedEntries,
   categoryName = "entries",
+  openRequestsByEntry,
+  canRequestChange = false,
+  canReopenRequests = false,
 }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -274,7 +285,19 @@ export function EntriesTable({
                     );
                   })}
                   <td className="px-4 py-2.5 border-r border-slate-100">
-                    <EntryStatusBadge entry={entry} categoryId={categoryId} projectId={projectId} basePath={apiBase} />
+                    <div className="flex flex-col gap-1 items-start">
+                      <EntryStatusBadge entry={entry} categoryId={categoryId} projectId={projectId} basePath={apiBase} />
+                      {!canRequestChange && (openRequestsByEntry?.[entry.id] ?? 0) > 0 && (
+                        <ChangeRequestsIndicator
+                          entryId={entry.id}
+                          projectId={projectId}
+                          categoryId={categoryId}
+                          apiBase={apiBase}
+                          openCount={openRequestsByEntry![entry.id]}
+                          canReopen={canReopenRequests}
+                        />
+                      )}
+                    </div>
                   </td>
                   {hasActions && (
                     <td className={`px-4 py-2.5 sticky right-0 z-10 ${isSelected ? "bg-indigo-50/50" : "bg-white"}`}>
@@ -290,6 +313,15 @@ export function EntriesTable({
                             <ExternalLink size={12} />
                             Preview
                           </a>
+                        )}
+                        {canRequestChange && (
+                          <RequestChangeButton
+                            entryId={entry.id}
+                            projectId={projectId}
+                            categoryId={categoryId}
+                            apiBase={apiBase}
+                            openCount={openRequestsByEntry?.[entry.id] ?? 0}
+                          />
                         )}
                         <EntryActions
                           entry={entry}

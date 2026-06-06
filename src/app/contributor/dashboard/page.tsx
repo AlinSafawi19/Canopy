@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FolderKanban, FileText } from "lucide-react";
+import { FolderKanban, FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 
@@ -25,7 +25,7 @@ export default async function ContributorDashboard() {
 
   const projectIds = assignments.map((a) => a.projectId);
 
-  const [projects, categoryCount] = await Promise.all([
+  const [projects, categoryCount, openRequestCount] = await Promise.all([
     projectIds.length > 0
       ? prisma.project.findMany({
           where: { id: { in: projectIds }, archivedAt: null },
@@ -39,6 +39,11 @@ export default async function ContributorDashboard() {
     projectIds.length > 0
       ? prisma.contentCategory.count({
           where: { projectId: { in: projectIds }, archivedAt: null },
+        })
+      : 0,
+    projectIds.length > 0
+      ? prisma.changeRequest.count({
+          where: { projectId: { in: projectIds }, resolvedAt: null },
         })
       : 0,
   ]);
@@ -58,9 +63,10 @@ export default async function ContributorDashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <StatCard title="Assigned Projects" value={projects.length} icon={FolderKanban} color="indigo" />
         <StatCard title="Content Categories" value={categoryCount} icon={FileText} color="emerald" />
+        <StatCard title="Pending Requests" value={openRequestCount} icon={MessageSquare} color="amber" />
       </div>
 
       <Card>
