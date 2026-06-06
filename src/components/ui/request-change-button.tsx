@@ -14,7 +14,6 @@ interface ChangeRequest {
   note: string;
   authorName: string;
   resolvedAt: string | null;
-  resolvedByName: string | null;
   createdAt: string;
 }
 
@@ -96,45 +95,57 @@ export function RequestChangeButton({ entryId, projectId, categoryId, apiBase, o
         onClose={() => { setOpen(false); setNote(""); setError(""); }}
         title="Request Change"
       >
-        <div className="space-y-5">
-          {fetching ? (
-            <p className="text-sm text-slate-400 text-center py-4">Loading…</p>
-          ) : openRequests.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Pending Requests</p>
-              <div className="space-y-2">
-                {openRequests.map((req) => (
-                  <div key={req.id} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
-                    <p className="text-sm text-slate-800 leading-relaxed">{req.note}</p>
-                    <p className="text-xs text-slate-400 mt-1">{formatDateTime(req.createdAt)}</p>
-                  </div>
-                ))}
+        {fetching ? (
+          <div className="flex items-center justify-center py-6">
+            <div className="w-5 h-5 rounded-full border-2 border-slate-200 border-t-indigo-500 animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {openRequests.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  Pending
+                </p>
+                <div className="divide-y divide-slate-100">
+                  {openRequests.map((req) => (
+                    <div key={req.id} className="py-3 first:pt-0 last:pb-0">
+                      <p className="text-sm text-slate-800 leading-snug">{req.note}</p>
+                      <p className="text-xs text-slate-400 mt-1">{formatDateTime(req.createdAt)}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : null}
-
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">New Request</p>
-            <Textarea
-              label="Describe what needs to change"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={3}
-              maxLength={1000}
-            />
-            {error && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
             )}
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" type="button" onClick={() => modalRef.current?.attemptClose()}>
-                Cancel
-              </Button>
-              <Button type="submit" loading={submitting} disabled={!note.trim()}>
-                Submit Request
-              </Button>
-            </div>
-          </form>
-        </div>
+
+            <form onSubmit={handleSubmit} className="space-y-3">
+              {openRequests.length > 0 && (
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  New Request
+                </p>
+              )}
+              <Textarea
+                label="Describe what needs to change"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={3}
+                maxLength={1000}
+              />
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {error}
+                </p>
+              )}
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" type="button" onClick={() => modalRef.current?.attemptClose()}>
+                  Cancel
+                </Button>
+                <Button type="submit" loading={submitting} disabled={!note.trim()}>
+                  Submit Request
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
       </Modal>
     </>
   );

@@ -26,6 +26,7 @@ interface AppShellProps {
   contactEmail?: string;
   walkthroughActive?: boolean;
   pendingRelease?: PendingRelease | null;
+  pendingRequestsCount?: number;
 }
 
 export function AppShell({
@@ -39,6 +40,7 @@ export function AppShell({
   contactEmail,
   walkthroughActive,
   pendingRelease,
+  pendingRequestsCount = 0,
 }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -62,6 +64,8 @@ export function AppShell({
         <Topbar
           title={pageTitle}
           onMenuClick={() => setMobileOpen((v) => !v)}
+          pendingRequestsCount={pendingRequestsCount}
+          role={role}
         />
         <main className="flex-1 p-4 sm:p-6">{children}</main>
       </div>

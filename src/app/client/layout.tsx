@@ -22,12 +22,16 @@ export default async function ClientLayout({ children }: { children: React.React
   const clientId = session.id;
   const assignedProjectFilter = { clientAssignment: { clientId, archivedAt: null } };
 
+  const clientProjectIds = await prisma.clientAssignment.findMany({
+    where: { clientId, archivedAt: null },
+    select: { projectId: true },
+  }).then((rows) => rows.map((r) => r.projectId));
+
   const [
-    projectsCount, contributorsCount, adminContact,
+    contributorsCount, adminContact,
     archivedCategoriesCount, archivedEntriesCount,
-    logsCount, latestRelease,
+    logsCount, latestRelease, pendingRequestsCount,
   ] = await Promise.all([
-    prisma.clientAssignment.count({ where: { clientId, archivedAt: null } }),
     client?.tenantId
       ? prisma.contributor.count({ where: { tenantId: client.tenantId, parentClientUsername: session.username, archivedAt: null } })
       : Promise.resolve(0),
@@ -40,7 +44,12 @@ export default async function ClientLayout({ children }: { children: React.React
       where: { OR: [{ actorId: clientId }, { actorRole: "contributor", parentClientUsername: session.username }] },
     }),
     prisma.release.findFirst({ where: { status: "published" }, orderBy: { publishedAt: "desc" } }),
+    clientProjectIds.length > 0
+      ? prisma.changeRequest.count({ where: { authorId: clientId, resolvedAt: null, projectId: { in: clientProjectIds } } })
+      : Promise.resolve(0),
   ]);
+
+  const projectsCount = clientProjectIds.length;
 
   const archiveCount = archivedCategoriesCount + archivedEntriesCount;
   const pendingRelease =
@@ -56,6 +65,7 @@ export default async function ClientLayout({ children }: { children: React.React
       contactEmail={adminContact?.email || undefined}
       walkthroughActive={!client?.walkthroughSeenAt}
       pendingRelease={pendingRelease}
+      pendingRequestsCount={pendingRequestsCount}
     >
       {children}
     </AppShell>

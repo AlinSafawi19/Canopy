@@ -28,7 +28,7 @@ export default async function ContributorLayout({ children }: { children: React.
   const projectIds = assignments.map((a) => a.projectId);
   const projectsCount = projectIds.length;
 
-  const [clientContact, archivedEntriesCount, logsCount, latestRelease] = await Promise.all([
+  const [clientContact, archivedEntriesCount, logsCount, latestRelease, pendingRequestsCount] = await Promise.all([
     contributor?.parentClientUsername
       ? prisma.clientIdentity.findFirst({ where: { username: contributor.parentClientUsername }, select: { email: true } })
       : Promise.resolve(null),
@@ -37,6 +37,9 @@ export default async function ContributorLayout({ children }: { children: React.
       : Promise.resolve(0),
     prisma.activityLog.count({ where: { actorId: session.id } }),
     prisma.release.findFirst({ where: { status: "published" }, orderBy: { publishedAt: "desc" } }),
+    projectIds.length > 0
+      ? prisma.changeRequest.count({ where: { resolvedAt: null, projectId: { in: projectIds } } })
+      : Promise.resolve(0),
   ]);
 
   const pendingRelease =
@@ -52,6 +55,7 @@ export default async function ContributorLayout({ children }: { children: React.
       contactEmail={clientContact?.email || undefined}
       walkthroughActive={!contributor?.walkthroughSeenAt}
       pendingRelease={pendingRelease}
+      pendingRequestsCount={pendingRequestsCount}
     >
       {children}
     </AppShell>

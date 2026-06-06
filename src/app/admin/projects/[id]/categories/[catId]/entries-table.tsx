@@ -285,7 +285,7 @@ export function EntriesTable({
                     );
                   })}
                   <td className="px-4 py-2.5 border-r border-slate-100">
-                    <div className="flex flex-col gap-1 items-start">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <EntryStatusBadge entry={entry} categoryId={categoryId} projectId={projectId} basePath={apiBase} />
                       {!canRequestChange && (openRequestsByEntry?.[entry.id] ?? 0) > 0 && (
                         <ChangeRequestsIndicator

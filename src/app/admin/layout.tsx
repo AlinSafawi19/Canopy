@@ -25,12 +25,18 @@ export default async function AdminLayout({
 
   const tenantId = admin?.tenantId ?? "";
 
+  // Fetch project IDs first so change-request count can be parallelised with the rest
+  const adminProjects = await prisma.project.findMany({
+    where: { adminTenantId: tenantId, archivedAt: null },
+    select: { id: true },
+  });
+  const adminProjectIds = adminProjects.map((p) => p.id);
+
   const [
-    projectsCount, clientsCount, owner,
+    clientsCount, owner,
     archivedProjectsCount, archivedCategoriesCount, archivedEntriesCount,
-    logsCount, latestRelease,
+    logsCount, latestRelease, pendingRequestsCount,
   ] = await Promise.all([
-    prisma.project.count({ where: { adminTenantId: tenantId, archivedAt: null } }),
     prisma.clientIdentity.count({ where: { tenantId, archivedAt: null } }),
     prisma.platformOwner.findFirst({ select: { email: true } }),
     prisma.project.count({ where: { adminTenantId: tenantId, archivedAt: { not: null } } }),
@@ -38,8 +44,12 @@ export default async function AdminLayout({
     prisma.contentCategoryEntry.count({ where: { archivedAt: { not: null }, category: { project: { adminTenantId: tenantId } } } }),
     prisma.activityLog.count({ where: { adminTenantId: tenantId, actorId: session.id } }),
     prisma.release.findFirst({ where: { status: "published" }, orderBy: { publishedAt: "desc" } }),
+    adminProjectIds.length > 0
+      ? prisma.changeRequest.count({ where: { resolvedAt: null, projectId: { in: adminProjectIds } } })
+      : Promise.resolve(0),
   ]);
 
+  const projectsCount = adminProjectIds.length;
   const archiveCount = archivedProjectsCount + archivedCategoriesCount + archivedEntriesCount;
   const pendingRelease =
     latestRelease && latestRelease.id !== admin?.lastSeenReleaseId ? latestRelease : null;
@@ -54,6 +64,7 @@ export default async function AdminLayout({
       contactEmail={owner?.email || undefined}
       walkthroughActive={!admin?.walkthroughSeenAt}
       pendingRelease={pendingRelease}
+      pendingRequestsCount={pendingRequestsCount}
     >
       {children}
     </AppShell>

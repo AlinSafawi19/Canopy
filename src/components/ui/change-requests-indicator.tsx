@@ -76,51 +76,43 @@ export function ChangeRequestsIndicator({ entryId, projectId, categoryId, apiBas
 
   return (
     <>
+      {/* Compact icon+count trigger — sits inline beside the status badge */}
       <button
         onClick={handleOpen}
-        title="View change requests"
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium hover:bg-amber-100 transition-colors"
+        title={`${openCount} open change request${openCount !== 1 ? "s" : ""}`}
+        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium hover:bg-amber-100 transition-colors"
       >
         <MessageSquare size={10} />
-        {openCount} {openCount === 1 ? "request" : "requests"}
+        {openCount}
       </button>
 
-      <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        title="Change Requests"
-      >
+      <Modal open={open} onClose={() => setOpen(false)} title="Change Requests">
         {fetching ? (
-          <p className="text-sm text-slate-400 text-center py-6">Loading…</p>
+          <div className="flex items-center justify-center py-6">
+            <div className="w-5 h-5 rounded-full border-2 border-slate-200 border-t-indigo-500 animate-spin" />
+          </div>
         ) : requests.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-6">No requests found</p>
+          <p className="text-sm text-slate-400 text-center py-2">No requests found</p>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-slate-100">
             {requests.map((req) => (
-              <div
-                key={req.id}
-                className={`rounded-lg border px-4 py-3 space-y-2 ${
-                  req.resolvedAt
-                    ? "border-slate-200 bg-slate-50"
-                    : "border-amber-200 bg-amber-50"
-                }`}
-              >
+              <div key={req.id} className="py-3 first:pt-0 last:pb-0 space-y-2">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm text-slate-800 leading-relaxed flex-1">{req.note}</p>
-                  {req.resolvedAt ? (
-                    <Badge variant="success">Resolved</Badge>
-                  ) : (
-                    <Badge variant="warning">Open</Badge>
-                  )}
+                  <p className="text-sm text-slate-800 leading-snug flex-1">{req.note}</p>
+                  {req.resolvedAt
+                    ? <Badge variant="success">Resolved</Badge>
+                    : <Badge variant="warning">Open</Badge>}
                 </div>
 
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="text-xs text-slate-400 space-y-0.5">
-                    <p>Requested by <span className="font-medium text-slate-600">{req.authorName}</span> · {formatDateTime(req.createdAt)}</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs text-slate-400">
+                    <span className="font-medium text-slate-500">{req.authorName}</span>
+                    {" · "}
+                    {formatDateTime(req.createdAt)}
                     {req.resolvedAt && req.resolvedByName && (
-                      <p>Resolved by <span className="font-medium text-slate-600">{req.resolvedByName}</span> · {formatDateTime(req.resolvedAt)}</p>
+                      <> · Resolved by <span className="font-medium text-slate-500">{req.resolvedByName}</span></>
                     )}
-                  </div>
+                  </p>
 
                   {!req.resolvedAt && (
                     <Button
