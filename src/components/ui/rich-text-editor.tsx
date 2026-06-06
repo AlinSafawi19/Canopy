@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-fetch";
 import { useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { Extension } from "@tiptap/core";
@@ -50,6 +51,20 @@ interface RichTextEditorProps {
   minHeight?: string;
 }
 
+function extractGcsUrls(html: string): Set<string> {
+  if (!html) return new Set();
+  const matches = html.matchAll(/src="(https:\/\/storage\.googleapis\.com\/[^"]+)"/g);
+  return new Set(Array.from(matches, (m) => m[1]));
+}
+
+function deleteGcsUrl(url: string) {
+  apiFetch("/api/upload", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  }).catch(() => {});
+}
+
 function ToolbarBtn({
   onClick,
   active,
@@ -89,8 +104,16 @@ function ImagePopover({
 }) {
   const [tab, setTab] = useState<"url" | "upload">("url");
   const [url, setUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Revoke blob URL when it changes or component unmounts
+  useEffect(() => {
+    return () => { if (localPreview) URL.revokeObjectURL(localPreview); };
+  }, [localPreview]);
 
   // Close on outside click — delay registration so the opening click doesn't immediately close it
   useEffect(() => {
@@ -111,16 +134,27 @@ function ImagePopover({
     if (trimmed) { onInsert(trimmed); onClose(); }
   }
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const src = ev.target?.result as string;
-      if (src) { onInsert(src); onClose(); }
-    };
-    reader.readAsDataURL(file);
+    setLocalPreview(URL.createObjectURL(file));
+    setUploading(true);
+    setUploadError("");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await apiFetch("/api/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) { setUploadError(data.error ?? "Upload failed"); return; }
+      onInsert(data.url);
+      onClose();
+    } catch {
+      setUploadError("Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   }
 
   return (
@@ -173,12 +207,37 @@ function ImagePopover({
           </button>
         </div>
       ) : (
-        <label className="flex flex-col items-center gap-1.5 border-2 border-dashed border-slate-300 rounded-lg py-4 px-3 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors">
-          <Upload size={16} className="text-slate-400" />
-          <span className="text-xs text-slate-600 font-medium">Click to choose image</span>
-          <span className="text-[11px] text-slate-400">PNG, JPG, GIF, WebP</span>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-        </label>
+        <div className="space-y-2">
+          <label
+            className={cn(
+              "flex flex-col items-center gap-1.5 border-2 border-dashed rounded-lg py-4 px-3 cursor-pointer transition-colors",
+              uploading
+                ? "border-indigo-300 bg-indigo-50/40 cursor-wait"
+                : "border-slate-300 hover:border-indigo-400 hover:bg-indigo-50/30"
+            )}
+          >
+            <Upload size={16} className={uploading ? "text-indigo-400" : "text-slate-400"} />
+            <span className="text-xs text-slate-600 font-medium">
+              {uploading ? "Uploading…" : "Click to choose image"}
+            </span>
+            {!uploading && <span className="text-[11px] text-slate-400">PNG, JPG, GIF, WebP</span>}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFile}
+              disabled={uploading}
+            />
+          </label>
+          {localPreview && (
+            <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-50 h-20 flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={localPreview} alt="preview" className="max-h-full max-w-full object-contain" />
+            </div>
+          )}
+          {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
+        </div>
       )}
     </div>
   );
@@ -194,6 +253,10 @@ export function RichTextEditor({
   minHeight = "120px",
 }: RichTextEditorProps) {
   const [imgPopoverOpen, setImgPopoverOpen] = useState(false);
+
+  // Track GCS URLs currently in the editor so we can delete them from storage
+  // when the user removes an image node.
+  const gcsUrlsInEditor = useRef<Set<string>>(extractGcsUrls(value));
 
   const editor = useEditor({
     extensions: [
@@ -227,7 +290,16 @@ export function RichTextEditor({
       },
     },
     onUpdate({ editor }) {
-      onChange(editor.getHTML());
+      const html = editor.getHTML();
+      const currentUrls = extractGcsUrls(html);
+
+      // Delete GCS files for image nodes removed from the editor
+      for (const url of gcsUrlsInEditor.current) {
+        if (!currentUrls.has(url)) deleteGcsUrl(url);
+      }
+      gcsUrlsInEditor.current = currentUrls;
+
+      onChange(html);
     },
   });
 
@@ -243,6 +315,9 @@ export function RichTextEditor({
   if (!editor) return null;
 
   function insertImage(src: string) {
+    if (src.startsWith("https://storage.googleapis.com/")) {
+      gcsUrlsInEditor.current.add(src);
+    }
     editor?.chain().focus().setImage({ src }).run();
   }
 
