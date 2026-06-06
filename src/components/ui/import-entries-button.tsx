@@ -75,6 +75,21 @@ function looksLikeEnum(rows: Record<string, string>[], key: string): boolean {
   return distinct.every((v) => v.length <= 50);
 }
 
+// Comparison keys for matching a relation value to an entry label, ignoring
+// case (upper/lower/capitalised) and singular/plural form. e.g. "Categories",
+// "category", and "CATEGORY" all share the key "category".
+function relationMatchKeys(s: string): string[] {
+  const v = s.trim().toLowerCase();
+  if (!v) return [];
+  const keys = new Set<string>([v]);
+  if (v.endsWith("ies") && v.length > 3) keys.add(v.slice(0, -3) + "y"); // categories → category
+  if (v.endsWith("es") && v.length > 2) keys.add(v.slice(0, -2));        // boxes → box
+  if (v.endsWith("s") && v.length > 1) keys.add(v.slice(0, -1));         // brands → brand
+  if (v.endsWith("y") && v.length > 1) keys.add(v.slice(0, -1) + "ies"); // category → categories
+  keys.add(v + "s");                                                      // brand → brands
+  return [...keys];
+}
+
 function inferColumnTypeClient(rows: Record<string, string>[], key: string): string {
   const vals = rows.map((r) => r[key]).filter((v) => v !== "" && v != null);
   if (vals.length === 0) return "text";
@@ -204,13 +219,16 @@ export function ImportEntriesButton({
     reset();
   }
 
-  // Fetches a sibling category's entry labels (lowercased) for relation matching.
+  // Fetches a sibling category's entry labels as case/plural-insensitive match
+  // keys (see relationMatchKeys) for relation detection.
   async function fetchLabelSet(catId: string): Promise<Set<string>> {
     try {
       const res = await apiFetch(`${basePath}/${projectId}/categories/${catId}/entries/select?limit=200`);
       const data = await res.json().catch(() => ({}));
       const items: Array<{ label?: string }> = Array.isArray(data.items) ? data.items : [];
-      return new Set(items.map((it) => String(it.label ?? "").trim().toLowerCase()).filter(Boolean));
+      const set = new Set<string>();
+      for (const it of items) for (const k of relationMatchKeys(String(it.label ?? ""))) set.add(k);
+      return set;
     } catch {
       return new Set();
     }
@@ -227,12 +245,13 @@ export function ImportEntriesButton({
 
     const labelSets = await Promise.all(targets.map((t) => fetchLabelSet(t.id)));
     for (const col of candidates) {
-      const distinct = distinctValues(parsed, col.name).map((v) => v.toLowerCase());
+      const distinct = distinctValues(parsed, col.name);
       if (distinct.length === 0) continue;
       let best = { idx: -1, rate: 0 };
       labelSets.forEach((set, idx) => {
         if (set.size === 0) return;
-        const matched = distinct.filter((v) => set.has(v)).length;
+        // A value matches if any of its case/plural variants is a known label key.
+        const matched = distinct.filter((v) => relationMatchKeys(v).some((k) => set.has(k))).length;
         const rate = matched / distinct.length;
         if (rate > best.rate) best = { idx, rate };
       });
