@@ -1,13 +1,41 @@
 "use client";
 import { apiFetch } from "@/lib/api-fetch";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { Upload } from "lucide-react";
+import { Upload, Trash2 } from "lucide-react";
 
-interface Field { name: string; type: string }
+interface Field { name: string; type: string; options?: string[] }
+
+// Same type→colour map used by the entries table on the page, so the import
+// preview reads identically.
+const TYPE_COLORS: Record<string, string> = {
+  text:      "text-violet-500",
+  textarea:  "text-blue-500",
+  rich_text: "text-purple-600",
+  number:    "text-amber-500",
+  date:      "text-emerald-500",
+  boolean:   "text-rose-500",
+  url:       "text-cyan-500",
+  email:     "text-indigo-500",
+  relation:  "text-pink-500",
+  enum:      "text-violet-500",
+};
+
+// Lightweight client-side column type inference for columns not already defined
+// in the category schema (mirrors the server's inference).
+function inferColumnTypeClient(rows: Record<string, string>[], key: string): string {
+  const vals = rows.map((r) => r[key]).filter((v) => v !== "" && v != null);
+  if (vals.length === 0) return "text";
+  if (vals.every((v) => /^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(v.trim()))) return "number";
+  if (vals.every((v) => /^https?:\/\/.+/i.test(v.trim()))) return "url";
+  if (vals.every((v) => /^(true|false)$/i.test(v.trim()))) return "boolean";
+  if (vals.every((v) => /^\d{4}-\d{2}-\d{2}/.test(v.trim()))) return "date";
+  if (vals.some((v) => /<[a-z][\s\S]*?>/i.test(v))) return "rich_text";
+  return "text";
+}
 
 interface Props {
   projectId: string;
@@ -78,11 +106,6 @@ function parseCSV(text: string): Record<string, string>[] {
 //   { url: "https://..." }  →  "https://..."   (common link/image object)
 //   ["a", "b"]              →  "a, b"           (arrays joined)
 //   42 / true / null        →  "42" / "true" / ""
-function inferFieldType(value: string): string {
-  if (/<[a-z][\s\S]*?>/i.test(value)) return "rich_text";
-  return "text";
-}
-
 function flattenValue(v: unknown): string {
   if (v === null || v === undefined) return "";
   if (typeof v === "string") return v;
@@ -191,9 +214,29 @@ export function ImportEntriesButton({
     }
   }
 
-  const previewFields = fields.length > 0 ? fields : rows[0] ? Object.keys(rows[0]).map((k) => ({ name: k, type: inferFieldType(rows[0][k]) })) : [];
-  const PREVIEW_ROWS = 5;
+  // Every column present across the parsed rows, with its resolved type:
+  // existing schema type when the name matches, otherwise inferred from the data.
+  const columns = useMemo(() => {
+    const names = new Set<string>();
+    for (const r of rows) for (const k of Object.keys(r)) names.add(k);
+    return Array.from(names).map((name) => {
+      const existing = fields.find((f) => f.name === name);
+      return {
+        name,
+        type: existing ? existing.type : inferColumnTypeClient(rows, name),
+        options: existing?.options,
+      };
+    });
+  }, [rows, fields]);
+
   const hasExisting = totalEntries > 0;
+
+  function updateCell(rowIdx: number, col: string, value: string) {
+    setRows((rs) => rs.map((r, i) => (i === rowIdx ? { ...r, [col]: value } : r)));
+  }
+  function removeRow(rowIdx: number) {
+    setRows((rs) => rs.filter((_, i) => i !== rowIdx));
+  }
 
   const resultSummary = result
     ? [
@@ -285,31 +328,86 @@ export function ImportEntriesButton({
             </div>
           )}
 
-          {/* Preview table */}
+          {/* Editable preview — all rows, typed columns, edit before importing */}
           {rows.length > 0 && !result && (
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                Preview — first {Math.min(PREVIEW_ROWS, rows.length)} of {rows.length} row{rows.length !== 1 ? "s" : ""}
-              </p>
-              <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                <table className="w-full text-xs border-collapse">
-                  <thead>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Review &amp; edit — {rows.length} row{rows.length !== 1 ? "s" : ""}
+                </p>
+                <p className="text-xs text-slate-400">Edit any cell or remove rows before importing</p>
+              </div>
+              <div className="overflow-auto border border-slate-200 rounded-lg max-h-96">
+                <table className="text-sm border-collapse">
+                  <thead className="sticky top-0 z-10">
                     <tr className="bg-slate-50 border-b border-slate-200">
-                      {previewFields.map((f) => (
-                        <th key={f.name} className="px-3 py-2 text-left font-medium text-slate-600 whitespace-nowrap border-r border-slate-100 last:border-0">
-                          {f.name}
+                      <th className="w-10 px-3 py-2.5 text-left border-r border-slate-200 sticky left-0 bg-slate-50 text-[10px] font-medium text-slate-400">#</th>
+                      {columns.map((c) => (
+                        <th key={c.name} className="px-3 py-2.5 text-left font-medium text-slate-700 border-r border-slate-200 min-w-[160px] whitespace-nowrap">
+                          <div className="flex flex-col gap-0.5">
+                            <span>{c.name}</span>
+                            <span className={`text-[10px] font-normal uppercase tracking-wide ${TYPE_COLORS[c.type] ?? "text-slate-400"}`}>
+                              {c.type}
+                            </span>
+                          </div>
                         </th>
                       ))}
+                      <th className="w-10 px-2 py-2.5 sticky right-0 bg-slate-50 border-l border-slate-200" />
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.slice(0, PREVIEW_ROWS).map((row, i) => (
-                      <tr key={i} className="border-b border-slate-100 last:border-0">
-                        {previewFields.map((f) => (
-                          <td key={f.name} className="px-3 py-2 text-slate-700 border-r border-slate-100 last:border-0 max-w-[180px] truncate">
-                            {String(row[f.name] ?? "")}
-                          </td>
-                        ))}
+                    {rows.map((row, i) => (
+                      <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                        <td className="px-3 py-1.5 text-center text-xs text-slate-400 border-r border-slate-100 sticky left-0 bg-white">
+                          {i + 1}
+                        </td>
+                        {columns.map((c) => {
+                          const val = row[c.name] ?? "";
+                          return (
+                            <td key={c.name} className="px-1.5 py-1 border-r border-slate-100 align-top">
+                              {c.type === "boolean" ? (
+                                <select
+                                  value={val}
+                                  onChange={(e) => updateCell(i, c.name, e.target.value)}
+                                  className="w-full bg-transparent text-sm text-slate-700 rounded px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                  <option value="">—</option>
+                                  <option value="true">true</option>
+                                  <option value="false">false</option>
+                                </select>
+                              ) : c.type === "enum" && c.options && c.options.length > 0 ? (
+                                <select
+                                  value={val}
+                                  onChange={(e) => updateCell(i, c.name, e.target.value)}
+                                  className="w-full bg-transparent text-sm text-slate-700 rounded px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                  <option value="">—</option>
+                                  {c.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                                  {/* preserve an out-of-schema value so it isn't silently dropped */}
+                                  {val && !c.options.includes(val) && <option value={val}>{val} (custom)</option>}
+                                </select>
+                              ) : (
+                                <input
+                                  value={val}
+                                  onChange={(e) => updateCell(i, c.name, e.target.value)}
+                                  inputMode={c.type === "number" ? "decimal" : undefined}
+                                  spellCheck={false}
+                                  className="w-full min-w-[140px] bg-transparent text-sm text-slate-700 rounded px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td className="px-1 py-1 sticky right-0 bg-white border-l border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => removeRow(i)}
+                            title="Remove this row from the import"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
