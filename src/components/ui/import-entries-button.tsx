@@ -116,6 +116,9 @@ type Col = { key: string; name: string; type: string; options?: string[] };
 // existing field already uses them, but aren't offered as fresh choices).
 const IMPORT_TYPE_OPTIONS = ["text", "textarea", "rich_text", "number", "boolean", "date", "url", "email"];
 
+// Mirrors MAX_IMPORT_ROWS in src/lib/entries-io.ts.
+const MAX_IMPORT_ROWS = 500;
+
 export function ImportEntriesButton({
   projectId,
   categoryId,
@@ -211,6 +214,11 @@ export function ImportEntriesButton({
 
   async function handleImport() {
     setParseError("");
+
+    if (rows.length > MAX_IMPORT_ROWS) {
+      setParseError(`This file has ${rows.length} rows. You can import up to ${MAX_IMPORT_ROWS} at a time — split it into smaller files.`);
+      return;
+    }
 
     const named = columns.filter((c) => c.name.trim());
     if (named.length === 0) { setParseError("Add at least one named column to import."); return; }
@@ -535,7 +543,7 @@ export function ImportEntriesButton({
                     title="Add a row"
                     className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
                   >
-                    <Plus size={14} /> Add row
+                    <Plus size={14} />
                   </button>
                 </div>
               </div>

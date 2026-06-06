@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { generateId } from "@/lib/utils";
 import { validateEntryValues } from "@/lib/limits";
@@ -227,10 +228,17 @@ export async function handleImport(
   const fieldNameErr = validateFieldNames(incomingNames, new Set(fields.map((f) => f.name)));
   if (fieldNameErr) return NextResponse.json({ error: fieldNameErr }, { status: 400 });
 
-  if (mode === "replace") {
-    // Wipe all existing entries for this category
-    await prisma.contentCategoryEntry.deleteMany({ where: { categoryId: category.id } });
+  // Builds the normalized value map for one row against the resolved fields.
+  function buildValues(raw: Record<string, unknown>): Record<string, unknown> {
+    const values: Record<string, unknown> = {};
+    for (const key of Object.keys(raw)) {
+      const field = fields.find((f) => f.name === key);
+      values[key] = field ? normalizeValue(raw[key], field.type) : String(raw[key] ?? "");
+    }
+    return values;
+  }
 
+  if (mode === "replace") {
     // Rebuild field schema: use the supplied schema verbatim, else infer from data
     // (preserving an existing field's definition when the type still matches).
     const currentFields = fields;
@@ -243,12 +251,9 @@ export async function handleImport(
           const existing = currentFields.find((f) => f.name === key);
           return existing ?? { name: key, ...inferColumnType(validRows, key) };
         });
-    await prisma.contentCategory.update({
-      where: { id: category.id },
-      data: { fields: fields as never },
-    });
 
-    // Insert all rows fresh starting at sortIndex 0
+    // Validate + build all records up front (no DB writes yet).
+    const records: Prisma.ContentCategoryEntryCreateManyInput[] = [];
     let nextSort = 0;
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -256,30 +261,33 @@ export async function handleImport(
         errors.push({ row: i + 1, error: "Row must be an object." });
         continue;
       }
-      const raw = row as Record<string, unknown>;
-      const values: Record<string, unknown> = {};
-      for (const key of Object.keys(raw)) {
-        const field = fields.find((f) => f.name === key);
-        values[key] = field ? normalizeValue(raw[key], field.type) : String(raw[key] ?? "");
-      }
+      const values = buildValues(row as Record<string, unknown>);
       const valErr = validateEntryValues(values, fields);
       if (valErr) { errors.push({ row: i + 1, error: valErr }); continue; }
-      await prisma.contentCategoryEntry.create({
-        data: { id: generateId(), categoryId: category.id, values: values as never, sortIndex: nextSort++ },
+      records.push({
+        id: generateId(),
+        categoryId: category.id,
+        values: values as Prisma.InputJsonValue,
+        sortIndex: nextSort++,
       });
-      created++;
     }
+    created = records.length;
+
+    // Atomic: wipe → set schema → bulk insert. A failure rolls the whole thing back.
+    await prisma.$transaction([
+      prisma.contentCategoryEntry.deleteMany({ where: { categoryId: category.id } }),
+      prisma.contentCategory.update({ where: { id: category.id }, data: { fields: fields as never } }),
+      ...(records.length > 0 ? [prisma.contentCategoryEntry.createMany({ data: records })] : []),
+    ]);
   } else {
     // Merge: ensure the field schema includes every imported column. Existing
     // columns keep their definition; new columns use the supplied/inferred type.
+    let fieldsChanged = false;
     if (fields.length === 0) {
       fields = useSchema
         ? schema!.map(normalizeSchemaField)
         : Object.keys(firstRow).map((key) => ({ name: key, ...inferColumnType(validRows, key) }));
-      await prisma.contentCategory.update({
-        where: { id: category.id },
-        data: { fields: fields as never },
-      });
+      fieldsChanged = true;
     } else {
       const existingNames = new Set(fields.map((f) => f.name));
       const newFields = useSchema
@@ -289,14 +297,11 @@ export async function handleImport(
             .map((key) => ({ name: key, ...inferColumnType(validRows, key) }));
       if (newFields.length > 0) {
         fields = [...fields, ...newFields];
-        await prisma.contentCategory.update({
-          where: { id: category.id },
-          data: { fields: fields as never },
-        });
+        fieldsChanged = true;
       }
     }
 
-    // Match imported rows to existing entries by position (sortIndex order)
+    // Match imported rows to existing entries by position (sortIndex order).
     const existingEntries = await prisma.contentCategoryEntry.findMany({
       where: { categoryId: category.id, archivedAt: null },
       orderBy: { sortIndex: "asc" },
@@ -308,18 +313,16 @@ export async function handleImport(
     });
     let nextSort = (last?.sortIndex ?? -1) + 1;
 
+    const updateOps: Prisma.PrismaPromise<unknown>[] = [];
+    const createRecords: Prisma.ContentCategoryEntryCreateManyInput[] = [];
+
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       if (typeof row !== "object" || row === null || Array.isArray(row)) {
         errors.push({ row: i + 1, error: "Row must be an object." });
         continue;
       }
-      const raw = row as Record<string, unknown>;
-      const values: Record<string, unknown> = {};
-      for (const key of Object.keys(raw)) {
-        const field = fields.find((f) => f.name === key);
-        values[key] = field ? normalizeValue(raw[key], field.type) : String(raw[key] ?? "");
-      }
+      const values = buildValues(row as Record<string, unknown>);
       const valErr = validateEntryValues(values, fields);
       if (valErr) { errors.push({ row: i + 1, error: valErr }); continue; }
 
@@ -329,19 +332,36 @@ export async function handleImport(
         const existingValues = existing.values as Record<string, unknown>;
         const mergedValues = { ...existingValues, ...values };
         if (JSON.stringify(existingValues) !== JSON.stringify(mergedValues)) {
-          await prisma.contentCategoryEntry.update({
-            where: { id: existing.id },
-            data: { values: mergedValues as never },
-          });
+          updateOps.push(
+            prisma.contentCategoryEntry.update({
+              where: { id: existing.id },
+              data: { values: mergedValues as Prisma.InputJsonValue },
+            }),
+          );
           updated++;
         }
       } else {
-        await prisma.contentCategoryEntry.create({
-          data: { id: generateId(), categoryId: category.id, values: values as never, sortIndex: nextSort++ },
+        createRecords.push({
+          id: generateId(),
+          categoryId: category.id,
+          values: values as Prisma.InputJsonValue,
+          sortIndex: nextSort++,
         });
-        created++;
       }
     }
+    created = createRecords.length;
+
+    // Atomic: schema update (if any) + all row updates + one bulk insert.
+    const ops: Prisma.PrismaPromise<unknown>[] = [
+      ...(fieldsChanged
+        ? [prisma.contentCategory.update({ where: { id: category.id }, data: { fields: fields as never } })]
+        : []),
+      ...updateOps,
+      ...(createRecords.length > 0
+        ? [prisma.contentCategoryEntry.createMany({ data: createRecords })]
+        : []),
+    ];
+    if (ops.length > 0) await prisma.$transaction(ops);
   }
 
   return NextResponse.json({ created, updated, errors });
