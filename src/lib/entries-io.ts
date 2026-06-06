@@ -143,13 +143,44 @@ function normalizeValue(raw: unknown, type: string): string {
   return str;
 }
 
+// Explains exactly why a column name fails the safe-name rule, naming the
+// specific offending characters so the user knows what to change.
+function describeInvalidFieldName(key: string): string {
+  const reasons: string[] = [];
+
+  if (key.trim() === "") {
+    return "it is empty — every column needs a name";
+  }
+  if (key.length > 64) {
+    reasons.push(`it is ${key.length} characters long (the maximum is 64)`);
+  }
+  if (!/^[a-zA-Z_]/.test(key)) {
+    reasons.push(`it starts with "${key[0]}" — names must begin with a letter (a–z) or an underscore (_)`);
+  }
+  const disallowed = Array.from(new Set(Array.from(key).filter((c) => !/[a-zA-Z0-9_ ]/.test(c))));
+  if (disallowed.length > 0) {
+    const list = disallowed.map((c) => `"${c}"`).join(", ");
+    reasons.push(
+      `it contains ${disallowed.length === 1 ? "the character" : "the characters"} ${list}, ` +
+      `which ${disallowed.length === 1 ? "is" : "are"} not allowed — only letters, digits, underscores, and spaces are permitted`
+    );
+  }
+  return reasons.join("; ");
+}
+
 // Only validates field names that would create NEW columns — existing columns
 // were already accepted by the schema editor and must not be rejected here.
 function validateFieldNames(keys: string[], existing: Set<string>): string | null {
   for (const key of keys) {
     if (existing.has(key)) continue;
     if (!SAFE_FIELD_NAME_RE.test(key)) {
-      return `Invalid field name "${key}". New column names must start with a letter or underscore and contain only letters, digits, underscores, or spaces (max 64 chars).`;
+      return (
+        `The column "${key}" can't create a new field because ${describeInvalidFieldName(key)}. ` +
+        `Fix it by renaming the column in your file to use only letters, digits, underscores, and spaces ` +
+        `(for example, "Cover (img 1)" → "Cover img 1"). ` +
+        `Alternatively, create a column with this exact name from "Manage Columns" first — ` +
+        `existing columns are imported as-is.`
+      );
     }
   }
   return null;
