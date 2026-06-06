@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquare, CheckCircle, GripVertical, Inbox } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
@@ -37,7 +37,7 @@ export function ChangeRequestsIndicator({
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  // ── per-column state ──────────────────────────────────────
+  // ── per-column lists ───────────────────────────────────────
   const [openItems,       setOpenItems]       = useState<ChangeRequest[]>([]);
   const [resolvedItems,   setResolvedItems]   = useState<ChangeRequest[]>([]);
   const [openPage,        setOpenPage]        = useState(1);
@@ -53,33 +53,38 @@ export function ChangeRequestsIndicator({
   const [dragOver,     setDragOver]     = useState<Column | null>(null);
   const [acting,       setActing]       = useState<string | null>(null);
 
-  // ── optimistic count deltas for the trigger badge ─────────
+  // ── optimistic deltas for the trigger badge ───────────────
   const [openDelta,     setOpenDelta]     = useState(0);
   const [resolvedDelta, setResolvedDelta] = useState(0);
 
+  // Reset deltas once the server props catch up after router.refresh()
+  useEffect(() => {
+    setOpenDelta(0);
+    setResolvedDelta(0);
+  }, [openCount, resolvedCount]);
+
   const baseUrl = `${apiBase}/${projectId}/categories/${categoryId}/entries/${entryId}/change-requests`;
 
+  // ── data fetching ─────────────────────────────────────────
   async function fetchCol(col: Column, pageNum: number) {
-    const isFirst = pageNum === 1;
-    if (isFirst) setFetching(true); else setLoadingCol(col);
+    if (pageNum === 1) setLoadingCol(null); // reset "load more" state
+    else setLoadingCol(col);
     try {
       const res = await apiFetch(`${baseUrl}?status=${col}&page=${pageNum}`);
       if (!res.ok) return;
       const data = await res.json();
       const items: ChangeRequest[] = data.requests ?? [];
-      const more: boolean = data.hasMore ?? false;
-
       if (col === "open") {
-        setOpenItems((prev) => isFirst ? items : [...prev, ...items]);
-        setOpenHasMore(more);
+        setOpenItems((prev) => pageNum === 1 ? items : [...prev, ...items]);
+        setOpenHasMore(data.hasMore ?? false);
         setOpenPage(pageNum);
       } else {
-        setResolvedItems((prev) => isFirst ? items : [...prev, ...items]);
-        setResolvedHasMore(more);
+        setResolvedItems((prev) => pageNum === 1 ? items : [...prev, ...items]);
+        setResolvedHasMore(data.hasMore ?? false);
         setResolvedPage(pageNum);
       }
     } finally {
-      if (isFirst) setFetching(false); else setLoadingCol(null);
+      setLoadingCol(null);
     }
   }
 
@@ -104,7 +109,13 @@ export function ChangeRequestsIndicator({
       fetchCol("resolved", resolvedPage + 1);
   }
 
+  // ── action (resolve / reopen) ─────────────────────────────
   async function handleAction(reqId: string, action: "resolve" | "reopen") {
+    // Capture the item SYNCHRONOUSLY before any await — avoids stale closure
+    const sourceList = action === "resolve" ? openItems : resolvedItems;
+    const moved = sourceList.find((r) => r.id === reqId);
+    if (!moved) return;
+
     setActing(reqId);
     const res = await apiFetch(`${baseUrl}/${reqId}`, {
       method: "PATCH",
@@ -115,27 +126,22 @@ export function ChangeRequestsIndicator({
     if (!res.ok) return;
 
     if (action === "resolve") {
-      const moved = openItems.find((r) => r.id === reqId);
-      if (moved) {
-        const resolved = { ...moved, resolvedAt: new Date().toISOString(), resolvedByName: "You" };
-        setOpenItems((prev) => prev.filter((r) => r.id !== reqId));
-        setResolvedItems((prev) => [resolved, ...prev]);
-        setOpenDelta((d) => d - 1);
-        setResolvedDelta((d) => d + 1);
-      }
+      const resolved = { ...moved, resolvedAt: new Date().toISOString(), resolvedByName: "You" };
+      setOpenItems((prev) => prev.filter((r) => r.id !== reqId));
+      setResolvedItems((prev) => [resolved, ...prev]);
+      setOpenDelta((d) => d - 1);
+      setResolvedDelta((d) => d + 1);
     } else {
-      const moved = resolvedItems.find((r) => r.id === reqId);
-      if (moved) {
-        const reopened = { ...moved, resolvedAt: null, resolvedBy: null, resolvedByName: null };
-        setResolvedItems((prev) => prev.filter((r) => r.id !== reqId));
-        setOpenItems((prev) => [reopened, ...prev]);
-        setOpenDelta((d) => d + 1);
-        setResolvedDelta((d) => d - 1);
-      }
+      const reopened = { ...moved, resolvedAt: null, resolvedBy: null, resolvedByName: null };
+      setResolvedItems((prev) => prev.filter((r) => r.id !== reqId));
+      setOpenItems((prev) => [reopened, ...prev]);
+      setOpenDelta((d) => d + 1);
+      setResolvedDelta((d) => d - 1);
     }
     router.refresh();
   }
 
+  // ── drag & drop ───────────────────────────────────────────
   function handleDrop(target: Column) {
     if (dragging && draggingFrom && draggingFrom !== target) {
       if (target === "resolved") handleAction(dragging, "resolve");
@@ -146,11 +152,12 @@ export function ChangeRequestsIndicator({
     setDragOver(null);
   }
 
+  // ── derived display counts ─────────────────────────────────
   const displayOpenCount     = Math.max(0, openCount + openDelta);
   const displayResolvedCount = Math.max(0, resolvedCount + resolvedDelta);
   const hasOpen     = displayOpenCount > 0;
   const hasResolved = displayResolvedCount > 0;
-  if (!hasOpen && !hasResolved && openDelta === 0 && resolvedDelta === 0) return null;
+  if (!hasOpen && !hasResolved) return null;
 
   return (
     <>
@@ -189,6 +196,7 @@ export function ChangeRequestsIndicator({
             </p>
 
             <div className="flex gap-3">
+
               {/* ── Open column ── */}
               <div
                 className={`flex-1 min-w-0 rounded-xl p-3 transition-colors flex flex-col ${
@@ -201,12 +209,12 @@ export function ChangeRequestsIndicator({
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Open</span>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 leading-none">
-                    {openItems.length + (openHasMore ? "+" : "")}
+                    {openItems.length}{openHasMore ? "+" : ""}
                   </span>
                 </div>
 
                 <div
-                  className="flex-1 overflow-y-auto max-h-64 divide-y divide-slate-200"
+                  className="overflow-y-auto max-h-64 divide-y divide-slate-200"
                   onScroll={handleOpenScroll}
                 >
                   {openItems.length === 0 ? (
@@ -261,12 +269,12 @@ export function ChangeRequestsIndicator({
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Resolved</span>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 leading-none">
-                    {resolvedItems.length + (resolvedHasMore ? "+" : "")}
+                    {resolvedItems.length}{resolvedHasMore ? "+" : ""}
                   </span>
                 </div>
 
                 <div
-                  className="flex-1 overflow-y-auto max-h-64 divide-y divide-slate-200"
+                  className="overflow-y-auto max-h-64 divide-y divide-slate-200"
                   onScroll={handleResolvedScroll}
                 >
                   {resolvedItems.length === 0 ? (
@@ -311,6 +319,7 @@ export function ChangeRequestsIndicator({
                   )}
                 </div>
               </div>
+
             </div>
           </div>
         )}
