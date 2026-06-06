@@ -13,7 +13,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { RelationSelect } from "@/components/ui/relation-select";
 import { LIMITS } from "@/lib/limits";
 import { stripRichText, formatDate } from "@/lib/utils";
-import { Upload, Trash2, Plus, X, Columns, Pencil } from "lucide-react";
+import { Upload, Trash2, Plus, X, Columns, Pencil, CheckCircle2, AlertTriangle } from "lucide-react";
 
 interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean }
 
@@ -550,7 +550,7 @@ export function ImportEntriesButton({
           {columns.length > 0 && !result && (
             <div className="flex-1 min-h-0 flex flex-col">
               <div className="flex items-center justify-between gap-3 mb-2 flex-wrap flex-shrink-0">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
                   Review &amp; edit — {rows.length} row{rows.length !== 1 ? "s" : ""}, {columns.length} column{columns.length !== 1 ? "s" : ""}
                 </p>
                 <div className="flex items-center gap-2">
@@ -636,14 +636,27 @@ export function ImportEntriesButton({
             </div>
           )}
 
-          {/* Result */}
+          {/* Result — centered, fills the body */}
           {result && (
-            <div className="space-y-2">
-              <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 font-medium">
-                {resultSummary}.
-              </p>
+            <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center gap-4 py-6">
+              {(() => {
+                const ok = result.created > 0 || result.updated > 0;
+                return (
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center ${ok ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}>
+                    {ok
+                      ? <CheckCircle2 size={32} className="text-emerald-600" />
+                      : <AlertTriangle size={30} className="text-amber-500" />}
+                  </div>
+                );
+              })()}
+              <div className="space-y-1">
+                <p className="text-lg font-semibold text-slate-900">{resultSummary}</p>
+                <p className="text-sm text-slate-500">
+                  {result.errors.length > 0 ? "Import finished with some skipped rows." : "Your import has finished."}
+                </p>
+              </div>
               {result.errors.length > 0 && (
-                <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 space-y-1">
+                <div className="w-full max-w-md text-left text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 space-y-1 overflow-auto max-h-48">
                   <p className="font-medium">{result.errors.length} row{result.errors.length !== 1 ? "s" : ""} skipped:</p>
                   {result.errors.map((e) => (
                     <p key={e.row} className="text-xs">Row {e.row}: {e.error}</p>
@@ -657,11 +670,11 @@ export function ImportEntriesButton({
 
           {/* Actions — pinned footer */}
           <div className={VIEW_FOOTER}>
-            <Button variant="outline" type="button" onClick={handleClose}>
-              {result ? "Close" : "Cancel"}
+            <Button variant="outline" type="button" onClick={reset}>
+              Import another file
             </Button>
             {result ? (
-              <Button type="button" variant="primary" onClick={reset}>Import another file</Button>
+              <Button type="button" variant="primary" onClick={handleClose}>{result ? "Close" : "Cancel"}</Button>
             ) : (
               <Button
                 type="button"
