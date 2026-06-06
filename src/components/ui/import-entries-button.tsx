@@ -378,18 +378,10 @@ export function ImportEntriesButton({
           {/* Editable preview — manage rows & columns before importing */}
           {columns.length > 0 && !result && (
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="mb-2">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   Review &amp; edit — {rows.length} row{rows.length !== 1 ? "s" : ""}, {columns.length} column{columns.length !== 1 ? "s" : ""}
                 </p>
-                <div className="flex items-center gap-3">
-                  <button type="button" onClick={addColumn} className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700">
-                    <Plus size={12} /> Column
-                  </button>
-                  <button type="button" onClick={addRow} className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700">
-                    <Plus size={12} /> Row
-                  </button>
-                </div>
               </div>
 
               <div className="overflow-auto border border-slate-200 rounded-lg max-h-96">
@@ -430,14 +422,23 @@ export function ImportEntriesButton({
                           </th>
                         );
                       })}
-                      <th className="w-10 px-2 py-2 sticky right-0 bg-slate-50 border-l border-slate-200" />
+                      <th className="w-10 px-1 py-2 sticky right-0 bg-slate-50 border-l border-slate-200 align-middle">
+                        <button
+                          type="button"
+                          onClick={addColumn}
+                          title="Add a column"
+                          className="p-1.5 rounded-lg text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
+                        >
+                          <Plus size={15} />
+                        </button>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.length === 0 && (
                       <tr>
                         <td colSpan={columns.length + 2} className="px-3 py-6 text-center text-sm text-slate-400">
-                          No rows. Use <span className="font-medium">+ Row</span> to add one.
+                          No rows yet — use the <span className="font-medium">+</span> below to add one.
                         </td>
                       </tr>
                     )}
@@ -496,6 +497,20 @@ export function ImportEntriesButton({
                         </td>
                       </tr>
                     ))}
+                    {/* Add-row control — bottom-left, under the row numbers */}
+                    <tr>
+                      <td className="px-1 py-1 sticky left-0 bg-white border-r border-slate-100">
+                        <button
+                          type="button"
+                          onClick={addRow}
+                          title="Add a row"
+                          className="p-1.5 rounded-lg text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
+                        >
+                          <Plus size={15} />
+                        </button>
+                      </td>
+                      <td colSpan={columns.length + 1} className="bg-white" />
+                    </tr>
                   </tbody>
                 </table>
               </div>
