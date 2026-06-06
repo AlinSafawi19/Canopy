@@ -4,7 +4,7 @@ import { apiFetch } from "@/lib/api-fetch";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Modal, ModalRef } from "@/components/ui/modal";
+import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +23,7 @@ interface Props {
   fields: Field[];
   totalEntries?: number;
   basePath?: string;
+  categories?: { id: string; name: string }[];
 }
 
 // Editable column with a stable key, so renaming a header never loses cell data.
@@ -39,18 +40,18 @@ const TYPE_COLORS: Record<string, string> = {
   url: "text-cyan-500", email: "text-indigo-500", relation: "text-pink-500", enum: "text-violet-500",
 };
 
-// Types offered when defining a new import column (relation needs a target
-// category, so it's only kept when an existing field already uses it).
+// Same list/order as ManageSchemaButton's FIELD_TYPES.
 const COLUMN_TYPES = [
   { value: "text", label: "Text" },
   { value: "textarea", label: "Textarea" },
   { value: "rich_text", label: "Rich Text" },
   { value: "number", label: "Number" },
   { value: "date", label: "Date" },
-  { value: "boolean", label: "Boolean" },
   { value: "url", label: "URL" },
   { value: "email", label: "Email" },
+  { value: "boolean", label: "Boolean" },
   { value: "enum", label: "Enum" },
+  { value: "relation", label: "Relation" },
 ];
 
 function inferColumnTypeClient(rows: Record<string, string>[], key: string): string {
@@ -141,6 +142,7 @@ export function ImportEntriesButton({
   fields,
   totalEntries = 0,
   basePath = "/api/admin/projects",
+  categories = [],
 }: Props) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -154,10 +156,11 @@ export function ImportEntriesButton({
   const [result, setResult] = useState<ImportResult | null>(null);
   const [mode, setMode] = useState<ImportMode>(null);
 
-  const [manageOpen, setManageOpen] = useState(false);
+  // Which view fills the single modal — avoids stacking modals on top of each other.
+  const [view, setView] = useState<"main" | "manage" | "editRow">("main");
   const [editRowIdx, setEditRowIdx] = useState<number | null>(null);
+  const [addingRow, setAddingRow] = useState(false);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
-  const editModalRef = useRef<ModalRef>(null);
 
   const nextKey = () => `c${keyCounter.current++}`;
   const hasExisting = totalEntries > 0;
@@ -168,8 +171,9 @@ export function ImportEntriesButton({
     setParseError("");
     setResult(null);
     setMode(null);
-    setManageOpen(false);
+    setView("main");
     setEditRowIdx(null);
+    setAddingRow(false);
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -236,24 +240,37 @@ export function ImportEntriesButton({
     reader.readAsText(file);
   }
 
+  // ── view navigation ──────────────────────────────────────
+  function backToMain() {
+    setView("main");
+    setEditRowIdx(null);
+    setAddingRow(false);
+  }
+
   // ── row editing ──────────────────────────────────────────
   function openEditRow(idx: number) {
+    setAddingRow(false);
     setEditValues({ ...rows[idx] });
     setEditRowIdx(idx);
+    setView("editRow");
+  }
+  function openAddRow() {
+    // Open the editor with a blank row — only committed to the table on confirm.
+    setAddingRow(true);
+    setEditRowIdx(null);
+    setEditValues(Object.fromEntries(columns.map((c) => [c.key, ""])));
+    setView("editRow");
   }
   function saveEditRow() {
-    if (editRowIdx === null) return;
-    setRows((rs) => rs.map((r, i) => (i === editRowIdx ? { ...editValues } : r)));
-    setEditRowIdx(null);
+    if (addingRow) {
+      setRows((rs) => [...rs, { ...editValues }]);
+    } else if (editRowIdx !== null) {
+      setRows((rs) => rs.map((r, i) => (i === editRowIdx ? { ...editValues } : r)));
+    }
+    backToMain();
   }
   function removeRow(idx: number) {
     setRows((rs) => rs.filter((_, i) => i !== idx));
-  }
-  function addRow() {
-    const blank = Object.fromEntries(columns.map((c) => [c.key, ""]));
-    setRows((rs) => [...rs, blank]);
-    setEditValues(blank);
-    setEditRowIdx(rows.length); // index of the row just appended
   }
 
   // ── import ───────────────────────────────────────────────
@@ -311,7 +328,13 @@ export function ImportEntriesButton({
       ].filter(Boolean).join(", ") || "No changes made"
     : "";
 
-  const editingCol = editRowIdx !== null;
+  const modalTitle =
+    view === "manage" ? "Manage Columns"
+    : view === "editRow" ? (addingRow ? "Add row" : `Edit row ${(editRowIdx ?? 0) + 1}`)
+    : "Import Entries";
+
+  // The X / backdrop returns to the main view from a sub-view, or closes from main.
+  const onModalClose = () => { if (view === "main") handleClose(); else backToMain(); };
 
   return (
     <>
@@ -320,8 +343,41 @@ export function ImportEntriesButton({
         Import
       </Button>
 
-      <Modal open={open} onClose={handleClose} title="Import Entries" size="xl">
-        <div className="space-y-4">
+      <Modal open={open} onClose={onModalClose} title={modalTitle} size="xl">
+        {/* ── Manage Columns view ── */}
+        {view === "manage" && (
+          <ManageColumnsPanel
+            columns={columns}
+            setColumns={setColumns}
+            setRows={setRows}
+            nextKey={nextKey}
+            categories={categories}
+            categoryId={categoryId}
+            onDone={backToMain}
+          />
+        )}
+
+        {/* ── Row editor view ── */}
+        {view === "editRow" && (
+          <form onSubmit={(e) => { e.preventDefault(); saveEditRow(); }} className="space-y-4">
+            {columns.map((c) => (
+              <FieldEditor
+                key={c.key}
+                col={c}
+                value={editValues[c.key] ?? ""}
+                onChange={(v) => setEditValues((vals) => ({ ...vals, [c.key]: v }))}
+                projectId={projectId}
+                basePath={basePath}
+              />
+            ))}
+            <div className="flex justify-end gap-3 pt-1">
+              <Button variant="outline" type="button" onClick={backToMain}>Cancel</Button>
+              <Button type="submit">{addingRow ? "Add row" : "Done"}</Button>
+            </div>
+          </form>
+        )}
+
+        <div className={`space-y-4 ${view === "main" ? "" : "hidden"}`}>
 
           {/* Hidden input — always mounted so it survives when the dropzone is hidden */}
           <input ref={fileRef} type="file" accept=".csv,.json" className="hidden" onChange={handleFile} />
@@ -397,10 +453,10 @@ export function ImportEntriesButton({
                   >
                     <Upload size={12} /> Choose another file
                   </button>
-                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setManageOpen(true)}>
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setView("manage")}>
                     <Columns size={13} /> Manage Columns
                   </Button>
-                  <Button size="sm" className="gap-1.5" onClick={addRow}>
+                  <Button size="sm" className="gap-1.5" onClick={openAddRow}>
                     <Plus size={13} /> Add Row
                   </Button>
                 </div>
@@ -510,41 +566,6 @@ export function ImportEntriesButton({
           </div>
         </div>
       </Modal>
-
-      {/* Per-row edit modal — typed field editors, same as the entry form */}
-      <Modal
-        ref={editModalRef}
-        open={editingCol}
-        onClose={() => setEditRowIdx(null)}
-        title={editRowIdx !== null ? `Edit row ${editRowIdx + 1}` : "Edit row"}
-      >
-        <form onSubmit={(e) => { e.preventDefault(); saveEditRow(); }} className="space-y-4">
-          {columns.map((c) => (
-            <FieldEditor
-              key={c.key}
-              col={c}
-              value={editValues[c.key] ?? ""}
-              onChange={(v) => setEditValues((vals) => ({ ...vals, [c.key]: v }))}
-              projectId={projectId}
-              basePath={basePath}
-            />
-          ))}
-          <div className="flex justify-end gap-3 pt-1">
-            <Button variant="outline" type="button" onClick={() => setEditRowIdx(null)}>Cancel</Button>
-            <Button type="submit">Done</Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Manage columns modal */}
-      <ManageColumnsModal
-        open={manageOpen}
-        onClose={() => setManageOpen(false)}
-        columns={columns}
-        setColumns={setColumns}
-        setRows={setRows}
-        nextKey={nextKey}
-      />
     </>
   );
 }
@@ -629,113 +650,200 @@ function FieldEditor({
   );
 }
 
-// ── Manage columns modal (in-memory schema editor) ─────────────────────────────
-function ManageColumnsModal({
-  open, onClose, columns, setColumns, setRows, nextKey,
+// ── Manage columns panel — mirrors the page's ManageSchemaButton, in-memory ────
+function ManageColumnsPanel({
+  columns, setColumns, setRows, nextKey, categories, categoryId, onDone,
 }: {
-  open: boolean;
-  onClose: () => void;
   columns: Col[];
   setColumns: React.Dispatch<React.SetStateAction<Col[]>>;
   setRows: React.Dispatch<React.SetStateAction<Record<string, string>[]>>;
   nextKey: () => string;
+  categories: { id: string; name: string }[];
+  categoryId: string;
+  onDone: () => void;
 }) {
-  const [optionInput, setOptionInput] = useState<Record<string, string>>({});
+  const [optionInputs, setOptionInputs] = useState<Record<string, string>>({});
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [error, setError] = useState("");
 
   function update(key: string, patch: Partial<Col>) {
     setColumns((cs) => cs.map((c) => (c.key === key ? { ...c, ...patch } : c)));
-  }
-  function remove(key: string) {
-    setColumns((cs) => cs.filter((c) => c.key !== key));
+    setError("");
   }
   function add() {
     const key = nextKey();
     setColumns((cs) => [...cs, { key, name: "", type: "text" }]);
     setRows((rs) => rs.map((r) => ({ ...r, [key]: "" })));
   }
+  function remove(key: string) {
+    setColumns((cs) => cs.filter((c) => c.key !== key));
+    setSelected((prev) => { const n = new Set(prev); n.delete(key); return n; });
+  }
+  function removeSelected() {
+    setColumns((cs) => cs.filter((c) => !selected.has(c.key)));
+    setSelected(new Set());
+  }
+  function toggleSelect(key: string) {
+    setSelected((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+  }
+  function toggleAll() {
+    setSelected(selected.size === columns.length ? new Set() : new Set(columns.map((c) => c.key)));
+  }
   function addOption(key: string) {
-    const v = (optionInput[key] ?? "").trim();
+    const v = (optionInputs[key] ?? "").trim();
     if (!v) return;
     const col = columns.find((c) => c.key === key);
     if (col?.options?.includes(v)) return;
     update(key, { options: [...(col?.options ?? []), v] });
-    setOptionInput((p) => ({ ...p, [key]: "" }));
+    setOptionInputs((p) => ({ ...p, [key]: "" }));
   }
   function removeOption(key: string, idx: number) {
     const col = columns.find((c) => c.key === key);
     update(key, { options: (col?.options ?? []).filter((_, i) => i !== idx) });
   }
 
+  function done() {
+    const names = columns.map((c) => c.name.trim());
+    if (names.some((n) => !n)) { setError("All columns must have a name"); return; }
+    if (new Set(names).size !== names.length) { setError("Column names must be unique"); return; }
+    for (const c of columns) {
+      if (c.type === "enum" && (!c.options || c.options.length < 2)) {
+        setError(`"${c.name || "Enum column"}" must have at least 2 options`); return;
+      }
+      if (c.type === "relation" && !c.relationCategoryId) {
+        setError(`"${c.name || "Relation column"}" must have a target category selected`); return;
+      }
+    }
+    setError("");
+    onDone();
+  }
+
+  const targetCategories = categories.filter((c) => c.id !== categoryId);
+  const allSelected = columns.length > 0 && selected.size === columns.length;
+  const someSelected = selected.size > 0 && selected.size < columns.length;
+
   return (
-    <Modal open={open} onClose={onClose} title="Manage Columns">
       <div className="space-y-3">
-        {columns.length === 0 && (
-          <p className="text-sm text-slate-400 text-center py-6">No columns — add your first one below.</p>
+
+        {/* Bulk selection action bar */}
+        {selected.size > 0 && (
+          <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <span className="text-sm text-red-700 font-medium">
+              {selected.size} column{selected.size !== 1 ? "s" : ""} selected
+            </span>
+            <button type="button" onClick={removeSelected} className="flex items-center gap-1.5 text-sm font-medium text-red-600 hover:text-red-700 transition-colors">
+              <Trash2 size={13} /> Delete selected
+            </button>
+          </div>
         )}
 
-        {columns.map((c) => {
-          // Keep relation selectable only when the column already targets a category.
-          const typeOpts = c.type === "relation"
-            ? [{ value: "relation", label: "Relation" }, ...COLUMN_TYPES]
-            : COLUMN_TYPES;
-          return (
-            <div key={c.key} className="space-y-2">
-              <div className="grid grid-cols-[1fr_148px_32px] gap-2 items-start">
-                <Input value={c.name} placeholder="Column name" onChange={(e) => update(c.key, { name: e.target.value })} />
+        {/* Header row */}
+        {columns.length > 0 && (
+          <div className="hidden sm:grid grid-cols-[20px_1fr_148px_32px] gap-2 pb-1 items-center">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              ref={(el) => { if (el) el.indeterminate = someSelected; }}
+              onChange={toggleAll}
+              className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+            />
+            <span className="text-xs font-medium text-slate-500">Column Name</span>
+            <span className="text-xs font-medium text-slate-500">Type</span>
+            <span />
+          </div>
+        )}
+
+        {columns.length === 0 && (
+          <p className="text-sm text-slate-400 text-center py-6">No columns yet — add your first one below.</p>
+        )}
+
+        {columns.map((c) => (
+          <div key={c.key} className="space-y-2">
+            <div className="grid grid-cols-[20px_1fr_32px] sm:grid-cols-[20px_1fr_148px_32px] gap-2 items-start">
+              <div className="h-9 flex items-center">
+                <input
+                  type="checkbox"
+                  checked={selected.has(c.key)}
+                  onChange={() => toggleSelect(c.key)}
+                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                />
+              </div>
+              <Input value={c.name} placeholder="e.g. Title" onChange={(e) => update(c.key, { name: e.target.value })} />
+              <div className="col-span-2 order-3 sm:col-span-1 sm:order-none">
                 <Select
                   value={c.type}
                   onChange={(v) => update(c.key, { type: v, ...(v !== "enum" ? { options: [] } : {}) })}
-                  options={typeOpts}
+                  options={COLUMN_TYPES}
                 />
-                <button
-                  type="button"
-                  onClick={() => remove(c.key)}
-                  className="h-9 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 size={14} />
-                </button>
               </div>
-
-              {c.type === "enum" && (
-                <div className="ml-1 pl-3 border-l-2 border-slate-200 space-y-2">
-                  <div className="flex flex-wrap gap-1.5 items-center min-h-[24px]">
-                    {(c.options ?? []).length === 0 && <span className="text-xs text-slate-400">No options yet — add at least 2</span>}
-                    {(c.options ?? []).map((opt, j) => (
-                      <span key={j} className="flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-200">
-                        {opt}
-                        <button type="button" onClick={() => removeOption(c.key, j)} className="text-indigo-400 hover:text-indigo-700 transition-colors leading-none">
-                          <X size={10} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Add option…"
-                      value={optionInput[c.key] ?? ""}
-                      onChange={(e) => setOptionInput((p) => ({ ...p, [c.key]: e.target.value }))}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOption(c.key); } }}
-                      className="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 w-36 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <button type="button" onClick={() => addOption(c.key)} className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700">
-                      <Plus size={12} /> Add
-                    </button>
-                  </div>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => remove(c.key)}
+                className="order-2 sm:order-none h-9 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"
+              >
+                <Trash2 size={14} />
+              </button>
             </div>
-          );
-        })}
+
+            {c.type === "enum" && (
+              <div className="ml-5 pl-3 border-l-2 border-slate-200 space-y-2">
+                <div className="flex flex-wrap gap-1.5 items-center min-h-[24px]">
+                  {(c.options ?? []).length === 0 && <span className="text-xs text-slate-400">No options yet — add at least 2</span>}
+                  {(c.options ?? []).map((opt, j) => (
+                    <span key={j} className="flex items-center gap-1 pl-2.5 pr-1.5 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-200">
+                      {opt}
+                      <button type="button" onClick={() => removeOption(c.key, j)} className="text-indigo-400 hover:text-indigo-700 transition-colors leading-none">
+                        <X size={10} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add option…"
+                    value={optionInputs[c.key] ?? ""}
+                    onChange={(e) => setOptionInputs((p) => ({ ...p, [c.key]: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOption(c.key); } }}
+                    className="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 w-36 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <button type="button" onClick={() => addOption(c.key)} className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors">
+                    <Plus size={12} /> Add
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {c.type === "relation" && (
+              <div className="ml-5 pl-3 border-l-2 border-pink-200 space-y-1.5">
+                <Select
+                  value={c.relationCategoryId ?? ""}
+                  onChange={(v) => update(c.key, { relationCategoryId: v })}
+                  options={[
+                    { value: "", label: "Select target category…" },
+                    ...targetCategories.map((cat) => ({ value: cat.id, label: cat.name })),
+                  ]}
+                />
+                {targetCategories.length === 0 && (
+                  <p className="text-xs text-slate-400">No other categories in this project yet.</p>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
 
         <button type="button" onClick={add} className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors pt-1">
           <Plus size={14} /> Add column
         </button>
 
-        <div className="flex justify-end pt-2 border-t border-slate-100">
-          <Button type="button" onClick={onClose}>Done</Button>
+        {error && (
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+        )}
+
+        <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+          <Button variant="outline" type="button" onClick={onDone}>Back</Button>
+          <Button type="button" onClick={done}>Done</Button>
         </div>
       </div>
-    </Modal>
   );
 }

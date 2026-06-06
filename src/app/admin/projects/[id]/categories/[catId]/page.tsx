@@ -152,7 +152,7 @@ export default async function CategoryDetailPage({
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
           <ExportEntriesButton projectId={id} categoryId={catId} categoryName={category.name} />
-          <ImportEntriesButton projectId={id} categoryId={catId} fields={fields} totalEntries={total} />
+          <ImportEntriesButton projectId={id} categoryId={catId} fields={fields} totalEntries={total} categories={projectCategories} />
           <ManageSchemaButton projectId={id} categoryId={catId} fields={fields} categories={projectCategories} />
           <CreateEntryButton categoryId={catId} projectId={id} fields={fields} />
         </div>
