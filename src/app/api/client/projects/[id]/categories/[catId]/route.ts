@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { LIMITS, maxLen } from "@/lib/limits";
 import { firstError } from "@/lib/validation";
+import { migrateEntryValues, computeMigrationImpact, type FieldShape } from "@/lib/field-coerce";
 
 async function getAssignedCategory(catId: string, projectId: string, clientId: string) {
   const assignment = await prisma.clientAssignment.findFirst({
@@ -38,7 +39,14 @@ export async function PATCH(
       data: { archivedAt: null, archivedBy: null },
     });
   } else if (body.fields !== undefined) {
+    const oldFields = Array.isArray(category.fields) ? (category.fields as unknown as FieldShape[]) : [];
+    const newFields = body.fields as FieldShape[];
+    if (body.dryRun) {
+      const impact = await computeMigrationImpact(catId, oldFields, newFields);
+      return NextResponse.json({ impact });
+    }
     await prisma.contentCategory.update({ where: { id: catId }, data: { fields: body.fields } });
+    await migrateEntryValues(catId, oldFields, newFields);
   } else {
     const { name, slug, description, previewUrl } = body;
     const lenErr = firstError(

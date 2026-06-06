@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Plus, Trash2, Columns, X } from "lucide-react";
+import type { MigrationImpact } from "@/lib/field-coerce";
 
 interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean }
 interface Category { id: string; name: string }
@@ -45,6 +47,7 @@ export function ManageSchemaButton({
   const [fields, setFields] = useState<Field[]>(initialFields);
   const [optionInputs, setOptionInputs] = useState<Record<number, string>>({});
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [impact, setImpact] = useState<MigrationImpact[] | null>(null);
 
   function handleOpen() {
     setFields(initialFields);
@@ -126,34 +129,74 @@ export function ManageSchemaButton({
     updateField(fieldIdx, { options: existing.filter((_, i) => i !== optIdx) });
   }
 
-  async function save() {
+  function buildFieldsPayload() {
+    return fields.map((f) => ({
+      name: f.name.trim(),
+      type: f.type,
+      ...(f.type === "enum" ? { options: f.options ?? [] } : {}),
+      ...(f.type === "relation" ? { relationCategoryId: f.relationCategoryId ?? "", multiple: !!f.multiple } : {}),
+    }));
+  }
+
+  /** True if any existing column's type or multiplicity changed (data may be affected). */
+  function hasTypeChanges(): boolean {
+    const initialByName = new Map(initialFields.map((f) => [f.name, f]));
+    return fields.some((f) => {
+      const init = initialByName.get(f.name.trim());
+      return init && (init.type !== f.type || !!init.multiple !== !!f.multiple);
+    });
+  }
+
+  function validate(): boolean {
     const names = fields.map((f) => f.name.trim());
-    if (names.some((n) => !n)) { setError("All columns must have a name"); return; }
-    if (new Set(names).size !== names.length) { setError("Column names must be unique"); return; }
+    if (names.some((n) => !n)) { setError("All columns must have a name"); return false; }
+    if (new Set(names).size !== names.length) { setError("Column names must be unique"); return false; }
     for (const f of fields) {
       if (f.type === "enum" && (!f.options || f.options.length < 2)) {
         setError(`"${f.name || "Enum column"}" must have at least 2 options`);
-        return;
+        return false;
       }
       if (f.type === "relation" && !f.relationCategoryId) {
         setError(`"${f.name || "Relation column"}" must have a target category selected`);
-        return;
+        return false;
       }
     }
-
-    setLoading(true);
     setError("");
-    const res = await apiFetch(`${basePath}/${projectId}/categories/${categoryId}`, {
+    return true;
+  }
+
+  const url = `${basePath}/${projectId}/categories/${categoryId}`;
+
+  async function attemptSave() {
+    if (!validate()) return;
+
+    // No type changes → save directly.
+    if (!hasTypeChanges()) { doSave(); return; }
+
+    // Type changes → measure impact on existing data first.
+    setLoading(true);
+    const res = await apiFetch(url, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fields: fields.map((f) => ({
-          name: f.name.trim(),
-          type: f.type,
-          ...(f.type === "enum" ? { options: f.options ?? [] } : {}),
-          ...(f.type === "relation" ? { relationCategoryId: f.relationCategoryId ?? "", multiple: !!f.multiple } : {}),
-        })),
-      }),
+      body: JSON.stringify({ fields: buildFieldsPayload(), dryRun: true }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setLoading(false);
+
+    const imp: MigrationImpact[] = data.impact ?? [];
+    // If no entries actually hold values for the changed columns, just save.
+    if (!imp.some((i) => i.total > 0)) { doSave(); return; }
+    setImpact(imp);
+  }
+
+  async function doSave() {
+    setImpact(null);
+    setLoading(true);
+    setError("");
+    const res = await apiFetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields: buildFieldsPayload() }),
     });
     setLoading(false);
     if (!res.ok) { setError("Failed to save columns"); return; }
@@ -340,10 +383,41 @@ export function ManageSchemaButton({
 
           <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
             <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={save} loading={loading}>Save Columns</Button>
+            <Button onClick={attemptSave} loading={loading}>Save Columns</Button>
           </div>
         </div>
       </Modal>
+
+      <ConfirmModal
+        open={!!impact}
+        onClose={() => setImpact(null)}
+        onConfirm={doSave}
+        title="Change column types?"
+        message="Existing values will be converted to the new type. Any that can't be converted will be permanently cleared:"
+        confirmLabel={
+          (impact ?? []).some((i) => i.cleared > 0) ? "Convert & clear" : "Convert & save"
+        }
+        variant="warning"
+        loading={loading}
+      >
+        <div className="space-y-2">
+          {(impact ?? []).filter((i) => i.total > 0).map((i) => (
+            <div key={i.name} className="rounded-lg border border-slate-200 px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-slate-800 truncate">{i.name}</span>
+                <span className="text-xs text-slate-400 font-mono flex-shrink-0">{i.from} → {i.to}</span>
+              </div>
+              <div className="flex items-center gap-3 mt-1 text-xs">
+                <span className="text-emerald-600">{i.converted} kept</span>
+                {i.cleared > 0
+                  ? <span className="text-red-600 font-medium">{i.cleared} cleared</span>
+                  : <span className="text-slate-400">0 cleared</span>}
+                <span className="text-slate-400">of {i.total}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </ConfirmModal>
     </>
   );
 }

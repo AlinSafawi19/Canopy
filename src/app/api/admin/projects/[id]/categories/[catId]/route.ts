@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { LIMITS, maxLen } from "@/lib/limits";
 import { firstError } from "@/lib/validation";
 import { logActivity } from "@/lib/activity-log";
+import { migrateEntryValues, computeMigrationImpact, type FieldShape } from "@/lib/field-coerce";
 
 export async function PATCH(
   request: NextRequest,
@@ -36,7 +37,14 @@ export async function PATCH(
       });
       await logActivity({ session, action: "restored", resource: "category", resourceId: catId, resourceName: category.name, adminTenantId: session.tenantId! });
     } else if (body.fields !== undefined) {
+      const oldFields = Array.isArray(category.fields) ? (category.fields as unknown as FieldShape[]) : [];
+      const newFields = body.fields as FieldShape[];
+      if (body.dryRun) {
+        const impact = await computeMigrationImpact(catId, oldFields, newFields);
+        return NextResponse.json({ impact });
+      }
       await prisma.contentCategory.update({ where: { id: catId }, data: { fields: body.fields } });
+      await migrateEntryValues(catId, oldFields, newFields);
     } else {
       const { name, slug, description, previewUrl } = body;
       const lenErr = firstError(
