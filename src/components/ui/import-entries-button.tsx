@@ -5,7 +5,7 @@ import { useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { Upload, Trash2 } from "lucide-react";
+import { Upload, Trash2, Plus, X } from "lucide-react";
 
 interface Field { name: string; type: string; options?: string[] }
 
@@ -121,9 +121,14 @@ function flattenValue(v: unknown): string {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-type ParsedRow = Record<string, string>;
 type ImportMode = "replace" | "merge" | null;
 type ImportResult = { created: number; updated: number; errors: Array<{ row: number; error: string }> };
+// Editable column with a stable key, so renaming the header doesn't lose cell data.
+type Col = { key: string; name: string; type: string; options?: string[] };
+
+// Types selectable in the import editor (enum/relation are kept if a matching
+// existing field already uses them, but aren't offered as fresh choices).
+const IMPORT_TYPE_OPTIONS = ["text", "textarea", "rich_text", "number", "boolean", "date", "url", "email"];
 
 export function ImportEntriesButton({
   projectId,
@@ -134,14 +139,19 @@ export function ImportEntriesButton({
 }: Props) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const keyCounter = useRef(0);
   const [open, setOpen] = useState(false);
-  const [rows, setRows] = useState<ParsedRow[]>([]);
+  const [columns, setColumns] = useState<Col[]>([]);
+  const [rows, setRows] = useState<Record<string, string>[]>([]); // keyed by Col.key
   const [parseError, setParseError] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [mode, setMode] = useState<ImportMode>(null);
 
+  const nextKey = () => `c${keyCounter.current++}`;
+
   function reset() {
+    setColumns([]);
     setRows([]);
     setParseError("");
     setResult(null);
@@ -154,10 +164,36 @@ export function ImportEntriesButton({
     reset();
   }
 
+  // Build editable columns + keyed rows from freshly parsed records.
+  function ingest(parsed: Record<string, string>[]) {
+    const names: string[] = [];
+    for (const r of parsed) for (const k of Object.keys(r)) if (!names.includes(k)) names.push(k);
+
+    const cols: Col[] = names.map((name) => {
+      const existing = fields.find((f) => f.name === name);
+      return {
+        key: nextKey(),
+        name,
+        type: existing ? existing.type : inferColumnTypeClient(parsed, name),
+        options: existing?.options,
+      };
+    });
+
+    const keyed = parsed.map((r) => {
+      const o: Record<string, string> = {};
+      for (const c of cols) o[c.key] = r[c.name] ?? "";
+      return o;
+    });
+
+    setColumns(cols);
+    setRows(keyed);
+  }
+
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setParseError("");
+    setColumns([]);
     setRows([]);
     setResult(null);
 
@@ -168,7 +204,7 @@ export function ImportEntriesButton({
         if (file.name.endsWith(".json")) {
           const parsed = JSON.parse(text);
           if (!Array.isArray(parsed)) throw new Error("JSON must be an array of objects.");
-          setRows(parsed.map((r: unknown) =>
+          ingest(parsed.map((r: unknown) =>
             typeof r === "object" && r !== null
               ? Object.fromEntries(Object.entries(r as Record<string, unknown>).map(([k, v]) => [k, flattenValue(v)]))
               : {}
@@ -176,7 +212,7 @@ export function ImportEntriesButton({
         } else {
           const parsed = parseCSV(text);
           if (parsed.length === 0) throw new Error("No data rows found in file.");
-          setRows(parsed);
+          ingest(parsed);
         }
       } catch (err: unknown) {
         setParseError(err instanceof Error ? err.message : "Failed to parse file.");
@@ -186,16 +222,35 @@ export function ImportEntriesButton({
   }
 
   async function handleImport() {
+    setParseError("");
+
+    const named = columns.filter((c) => c.name.trim());
+    if (named.length === 0) { setParseError("Add at least one named column to import."); return; }
+    const names = named.map((c) => c.name.trim());
+    const dupe = names.find((n, i) => names.indexOf(n) !== i);
+    if (dupe) { setParseError(`Two columns are both named "${dupe}". Column names must be unique.`); return; }
+
+    // Project keyed rows → name-keyed rows for only the named columns.
+    const outRows = rows.map((r) => {
+      const o: Record<string, string> = {};
+      for (const c of named) o[c.name.trim()] = r[c.key] ?? "";
+      return o;
+    });
+    const schema = named.map((c) => ({
+      name: c.name.trim(),
+      type: c.type,
+      ...(c.options && c.options.length > 0 ? { options: c.options } : {}),
+    }));
+
     setLoading(true);
     setResult(null);
-    setParseError("");
     try {
       const res = await apiFetch(
         `${basePath}/${projectId}/categories/${categoryId}/entries/import`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rows, mode }),
+          body: JSON.stringify({ rows: outRows, columns: schema, mode }),
         },
       );
       const data = await res.json().catch(() => ({}));
@@ -214,28 +269,31 @@ export function ImportEntriesButton({
     }
   }
 
-  // Every column present across the parsed rows, with its resolved type:
-  // existing schema type when the name matches, otherwise inferred from the data.
-  const columns = useMemo(() => {
-    const names = new Set<string>();
-    for (const r of rows) for (const k of Object.keys(r)) names.add(k);
-    return Array.from(names).map((name) => {
-      const existing = fields.find((f) => f.name === name);
-      return {
-        name,
-        type: existing ? existing.type : inferColumnTypeClient(rows, name),
-        options: existing?.options,
-      };
-    });
-  }, [rows, fields]);
-
   const hasExisting = totalEntries > 0;
 
-  function updateCell(rowIdx: number, col: string, value: string) {
-    setRows((rs) => rs.map((r, i) => (i === rowIdx ? { ...r, [col]: value } : r)));
+  // ── cell / row / column editing ──────────────────────────────
+  function updateCell(rowIdx: number, colKey: string, value: string) {
+    setRows((rs) => rs.map((r, i) => (i === rowIdx ? { ...r, [colKey]: value } : r)));
   }
   function removeRow(rowIdx: number) {
     setRows((rs) => rs.filter((_, i) => i !== rowIdx));
+  }
+  function addRow() {
+    setRows((rs) => [...rs, Object.fromEntries(columns.map((c) => [c.key, ""]))]);
+  }
+  function renameColumn(key: string, name: string) {
+    setColumns((cs) => cs.map((c) => (c.key === key ? { ...c, name } : c)));
+  }
+  function retypeColumn(key: string, type: string) {
+    setColumns((cs) => cs.map((c) => (c.key === key ? { ...c, type } : c)));
+  }
+  function removeColumn(key: string) {
+    setColumns((cs) => cs.filter((c) => c.key !== key));
+  }
+  function addColumn() {
+    const key = nextKey();
+    setColumns((cs) => [...cs, { key, name: "", type: "text" }]);
+    setRows((rs) => rs.map((r) => ({ ...r, [key]: "" })));
   }
 
   const resultSummary = result
@@ -328,47 +386,86 @@ export function ImportEntriesButton({
             </div>
           )}
 
-          {/* Editable preview — all rows, typed columns, edit before importing */}
-          {rows.length > 0 && !result && (
+          {/* Editable preview — manage rows & columns before importing */}
+          {columns.length > 0 && !result && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  Review &amp; edit — {rows.length} row{rows.length !== 1 ? "s" : ""}
+                  Review &amp; edit — {rows.length} row{rows.length !== 1 ? "s" : ""}, {columns.length} column{columns.length !== 1 ? "s" : ""}
                 </p>
-                <p className="text-xs text-slate-400">Edit any cell or remove rows before importing</p>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={addColumn} className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700">
+                    <Plus size={12} /> Column
+                  </button>
+                  <button type="button" onClick={addRow} className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700">
+                    <Plus size={12} /> Row
+                  </button>
+                </div>
               </div>
+
               <div className="overflow-auto border border-slate-200 rounded-lg max-h-96">
                 <table className="text-sm border-collapse">
                   <thead className="sticky top-0 z-10">
                     <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="w-10 px-3 py-2.5 text-left border-r border-slate-200 sticky left-0 bg-slate-50 text-[10px] font-medium text-slate-400">#</th>
-                      {columns.map((c) => (
-                        <th key={c.name} className="px-3 py-2.5 text-left font-medium text-slate-700 border-r border-slate-200 min-w-[160px] whitespace-nowrap">
-                          <div className="flex flex-col gap-0.5">
-                            <span>{c.name}</span>
-                            <span className={`text-[10px] font-normal uppercase tracking-wide ${TYPE_COLORS[c.type] ?? "text-slate-400"}`}>
-                              {c.type}
-                            </span>
-                          </div>
-                        </th>
-                      ))}
-                      <th className="w-10 px-2 py-2.5 sticky right-0 bg-slate-50 border-l border-slate-200" />
+                      <th className="w-10 px-3 py-2 text-left border-r border-slate-200 sticky left-0 bg-slate-50 text-[10px] font-medium text-slate-400 align-bottom">#</th>
+                      {columns.map((c) => {
+                        // Keep enum/relation as a visible (kept) option when an existing field uses it.
+                        const typeOpts = IMPORT_TYPE_OPTIONS.includes(c.type) ? IMPORT_TYPE_OPTIONS : [c.type, ...IMPORT_TYPE_OPTIONS];
+                        return (
+                          <th key={c.key} className="px-2 py-2 text-left border-r border-slate-200 min-w-[170px] align-top">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1">
+                                <input
+                                  value={c.name}
+                                  onChange={(e) => renameColumn(c.key, e.target.value)}
+                                  placeholder="column name"
+                                  spellCheck={false}
+                                  className="flex-1 min-w-0 text-sm font-medium text-slate-800 bg-white border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeColumn(c.key)}
+                                  title="Remove this column"
+                                  className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                                >
+                                  <X size={13} />
+                                </button>
+                              </div>
+                              <select
+                                value={c.type}
+                                onChange={(e) => retypeColumn(c.key, e.target.value)}
+                                className={`text-[10px] font-medium uppercase tracking-wide bg-transparent rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${TYPE_COLORS[c.type] ?? "text-slate-400"}`}
+                              >
+                                {typeOpts.map((t) => <option key={t} value={t} className="text-slate-700 normal-case">{t}</option>)}
+                              </select>
+                            </div>
+                          </th>
+                        );
+                      })}
+                      <th className="w-10 px-2 py-2 sticky right-0 bg-slate-50 border-l border-slate-200" />
                     </tr>
                   </thead>
                   <tbody>
+                    {rows.length === 0 && (
+                      <tr>
+                        <td colSpan={columns.length + 2} className="px-3 py-6 text-center text-sm text-slate-400">
+                          No rows. Use <span className="font-medium">+ Row</span> to add one.
+                        </td>
+                      </tr>
+                    )}
                     {rows.map((row, i) => (
                       <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
                         <td className="px-3 py-1.5 text-center text-xs text-slate-400 border-r border-slate-100 sticky left-0 bg-white">
                           {i + 1}
                         </td>
                         {columns.map((c) => {
-                          const val = row[c.name] ?? "";
+                          const val = row[c.key] ?? "";
                           return (
-                            <td key={c.name} className="px-1.5 py-1 border-r border-slate-100 align-top">
+                            <td key={c.key} className="px-1.5 py-1 border-r border-slate-100 align-top">
                               {c.type === "boolean" ? (
                                 <select
                                   value={val}
-                                  onChange={(e) => updateCell(i, c.name, e.target.value)}
+                                  onChange={(e) => updateCell(i, c.key, e.target.value)}
                                   className="w-full bg-transparent text-sm text-slate-700 rounded px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 >
                                   <option value="">—</option>
@@ -378,18 +475,17 @@ export function ImportEntriesButton({
                               ) : c.type === "enum" && c.options && c.options.length > 0 ? (
                                 <select
                                   value={val}
-                                  onChange={(e) => updateCell(i, c.name, e.target.value)}
+                                  onChange={(e) => updateCell(i, c.key, e.target.value)}
                                   className="w-full bg-transparent text-sm text-slate-700 rounded px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 >
                                   <option value="">—</option>
                                   {c.options.map((o) => <option key={o} value={o}>{o}</option>)}
-                                  {/* preserve an out-of-schema value so it isn't silently dropped */}
                                   {val && !c.options.includes(val) && <option value={val}>{val} (custom)</option>}
                                 </select>
                               ) : (
                                 <input
                                   value={val}
-                                  onChange={(e) => updateCell(i, c.name, e.target.value)}
+                                  onChange={(e) => updateCell(i, c.key, e.target.value)}
                                   inputMode={c.type === "number" ? "decimal" : undefined}
                                   spellCheck={false}
                                   className="w-full min-w-[140px] bg-transparent text-sm text-slate-700 rounded px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"

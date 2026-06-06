@@ -186,10 +186,20 @@ function validateFieldNames(keys: string[], existing: Set<string>): string | nul
   return null;
 }
 
+// Normalises a user-supplied column definition; an enum without ≥2 options
+// can't function, so it falls back to plain text.
+function normalizeSchemaField(s: IoField): IoField {
+  if (s.type === "enum" && (!Array.isArray(s.options) || s.options.length < 2)) {
+    return { name: s.name, type: "text" };
+  }
+  return { name: s.name, type: s.type, ...(s.options ? { options: s.options } : {}) };
+}
+
 export async function handleImport(
   rows: unknown,
   category: { id: string; fields: unknown },
   mode: ImportMode = "merge",
+  schema?: IoField[],
 ): Promise<NextResponse> {
   if (!Array.isArray(rows) || rows.length === 0) {
     return NextResponse.json({ error: "No rows provided." }, { status: 400 });
@@ -209,18 +219,30 @@ export async function handleImport(
     (r): r is Record<string, unknown> => typeof r === "object" && r !== null && !Array.isArray(r)
   );
 
+  // When the client sends an explicit column schema (from the import editor),
+  // it is authoritative for names + types. Otherwise types are inferred.
+  const useSchema = Array.isArray(schema) && schema.length > 0;
+  const firstRow = rows[0] as Record<string, unknown>;
+  const incomingNames = useSchema ? schema!.map((s) => s.name) : Object.keys(firstRow);
+  const fieldNameErr = validateFieldNames(incomingNames, new Set(fields.map((f) => f.name)));
+  if (fieldNameErr) return NextResponse.json({ error: fieldNameErr }, { status: 400 });
+
   if (mode === "replace") {
     // Wipe all existing entries for this category
     await prisma.contentCategoryEntry.deleteMany({ where: { categoryId: category.id } });
 
-    // Rebuild field schema from imported data (preserve type where column name matches)
-    const firstRow = rows[0] as Record<string, unknown>;
-    const fieldNameErr = validateFieldNames(Object.keys(firstRow), new Set(fields.map((f) => f.name)));
-    if (fieldNameErr) return NextResponse.json({ error: fieldNameErr }, { status: 400 });
-    fields = Object.keys(firstRow).map((key) => {
-      const existing = fields.find((f) => f.name === key);
-      return existing ?? { name: key, ...inferColumnType(validRows, key) };
-    });
+    // Rebuild field schema: use the supplied schema verbatim, else infer from data
+    // (preserving an existing field's definition when the type still matches).
+    const currentFields = fields;
+    fields = useSchema
+      ? schema!.map((s) => {
+          const existing = currentFields.find((f) => f.name === s.name);
+          return existing && existing.type === s.type ? existing : normalizeSchemaField(s);
+        })
+      : Object.keys(firstRow).map((key) => {
+          const existing = currentFields.find((f) => f.name === key);
+          return existing ?? { name: key, ...inferColumnType(validRows, key) };
+        });
     await prisma.contentCategory.update({
       where: { id: category.id },
       data: { fields: fields as never },
@@ -248,21 +270,23 @@ export async function handleImport(
       created++;
     }
   } else {
-    // Merge: ensure field schema includes every imported column
-    const firstRow = rows[0] as Record<string, unknown>;
-    const fieldNameErr = validateFieldNames(Object.keys(firstRow), new Set(fields.map((f) => f.name)));
-    if (fieldNameErr) return NextResponse.json({ error: fieldNameErr }, { status: 400 });
+    // Merge: ensure the field schema includes every imported column. Existing
+    // columns keep their definition; new columns use the supplied/inferred type.
     if (fields.length === 0) {
-      fields = Object.keys(firstRow).map((key) => ({ name: key, ...inferColumnType(validRows, key) }));
+      fields = useSchema
+        ? schema!.map(normalizeSchemaField)
+        : Object.keys(firstRow).map((key) => ({ name: key, ...inferColumnType(validRows, key) }));
       await prisma.contentCategory.update({
         where: { id: category.id },
         data: { fields: fields as never },
       });
     } else {
       const existingNames = new Set(fields.map((f) => f.name));
-      const newFields = Object.keys(firstRow)
-        .filter((key) => !existingNames.has(key))
-        .map((key) => ({ name: key, ...inferColumnType(validRows, key) }));
+      const newFields = useSchema
+        ? schema!.filter((s) => !existingNames.has(s.name)).map(normalizeSchemaField)
+        : Object.keys(firstRow)
+            .filter((key) => !existingNames.has(key))
+            .map((key) => ({ name: key, ...inferColumnType(validRows, key) }));
       if (newFields.length > 0) {
         fields = [...fields, ...newFields];
         await prisma.contentCategory.update({
