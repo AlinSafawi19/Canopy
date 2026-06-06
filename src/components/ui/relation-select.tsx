@@ -73,7 +73,7 @@ export function RelationSelect({
       disabled={status === "loading"}
       options={[
         { value: "", label: status === "loading" ? "Loading…" : options.length === 0 ? "No entries yet" : "Select…" },
-        ...(valueMissing ? [{ value, label: valueLabel || `…${value.slice(-6)}` }] : []),
+        ...(valueMissing ? [{ value, label: valueLabel || value }] : []),
         ...options.map((o) => ({ value: o.id, label: o.label })),
       ]}
     />

@@ -268,7 +268,7 @@ export function EntriesTable({
                       const str = String(raw);
                       if (f.type === "rich_text") display = stripRichText(str);
                       else if (f.type === "date") display = formatDate(str);
-                      else if (f.type === "relation") display = relatedEntries?.[str] ?? `…${str.slice(-6)}`;
+                      else if (f.type === "relation") display = relatedEntries?.[str] ?? str;
                       else display = str;
                     }
                     return (
