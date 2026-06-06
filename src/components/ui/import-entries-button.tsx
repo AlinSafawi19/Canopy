@@ -33,6 +33,13 @@ type ImportResult = { created: number; updated: number; errors: Array<{ row: num
 
 const MAX_IMPORT_ROWS = 500; // mirrors src/lib/entries-io.ts
 
+// Shared shell so every view (import / manage / row editor) has the same size,
+// a scrollable body, and a footer pinned to the modal's bottom edge. The -m-6
+// cancels the Modal's own padding so the footer sits flush against the border.
+const VIEW_SHELL = "flex flex-col h-[70vh] -m-6";
+const VIEW_BODY = "flex-1 overflow-y-auto min-h-0 p-6";
+const VIEW_FOOTER = "flex-shrink-0 flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-white";
+
 // Same type→colour map as the entries page table.
 const TYPE_COLORS: Record<string, string> = {
   text: "text-violet-500", textarea: "text-blue-500", rich_text: "text-purple-600",
@@ -448,25 +455,28 @@ export function ImportEntriesButton({
 
         {/* ── Row editor view ── */}
         {view === "editRow" && (
-          <form onSubmit={(e) => { e.preventDefault(); saveEditRow(); }} className="space-y-4">
-            {columns.map((c) => (
-              <FieldEditor
-                key={c.key}
-                col={c}
-                value={editValues[c.key] ?? ""}
-                onChange={(v) => setEditValues((vals) => ({ ...vals, [c.key]: v }))}
-                projectId={projectId}
-                basePath={basePath}
-              />
-            ))}
-            <div className="flex justify-end gap-3 pt-1">
+          <form onSubmit={(e) => { e.preventDefault(); saveEditRow(); }} className={VIEW_SHELL}>
+            <div className={`${VIEW_BODY} space-y-4`}>
+              {columns.map((c) => (
+                <FieldEditor
+                  key={c.key}
+                  col={c}
+                  value={editValues[c.key] ?? ""}
+                  onChange={(v) => setEditValues((vals) => ({ ...vals, [c.key]: v }))}
+                  projectId={projectId}
+                  basePath={basePath}
+                />
+              ))}
+            </div>
+            <div className={VIEW_FOOTER}>
               <Button variant="outline" type="button" onClick={backToMain}>Cancel</Button>
               <Button type="submit">{addingRow ? "Add row" : "Done"}</Button>
             </div>
           </form>
         )}
 
-        <div className={`space-y-4 ${view === "main" ? "" : "hidden"}`}>
+        <div className={`${view === "main" ? "flex" : "hidden"} flex-col h-[70vh] -m-6`}>
+         <div className={`${VIEW_BODY} space-y-4`}>
 
           {/* Hidden input — always mounted so it survives when the dropzone is hidden */}
           <input ref={fileRef} type="file" accept=".csv,.json" className="hidden" onChange={handleFile} />
@@ -552,7 +562,7 @@ export function ImportEntriesButton({
               </div>
 
               <div className="border border-slate-200 rounded-lg overflow-hidden">
-                <div className="overflow-auto max-h-96">
+                <div className="overflow-x-auto">
                   <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200">
@@ -634,8 +644,10 @@ export function ImportEntriesButton({
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-1">
+         </div>
+
+          {/* Actions — pinned footer */}
+          <div className={VIEW_FOOTER}>
             <Button variant="outline" type="button" onClick={handleClose}>
               {result ? "Close" : "Cancel"}
             </Button>
@@ -837,7 +849,8 @@ function ManageColumnsPanel({
   const someSelected = selected.size > 0 && selected.size < draft.length;
 
   return (
-      <div className="space-y-3">
+      <div className={VIEW_SHELL}>
+       <div className={`${VIEW_BODY} space-y-3`}>
 
         {/* Bulk selection action bar */}
         {selected.size > 0 && (
@@ -953,8 +966,9 @@ function ManageColumnsPanel({
         {error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
         )}
+       </div>
 
-        <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+        <div className={VIEW_FOOTER}>
           <Button variant="outline" type="button" onClick={onDone}>Back</Button>
           <Button type="button" onClick={done}>Done</Button>
         </div>
