@@ -165,6 +165,7 @@ export function ImportEntriesButton({
   async function handleImport() {
     setLoading(true);
     setResult(null);
+    setParseError("");
     try {
       const res = await apiFetch(
         `${basePath}/${projectId}/categories/${categoryId}/entries/import`,
@@ -174,9 +175,17 @@ export function ImportEntriesButton({
           body: JSON.stringify({ rows, mode }),
         },
       );
-      const data: ImportResult = await res.json();
-      setResult(data);
-      if (data.created > 0 || data.updated > 0) router.refresh();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setParseError(data.error ?? "Import failed. Please check your file and try again.");
+        return;
+      }
+      setResult({
+        created: data.created ?? 0,
+        updated: data.updated ?? 0,
+        errors: Array.isArray(data.errors) ? data.errors : [],
+      });
+      if ((data.created ?? 0) > 0 || (data.updated ?? 0) > 0) router.refresh();
     } finally {
       setLoading(false);
     }

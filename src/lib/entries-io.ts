@@ -143,10 +143,13 @@ function normalizeValue(raw: unknown, type: string): string {
   return str;
 }
 
-function validateFieldNames(keys: string[]): string | null {
+// Only validates field names that would create NEW columns — existing columns
+// were already accepted by the schema editor and must not be rejected here.
+function validateFieldNames(keys: string[], existing: Set<string>): string | null {
   for (const key of keys) {
+    if (existing.has(key)) continue;
     if (!SAFE_FIELD_NAME_RE.test(key)) {
-      return `Invalid field name "${key}". Field names must start with a letter or underscore and contain only letters, digits, underscores, or spaces (max 64 chars).`;
+      return `Invalid field name "${key}". New column names must start with a letter or underscore and contain only letters, digits, underscores, or spaces (max 64 chars).`;
     }
   }
   return null;
@@ -181,7 +184,7 @@ export async function handleImport(
 
     // Rebuild field schema from imported data (preserve type where column name matches)
     const firstRow = rows[0] as Record<string, unknown>;
-    const fieldNameErr = validateFieldNames(Object.keys(firstRow));
+    const fieldNameErr = validateFieldNames(Object.keys(firstRow), new Set(fields.map((f) => f.name)));
     if (fieldNameErr) return NextResponse.json({ error: fieldNameErr }, { status: 400 });
     fields = Object.keys(firstRow).map((key) => {
       const existing = fields.find((f) => f.name === key);
@@ -216,7 +219,7 @@ export async function handleImport(
   } else {
     // Merge: ensure field schema includes every imported column
     const firstRow = rows[0] as Record<string, unknown>;
-    const fieldNameErr = validateFieldNames(Object.keys(firstRow));
+    const fieldNameErr = validateFieldNames(Object.keys(firstRow), new Set(fields.map((f) => f.name)));
     if (fieldNameErr) return NextResponse.json({ error: fieldNameErr }, { status: 400 });
     if (fields.length === 0) {
       fields = Object.keys(firstRow).map((key) => ({ name: key, ...inferColumnType(validRows, key) }));
