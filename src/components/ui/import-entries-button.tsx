@@ -5,24 +5,10 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { Select } from "@/components/ui/select";
 import { Upload, Trash2, Plus, X } from "lucide-react";
 
 interface Field { name: string; type: string; options?: string[] }
-
-// Same type→colour map used by the entries table on the page, so the import
-// preview reads identically.
-const TYPE_COLORS: Record<string, string> = {
-  text:      "text-violet-500",
-  textarea:  "text-blue-500",
-  rich_text: "text-purple-600",
-  number:    "text-amber-500",
-  date:      "text-emerald-500",
-  boolean:   "text-rose-500",
-  url:       "text-cyan-500",
-  email:     "text-indigo-500",
-  relation:  "text-pink-500",
-  enum:      "text-violet-500",
-};
 
 // Lightweight client-side column type inference for columns not already defined
 // in the category schema (mirrors the server's inference).
@@ -313,31 +299,34 @@ export function ImportEntriesButton({
       <Modal open={open} onClose={handleClose} title="Import Entries" size="lg">
         <div className="space-y-4">
 
-          {/* Format note */}
-          <p className="text-sm text-slate-500">
-            Upload a <span className="font-medium text-slate-700">.csv</span> or{" "}
-            <span className="font-medium text-slate-700">.json</span> file. The first CSV row
-            must be column names matching this category&apos;s fields. JSON must be an array of
-            objects. Up to 500 rows per import.
-          </p>
+          {/* Format note + file picker — hidden once an import has completed */}
+          {!result && (
+            <>
+              <p className="text-sm text-slate-500">
+                Upload a <span className="font-medium text-slate-700">.csv</span> or{" "}
+                <span className="font-medium text-slate-700">.json</span> file. The first CSV row
+                must be column names matching this category&apos;s fields. JSON must be an array of
+                objects. Up to 500 rows per import.
+              </p>
 
-          {/* File picker */}
-          <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-lg py-8 px-4 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors">
-            <Upload size={20} className="text-slate-400" />
-            <span className="text-sm text-slate-600 font-medium">
-              {rows.length > 0
-                ? `${rows.length} row${rows.length !== 1 ? "s" : ""} ready to import`
-                : "Click to choose file"}
-            </span>
-            <span className="text-xs text-slate-400">CSV or JSON</span>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".csv,.json"
-              className="hidden"
-              onChange={handleFile}
-            />
-          </label>
+              <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-lg py-8 px-4 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30 transition-colors">
+                <Upload size={20} className="text-slate-400" />
+                <span className="text-sm text-slate-600 font-medium">
+                  {rows.length > 0
+                    ? `${rows.length} row${rows.length !== 1 ? "s" : ""} ready to import`
+                    : "Click to choose file"}
+                </span>
+                <span className="text-xs text-slate-400">CSV or JSON</span>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".csv,.json"
+                  className="hidden"
+                  onChange={handleFile}
+                />
+              </label>
+            </>
+          )}
 
           {/* Parse error */}
           {parseError && (
@@ -431,13 +420,12 @@ export function ImportEntriesButton({
                                   <X size={13} />
                                 </button>
                               </div>
-                              <select
+                              <Select
+                                size="sm"
                                 value={c.type}
-                                onChange={(e) => retypeColumn(c.key, e.target.value)}
-                                className={`text-[10px] font-medium uppercase tracking-wide bg-transparent rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${TYPE_COLORS[c.type] ?? "text-slate-400"}`}
-                              >
-                                {typeOpts.map((t) => <option key={t} value={t} className="text-slate-700 normal-case">{t}</option>)}
-                              </select>
+                                onChange={(v) => retypeColumn(c.key, v)}
+                                options={typeOpts.map((t) => ({ value: t, label: t }))}
+                              />
                             </div>
                           </th>
                         );
@@ -463,25 +451,27 @@ export function ImportEntriesButton({
                           return (
                             <td key={c.key} className="px-1.5 py-1 border-r border-slate-100 align-top">
                               {c.type === "boolean" ? (
-                                <select
+                                <Select
+                                  size="sm"
                                   value={val}
-                                  onChange={(e) => updateCell(i, c.key, e.target.value)}
-                                  className="w-full bg-transparent text-sm text-slate-700 rounded px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                >
-                                  <option value="">—</option>
-                                  <option value="true">true</option>
-                                  <option value="false">false</option>
-                                </select>
+                                  onChange={(v) => updateCell(i, c.key, v)}
+                                  options={[
+                                    { value: "", label: "—" },
+                                    { value: "true", label: "true" },
+                                    { value: "false", label: "false" },
+                                  ]}
+                                />
                               ) : c.type === "enum" && c.options && c.options.length > 0 ? (
-                                <select
+                                <Select
+                                  size="sm"
                                   value={val}
-                                  onChange={(e) => updateCell(i, c.key, e.target.value)}
-                                  className="w-full bg-transparent text-sm text-slate-700 rounded px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                >
-                                  <option value="">—</option>
-                                  {c.options.map((o) => <option key={o} value={o}>{o}</option>)}
-                                  {val && !c.options.includes(val) && <option value={val}>{val} (custom)</option>}
-                                </select>
+                                  onChange={(v) => updateCell(i, c.key, v)}
+                                  options={[
+                                    { value: "", label: "—" },
+                                    ...c.options.map((o) => ({ value: o, label: o })),
+                                    ...(val && !c.options.includes(val) ? [{ value: val, label: `${val} (custom)` }] : []),
+                                  ]}
+                                />
                               ) : (
                                 <input
                                   value={val}
@@ -534,7 +524,11 @@ export function ImportEntriesButton({
             <Button variant="outline" type="button" onClick={handleClose}>
               {result ? "Close" : "Cancel"}
             </Button>
-            {!result && (
+            {result ? (
+              <Button type="button" variant="primary" onClick={reset}>
+                Import another file
+              </Button>
+            ) : (
               <Button
                 type="button"
                 onClick={handleImport}
