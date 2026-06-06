@@ -54,6 +54,27 @@ const COLUMN_TYPES = [
   { value: "relation", label: "Relation" },
 ];
 
+// Distinct, trimmed, non-empty values for a column — used for enum detection/options.
+function distinctValues(rows: Record<string, string>[], key: string): string[] {
+  const seen = new Set<string>();
+  for (const r of rows) {
+    const v = (r[key] ?? "").trim();
+    if (v) seen.add(v);
+  }
+  return [...seen];
+}
+
+// A column "looks like" an enum when it has enough rows, the values repeat into a
+// small set of short labels, and the distinct count stays within the schema limit.
+function looksLikeEnum(rows: Record<string, string>[], key: string): boolean {
+  const vals = rows.map((r) => (r[key] ?? "").trim()).filter(Boolean);
+  if (vals.length < 4) return false;
+  const distinct = distinctValues(rows, key);
+  if (distinct.length < 2) return false;
+  if (distinct.length > Math.min(20, Math.ceil(vals.length / 2))) return false; // must repeat
+  return distinct.every((v) => v.length <= 50);
+}
+
 function inferColumnTypeClient(rows: Record<string, string>[], key: string): string {
   const vals = rows.map((r) => r[key]).filter((v) => v !== "" && v != null);
   if (vals.length === 0) return "text";
@@ -62,6 +83,7 @@ function inferColumnTypeClient(rows: Record<string, string>[], key: string): str
   if (vals.every((v) => /^(true|false)$/i.test(v.trim()))) return "boolean";
   if (vals.every((v) => /^\d{4}-\d{2}-\d{2}/.test(v.trim()))) return "date";
   if (vals.some((v) => /<[a-z][\s\S]*?>/i.test(v))) return "rich_text";
+  if (looksLikeEnum(rows, key)) return "enum";
   return "text";
 }
 
@@ -189,11 +211,15 @@ export function ImportEntriesButton({
 
     const cols: Col[] = names.map((name) => {
       const existing = fields.find((f) => f.name === name);
+      const type = existing ? existing.type : inferColumnTypeClient(parsed, name);
+      // A freshly-inferred enum gets its options seeded from the values found.
+      const options =
+        existing?.options ?? (type === "enum" ? distinctValues(parsed, name) : undefined);
       return {
         key: nextKey(),
         name,
-        type: existing ? existing.type : inferColumnTypeClient(parsed, name),
-        options: existing?.options,
+        type,
+        options,
         relationCategoryId: existing?.relationCategoryId,
       };
     });
