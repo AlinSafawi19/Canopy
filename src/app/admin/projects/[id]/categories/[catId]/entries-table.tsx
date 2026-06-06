@@ -143,14 +143,14 @@ export function EntriesTable({
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 rounded transition-colors"
             >
               <Download size={12} />
-              CSV
+              Export Selected as CSV
             </button>
             <button
               onClick={() => handleBulkExport("json")}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 rounded transition-colors"
             >
               <Download size={12} />
-              JSON
+              Export Selected as JSON
             </button>
             <div className="w-px h-4 bg-indigo-200" />
             <Button
