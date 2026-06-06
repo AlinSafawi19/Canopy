@@ -400,135 +400,135 @@ export function ImportEntriesButton({
                 </p>
               </div>
 
-              <div ref={scrollRef} className="overflow-auto border border-slate-200 rounded-lg max-h-96">
-                <table className="text-sm border-collapse">
-                  <thead className="sticky top-0 z-10">
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="w-10 px-3 py-2 text-left border-r border-slate-200 sticky left-0 bg-slate-50 text-[10px] font-medium text-slate-400 align-bottom">#</th>
-                      {columns.map((c) => {
-                        // Keep enum/relation as a visible (kept) option when an existing field uses it.
-                        const typeOpts = IMPORT_TYPE_OPTIONS.includes(c.type) ? IMPORT_TYPE_OPTIONS : [c.type, ...IMPORT_TYPE_OPTIONS];
-                        return (
-                          <th key={c.key} className="px-2 py-2 text-left border-r border-slate-200 min-w-[170px] align-top">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-1">
-                                <input
-                                  value={c.name}
-                                  onChange={(e) => renameColumn(c.key, e.target.value)}
-                                  placeholder="column name"
-                                  spellCheck={false}
-                                  className="flex-1 min-w-0 text-sm font-medium text-slate-800 bg-white border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => removeColumn(c.key)}
-                                  title="Remove this column"
-                                  className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
-                                >
-                                  <X size={13} />
-                                </button>
-                              </div>
-                              <Select
-                                size="sm"
-                                value={c.type}
-                                onChange={(v) => retypeColumn(c.key, v)}
-                                options={typeOpts.map((t) => ({ value: t, label: t }))}
-                              />
-                            </div>
-                          </th>
-                        );
-                      })}
-                      <th className="w-10 px-1 py-2 sticky right-0 bg-slate-50 border-l border-slate-200 align-middle">
-                        <button
-                          type="button"
-                          onClick={addColumn}
-                          title="Add a column"
-                          className="p-1.5 rounded-lg text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
-                        >
-                          <Plus size={15} />
-                        </button>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.length === 0 && (
-                      <tr>
-                        <td colSpan={columns.length + 2} className="px-3 py-6 text-center text-sm text-slate-400">
-                          No rows yet — use the <span className="font-medium">+</span> below to add one.
-                        </td>
-                      </tr>
-                    )}
-                    {rows.map((row, i) => (
-                      <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
-                        <td className="px-3 py-1.5 text-center text-xs text-slate-400 border-r border-slate-100 sticky left-0 bg-white">
-                          {i + 1}
-                        </td>
+              <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <div ref={scrollRef} className="overflow-auto max-h-96">
+                  <table className="w-full text-sm border-collapse">
+                    <thead className="sticky top-0 z-20">
+                      <tr className="bg-slate-50 border-b border-slate-200">
+                        <th className="w-10 px-3 py-2.5 text-left border-r border-slate-200 sticky left-0 bg-slate-50 z-10 text-[10px] font-medium text-slate-400 align-bottom">#</th>
                         {columns.map((c) => {
-                          const val = row[c.key] ?? "";
+                          // Keep enum/relation as a visible (kept) option when an existing field uses it.
+                          const typeOpts = IMPORT_TYPE_OPTIONS.includes(c.type) ? IMPORT_TYPE_OPTIONS : [c.type, ...IMPORT_TYPE_OPTIONS];
                           return (
-                            <td key={c.key} className="px-1.5 py-1 border-r border-slate-100 align-top">
-                              {c.type === "boolean" ? (
+                            <th key={c.key} className="px-3 py-2.5 text-left border-r border-slate-200 min-w-[180px] whitespace-nowrap align-top">
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    value={c.name}
+                                    onChange={(e) => renameColumn(c.key, e.target.value)}
+                                    placeholder="column name"
+                                    spellCheck={false}
+                                    className="flex-1 min-w-0 text-sm font-medium text-slate-800 bg-white border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeColumn(c.key)}
+                                    title="Remove this column"
+                                    className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                                  >
+                                    <X size={13} />
+                                  </button>
+                                </div>
                                 <Select
                                   size="sm"
-                                  value={val}
-                                  onChange={(v) => updateCell(i, c.key, v)}
-                                  options={[
-                                    { value: "", label: "—" },
-                                    { value: "true", label: "true" },
-                                    { value: "false", label: "false" },
-                                  ]}
+                                  value={c.type}
+                                  onChange={(v) => retypeColumn(c.key, v)}
+                                  options={typeOpts.map((t) => ({ value: t, label: t }))}
                                 />
-                              ) : c.type === "enum" && c.options && c.options.length > 0 ? (
-                                <Select
-                                  size="sm"
-                                  value={val}
-                                  onChange={(v) => updateCell(i, c.key, v)}
-                                  options={[
-                                    { value: "", label: "—" },
-                                    ...c.options.map((o) => ({ value: o, label: o })),
-                                    ...(val && !c.options.includes(val) ? [{ value: val, label: `${val} (custom)` }] : []),
-                                  ]}
-                                />
-                              ) : (
-                                <input
-                                  value={val}
-                                  onChange={(e) => updateCell(i, c.key, e.target.value)}
-                                  inputMode={c.type === "number" ? "decimal" : undefined}
-                                  spellCheck={false}
-                                  className="w-full min-w-[140px] bg-transparent text-sm text-slate-700 rounded px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                />
-                              )}
-                            </td>
+                              </div>
+                            </th>
                           );
                         })}
-                        <td className="px-1 py-1 sticky right-0 bg-white border-l border-slate-100">
+                        <th className="w-10 px-1 py-2.5 sticky right-0 bg-slate-50 border-l border-slate-200 align-middle">
                           <button
                             type="button"
-                            onClick={() => removeRow(i)}
-                            title="Remove this row from the import"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            onClick={addColumn}
+                            title="Add a column"
+                            className="p-1.5 rounded-lg text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
                           >
-                            <Trash2 size={13} />
+                            <Plus size={15} />
                           </button>
-                        </td>
+                        </th>
                       </tr>
-                    ))}
-                    {/* Add-row control — bottom-left, under the row numbers */}
-                    <tr>
-                      <td className="px-1 py-1 sticky left-0 bg-white border-r border-slate-100">
-                        <button
-                          type="button"
-                          onClick={addRow}
-                          title="Add a row"
-                          className="p-1.5 rounded-lg text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
-                        >
-                          <Plus size={15} />
-                        </button>
-                      </td>
-                      <td colSpan={columns.length + 1} className="bg-white" />
-                    </tr>
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {rows.length === 0 && (
+                        <tr>
+                          <td colSpan={columns.length + 2} className="px-4 py-8 text-center text-sm text-slate-400">
+                            No rows yet — use the <span className="font-medium">+</span> below to add one.
+                          </td>
+                        </tr>
+                      )}
+                      {rows.map((row, i) => (
+                        <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60 transition-colors">
+                          <td className="px-3 py-2 text-center text-xs text-slate-400 border-r border-slate-100 sticky left-0 bg-white z-10">
+                            {i + 1}
+                          </td>
+                          {columns.map((c) => {
+                            const val = row[c.key] ?? "";
+                            return (
+                              <td key={c.key} className="px-2 py-1.5 border-r border-slate-100 align-top">
+                                {c.type === "boolean" ? (
+                                  <Select
+                                    size="sm"
+                                    value={val}
+                                    onChange={(v) => updateCell(i, c.key, v)}
+                                    options={[
+                                      { value: "", label: "—" },
+                                      { value: "true", label: "true" },
+                                      { value: "false", label: "false" },
+                                    ]}
+                                  />
+                                ) : c.type === "enum" && c.options && c.options.length > 0 ? (
+                                  <Select
+                                    size="sm"
+                                    value={val}
+                                    onChange={(v) => updateCell(i, c.key, v)}
+                                    options={[
+                                      { value: "", label: "—" },
+                                      ...c.options.map((o) => ({ value: o, label: o })),
+                                      ...(val && !c.options.includes(val) ? [{ value: val, label: `${val} (custom)` }] : []),
+                                    ]}
+                                  />
+                                ) : (
+                                  <input
+                                    value={val}
+                                    onChange={(e) => updateCell(i, c.key, e.target.value)}
+                                    inputMode={c.type === "number" ? "decimal" : undefined}
+                                    spellCheck={false}
+                                    className="w-full min-w-[140px] bg-transparent text-sm text-slate-700 rounded px-1.5 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                )}
+                              </td>
+                            );
+                          })}
+                          <td className="px-1 py-1 sticky right-0 bg-white border-l border-slate-100">
+                            <button
+                              type="button"
+                              onClick={() => removeRow(i)}
+                              title="Remove this row from the import"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Always-visible add-row control */}
+                <div className="flex items-center border-t border-slate-200 bg-slate-50/60 px-1.5 py-1">
+                  <button
+                    type="button"
+                    onClick={addRow}
+                    title="Add a row"
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
+                  >
+                    <Plus size={14} /> Add row
+                  </button>
+                </div>
               </div>
             </div>
           )}
