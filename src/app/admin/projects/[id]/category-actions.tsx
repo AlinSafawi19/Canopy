@@ -16,7 +16,7 @@ interface Category {
   name: string;
   slug: string | null;
   description: string | null;
-  previewUrl: string | null;
+  previewUrl?: string | null;
   archivedAt: Date | null;
 }
 

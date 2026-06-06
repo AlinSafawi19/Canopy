@@ -92,7 +92,7 @@ export function AssignClientButton({ projectId, assignedClient }: Props) {
           </Button>
         </div>
       ) : (
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAssignOpen(true)}>
+        <Button variant="outline" size="md" className="gap-1.5" onClick={() => setAssignOpen(true)}>
           <UserPlus size={14} />
           Assign client
         </Button>
