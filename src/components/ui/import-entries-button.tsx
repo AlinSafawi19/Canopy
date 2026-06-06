@@ -1,7 +1,7 @@
 "use client";
 import { apiFetch } from "@/lib/api-fetch";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -126,6 +126,8 @@ export function ImportEntriesButton({
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const keyCounter = useRef(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const pendingScroll = useRef<"right" | "bottom" | null>(null);
   const [open, setOpen] = useState(false);
   const [columns, setColumns] = useState<Col[]>([]);
   const [rows, setRows] = useState<Record<string, string>[]>([]); // keyed by Col.key
@@ -265,6 +267,7 @@ export function ImportEntriesButton({
     setRows((rs) => rs.filter((_, i) => i !== rowIdx));
   }
   function addRow() {
+    pendingScroll.current = "bottom";
     setRows((rs) => [...rs, Object.fromEntries(columns.map((c) => [c.key, ""]))]);
   }
   function renameColumn(key: string, name: string) {
@@ -278,9 +281,22 @@ export function ImportEntriesButton({
   }
   function addColumn() {
     const key = nextKey();
+    pendingScroll.current = "right";
     setColumns((cs) => [...cs, { key, name: "", type: "text" }]);
     setRows((rs) => rs.map((r) => ({ ...r, [key]: "" })));
   }
+
+  // After a column/row is added, scroll the grid to reveal it.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !pendingScroll.current) return;
+    const dir = pendingScroll.current;
+    pendingScroll.current = null;
+    requestAnimationFrame(() => {
+      if (dir === "right") el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
+      else el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    });
+  }, [columns.length, rows.length]);
 
   const resultSummary = result
     ? [
@@ -384,7 +400,7 @@ export function ImportEntriesButton({
                 </p>
               </div>
 
-              <div className="overflow-auto border border-slate-200 rounded-lg max-h-96">
+              <div ref={scrollRef} className="overflow-auto border border-slate-200 rounded-lg max-h-96">
                 <table className="text-sm border-collapse">
                   <thead className="sticky top-0 z-10">
                     <tr className="bg-slate-50 border-b border-slate-200">
