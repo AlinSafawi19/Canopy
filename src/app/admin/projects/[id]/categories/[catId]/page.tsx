@@ -132,7 +132,16 @@ export default async function CategoryDetailPage({
   const countFields = fields.filter((f) => f.type === "count" && f.countCategoryId);
   const entryCounts: Record<string, Record<string, number>> = {};
   if (countFields.length > 0 && entryIds.length > 0) {
-    const entryIdSet = new Set(entryIds);
+    // Map any string value from current-page entries (entry ID or any text field) → entry ID.
+    // This handles products that store a text value (slug, title) instead of an actual entry ID.
+    const valueToEntryId = new Map<string, string>();
+    for (const entry of entries) {
+      valueToEntryId.set(entry.id, entry.id);
+      for (const val of Object.values(entry.values as Record<string, unknown>)) {
+        if (typeof val === "string" && val) valueToEntryId.set(val, entry.id);
+      }
+    }
+
     for (const cf of countFields) {
       let fieldName = cf.countFieldName ?? "";
       if (!fieldName) {
@@ -157,7 +166,8 @@ export default async function CategoryDetailPage({
           ? v.filter((x): x is string => typeof x === "string" && !!x)
           : typeof v === "string" && v ? [v] : [];
         for (const ref of refs) {
-          if (entryIdSet.has(ref)) counts[ref] = (counts[ref] ?? 0) + 1;
+          const resolvedId = valueToEntryId.get(ref);
+          if (resolvedId) counts[resolvedId] = (counts[resolvedId] ?? 0) + 1;
         }
       }
       entryCounts[cf.name] = counts;
