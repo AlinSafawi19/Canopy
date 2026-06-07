@@ -16,18 +16,22 @@ export default async function ClientArchiveLayout({
     },
   };
 
-  const [categoriesCount, entriesCount] = await Promise.all([
+  const [categoriesCount, entriesCount, contributorsCount] = await Promise.all([
     prisma.contentCategory.count({
       where: { archivedAt: { not: null }, ...clientFilter },
     }),
     prisma.contentCategoryEntry.count({
       where: { archivedAt: { not: null }, category: clientFilter },
     }),
+    prisma.contributor.count({
+      where: { archivedAt: { not: null }, parentClientUsername: session!.username },
+    }),
   ]);
 
   const navItems = [
     { label: "Categories", segment: "categories", icon: "Layers", count: categoriesCount },
     { label: "Entries", segment: "entries", icon: "FileText", count: entriesCount },
+    { label: "Contributors", segment: "contributors", icon: "UserCheck", count: contributorsCount },
   ];
 
   return (
