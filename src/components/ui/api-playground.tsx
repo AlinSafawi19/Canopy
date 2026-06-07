@@ -103,6 +103,7 @@ export function ApiPlayground({ projects }: Props) {
 
   // collection dropdown
   const [collectionOpen, setCollectionOpen] = useState(false);
+  const [dropLeft, setDropLeft] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const collectionRef = useRef<HTMLDivElement>(null);
 
@@ -219,14 +220,20 @@ export function ApiPlayground({ projects }: Props) {
 
           {/* Collection / endpoint browser */}
           <div className="relative" ref={collectionRef}>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setCollectionOpen((v) => !v)}>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
+                if (!collectionOpen && collectionRef.current) {
+                  const rect = collectionRef.current.getBoundingClientRect();
+                  setDropLeft(rect.right + 288 > window.innerWidth);
+                }
+                setCollectionOpen((v) => !v);
+              }}>
               <FolderTree size={14} />
               Endpoints
               <ChevronDown size={13} className={collectionOpen ? "rotate-180 transition-transform" : "transition-transform"} />
             </Button>
 
             {collectionOpen && (
-              <div className="absolute right-0 top-full mt-1 w-72 max-h-96 overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200 z-50 p-1.5">
+              <div className={`absolute ${dropLeft ? "right-0" : "left-0"} top-full mt-1 w-72 max-h-96 overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200 z-50 p-1.5`}>
                 <button
                   onClick={() => loadEndpoint("/api/v1/projects", true)}
                   className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left hover:bg-slate-50 transition-colors"
