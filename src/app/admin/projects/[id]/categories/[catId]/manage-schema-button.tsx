@@ -11,8 +11,8 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Plus, Trash2, Columns, X } from "lucide-react";
 import type { MigrationImpact } from "@/lib/field-coerce";
 
-interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean }
-interface Category { id: string; name: string }
+interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean; countCategoryId?: string; countFieldName?: string }
+interface Category { id: string; name: string; fields?: Array<{ name: string; type: string; relationCategoryId?: string }> }
 
 const FIELD_TYPES = [
   { value: "text",      label: "Text" },
@@ -25,6 +25,7 @@ const FIELD_TYPES = [
   { value: "boolean",   label: "Boolean" },
   { value: "enum",      label: "Enum" },
   { value: "relation",  label: "Relation" },
+  { value: "count",     label: "Count" },
 ];
 
 export function ManageSchemaButton({
@@ -135,6 +136,7 @@ export function ManageSchemaButton({
       type: f.type,
       ...(f.type === "enum" ? { options: f.options ?? [] } : {}),
       ...(f.type === "relation" ? { relationCategoryId: f.relationCategoryId ?? "", multiple: !!f.multiple } : {}),
+      ...(f.type === "count" ? { countCategoryId: f.countCategoryId ?? "", countFieldName: f.countFieldName ?? "" } : {}),
     }));
   }
 
@@ -158,6 +160,14 @@ export function ManageSchemaButton({
       }
       if (f.type === "relation" && !f.relationCategoryId) {
         setError(`"${f.name || "Relation column"}" must have a target category selected`);
+        return false;
+      }
+      if (f.type === "count" && !f.countCategoryId) {
+        setError(`"${f.name || "Count column"}" must have a source category selected`);
+        return false;
+      }
+      if (f.type === "count" && !f.countFieldName) {
+        setError(`"${f.name || "Count column"}" must have a source relation field selected`);
         return false;
       }
     }
@@ -282,6 +292,7 @@ export function ManageSchemaButton({
                     onChange={(v) => updateField(i, {
                       type: v,
                       ...(v !== "enum" ? { options: [] } : {}),
+                      ...(v !== "count" ? { countCategoryId: undefined, countFieldName: undefined } : {}),
                     })}
                     options={FIELD_TYPES}
                   />
@@ -365,6 +376,45 @@ export function ManageSchemaButton({
                   </label>
                 </div>
               )}
+
+              {field.type === "count" && (() => {
+                const sourceCategory = categories.find((c) => c.id === field.countCategoryId);
+                const sourceRelationFields = (sourceCategory?.fields ?? []).filter(
+                  (f) => f.type === "relation" && f.relationCategoryId === categoryId
+                );
+                return (
+                  <div className="ml-5 pl-3 border-l-2 border-orange-200 space-y-2">
+                    <Select
+                      value={field.countCategoryId ?? ""}
+                      onChange={(v) => updateField(i, { countCategoryId: v, countFieldName: "" })}
+                      options={[
+                        { value: "", label: "Select source category…" },
+                        ...categories
+                          .filter((c) => c.id !== categoryId)
+                          .map((c) => ({ value: c.id, label: c.name })),
+                      ]}
+                    />
+                    {field.countCategoryId && (
+                      <>
+                        {sourceRelationFields.length === 0 ? (
+                          <p className="text-xs text-slate-400">
+                            No relation fields in that category point to this category yet.
+                          </p>
+                        ) : (
+                          <Select
+                            value={field.countFieldName ?? ""}
+                            onChange={(v) => updateField(i, { countFieldName: v })}
+                            options={[
+                              { value: "", label: "Select relation field…" },
+                              ...sourceRelationFields.map((f) => ({ value: f.name, label: f.name })),
+                            ]}
+                          />
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           ))}
 

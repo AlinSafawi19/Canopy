@@ -34,9 +34,10 @@ const TYPE_COLORS: Record<string, string> = {
   url:       "text-cyan-500",
   email:     "text-indigo-500",
   relation:  "text-pink-500",
+  count:     "text-orange-500",
 };
 
-interface Field { name: string; type: string; relationCategoryId?: string; multiple?: boolean }
+interface Field { name: string; type: string; relationCategoryId?: string; multiple?: boolean; countCategoryId?: string; countFieldName?: string }
 interface TableEntry { id: string; values: unknown; archivedAt: Date | null }
 
 interface Props {
@@ -58,6 +59,8 @@ interface Props {
   previewUrl?: string | null;
   /** entryId → human-readable label for relation field display */
   relatedEntries?: Record<string, string>;
+  /** fieldName → entryId → computed count for count-type fields */
+  entryCounts?: Record<string, Record<string, number>>;
   categoryName?: string;
   /** entryId → count of open change requests; drives the amber indicator */
   openRequestsByEntry?: Record<string, number>;
@@ -90,6 +93,7 @@ export function EntriesTable({
   resolvedRequestsByEntry,
   canRequestChange = false,
   canReopenRequests = false,
+  entryCounts,
 }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -263,6 +267,18 @@ export function EntriesTable({
                   </td>
                   {fields.map((f) => {
                     const raw = values[f.name];
+
+                    // Count: computed reverse-relation count, never stored in values
+                    if (f.type === "count") {
+                      const count = entryCounts?.[f.name]?.[entry.id] ?? 0;
+                      return (
+                        <td key={f.name} className="px-4 py-2.5 border-r border-slate-100">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-700 text-xs font-medium">
+                            {count}
+                          </span>
+                        </td>
+                      );
+                    }
 
                     // Relation: render one or more chips (supports multi-value arrays)
                     if (f.type === "relation") {

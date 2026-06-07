@@ -6,6 +6,8 @@ export interface FieldShape {
   type: string;
   multiple?: boolean;
   options?: string[];
+  countCategoryId?: string;
+  countFieldName?: string;
 }
 
 const NUMBER_RE = /^-?\d+(\.\d+)?$/;
@@ -65,8 +67,9 @@ export async function computeMigrationImpact(
 ): Promise<MigrationImpact[]> {
   const oldByName = new Map(oldFields.map((f) => [f.name, f]));
   const changed = newFields.filter((nf) => {
+    if (nf.type === "count") return false;
     const of = oldByName.get(nf.name);
-    return of && (of.type !== nf.type || !!of.multiple !== !!nf.multiple);
+    return of && of.type !== "count" && (of.type !== nf.type || !!of.multiple !== !!nf.multiple);
   });
   if (changed.length === 0) return [];
 
@@ -109,8 +112,9 @@ export async function migrateEntryValues(
   const oldByName = new Map(oldFields.map((f) => [f.name, f]));
 
   const changed = newFields.filter((nf) => {
+    if (nf.type === "count") return false;
     const of = oldByName.get(nf.name);
-    return of && (of.type !== nf.type || !!of.multiple !== !!nf.multiple);
+    return of && of.type !== "count" && (of.type !== nf.type || !!of.multiple !== !!nf.multiple);
   });
   if (changed.length === 0) return;
 

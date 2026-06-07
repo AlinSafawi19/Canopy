@@ -90,14 +90,14 @@ export default async function CategoryDetailPage({
   const openRequestsByEntry = Object.fromEntries(openCounts.map((r) => [r.entryId, r._count.entryId]));
   const resolvedRequestsByEntry = Object.fromEntries(resolvedCounts.map((r) => [r.entryId, r._count.entryId]));
 
-  const fields: Array<{ name: string; type: string; options?: string[]; relationCategoryId?: string }> = Array.isArray(category.fields)
-    ? (category.fields as unknown as Array<{ name: string; type: string; options?: string[]; relationCategoryId?: string }>)
+  const fields: Array<{ name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean; countCategoryId?: string; countFieldName?: string }> = Array.isArray(category.fields)
+    ? (category.fields as unknown as Array<{ name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean; countCategoryId?: string; countFieldName?: string }>)
     : [];
 
-  // All sibling categories (for RelationSelect in ManageSchemaButton)
+  // All sibling categories (for RelationSelect and CountSelect in ManageSchemaButton)
   const projectCategories = await prisma.contentCategory.findMany({
     where: { projectId: id, archivedAt: null },
-    select: { id: true, name: true },
+    select: { id: true, name: true, fields: true },
     orderBy: { name: "asc" },
   });
 
@@ -125,6 +125,31 @@ export default async function CategoryDetailPage({
       relatedEntries = Object.fromEntries(
         referencedRows.map((r) => [r.id, getEntryLabel(r.values as Record<string, unknown>)])
       );
+    }
+  }
+
+  // Compute entryCounts for count-type fields (batch query per field)
+  const countFields = fields.filter((f) => f.type === "count" && f.countCategoryId && f.countFieldName);
+  const entryCounts: Record<string, Record<string, number>> = {};
+  if (countFields.length > 0 && entryIds.length > 0) {
+    const entryIdSet = new Set(entryIds);
+    for (const cf of countFields) {
+      const sourceEntries = await prisma.contentCategoryEntry.findMany({
+        where: { categoryId: cf.countCategoryId!, archivedAt: null },
+        select: { values: true },
+        take: 10_000,
+      });
+      const counts: Record<string, number> = {};
+      for (const se of sourceEntries) {
+        const v = (se.values as Record<string, unknown>)[cf.countFieldName!];
+        const refs = Array.isArray(v)
+          ? v.filter((x): x is string => typeof x === "string" && !!x)
+          : typeof v === "string" && v ? [v] : [];
+        for (const ref of refs) {
+          if (entryIdSet.has(ref)) counts[ref] = (counts[ref] ?? 0) + 1;
+        }
+      }
+      entryCounts[cf.name] = counts;
     }
   }
 
@@ -193,6 +218,7 @@ export default async function CategoryDetailPage({
                 sortExtras={sortExtras}
                 previewUrl={category.previewUrl ?? null}
                 relatedEntries={relatedEntries}
+                entryCounts={entryCounts}
                 categoryName={category.name}
                 openRequestsByEntry={openRequestsByEntry}
                 resolvedRequestsByEntry={resolvedRequestsByEntry}

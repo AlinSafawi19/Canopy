@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { generateId } from "@/lib/utils";
 import { validateEntryValues } from "@/lib/limits";
 
-export type IoField = { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean };
+export type IoField = { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean; countCategoryId?: string; countFieldName?: string };
 export type ImportMode = "replace" | "merge";
 
 // ── CSV helpers ────────────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ export async function handleExport(
   const format = request.nextUrl.searchParams.get("format") === "csv" ? "csv" : "json";
   const idsParam = request.nextUrl.searchParams.get("ids");
   const ids = idsParam ? idsParam.split(",").filter(Boolean) : null;
-  const fields = (Array.isArray(category.fields) ? category.fields : []) as IoField[];
+  const fields = (Array.isArray(category.fields) ? category.fields : [] as IoField[]).filter((f) => f.type !== "count");
   const filename = (category.slug ?? category.name).replace(/[^a-z0-9_-]/gi, "_");
 
   const entries = await prisma.contentCategoryEntry.findMany({
@@ -199,6 +199,9 @@ function normalizeSchemaField(s: IoField): IoField {
     ...(s.options ? { options: s.options } : {}),
     ...(s.type === "relation"
       ? { ...(s.relationCategoryId ? { relationCategoryId: s.relationCategoryId } : {}), multiple: !!s.multiple }
+      : {}),
+    ...(s.type === "count"
+      ? { ...(s.countCategoryId ? { countCategoryId: s.countCategoryId } : {}), ...(s.countFieldName ? { countFieldName: s.countFieldName } : {}) }
       : {}),
   };
 }
