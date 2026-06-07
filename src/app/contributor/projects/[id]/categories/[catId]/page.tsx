@@ -124,11 +124,22 @@ export default async function ContributorCategoryPage({
     }
   }
 
-  const countFields = fields.filter((f) => f.type === "count" && f.countCategoryId && f.countFieldName);
+  const countFields = fields.filter((f) => f.type === "count" && f.countCategoryId);
   const entryCounts: Record<string, Record<string, number>> = {};
   if (countFields.length > 0 && entryIds.length > 0) {
     const entryIdSet = new Set(entryIds);
     for (const cf of countFields) {
+      let fieldName = cf.countFieldName ?? "";
+      if (!fieldName) {
+        const sourceCat = await prisma.contentCategory.findFirst({
+          where: { id: cf.countCategoryId! },
+          select: { fields: true },
+        });
+        const srcFields = (Array.isArray(sourceCat?.fields) ? sourceCat!.fields : []) as Array<{ name: string; type: string; relationCategoryId?: string }>;
+        const match = srcFields.find((f) => f.type === "relation" && f.relationCategoryId === catId);
+        if (!match) continue;
+        fieldName = match.name;
+      }
       const sourceEntries = await prisma.contentCategoryEntry.findMany({
         where: { categoryId: cf.countCategoryId!, archivedAt: null },
         select: { values: true },
@@ -136,7 +147,7 @@ export default async function ContributorCategoryPage({
       });
       const counts: Record<string, number> = {};
       for (const se of sourceEntries) {
-        const v = (se.values as Record<string, unknown>)[cf.countFieldName!];
+        const v = (se.values as Record<string, unknown>)[fieldName];
         const refs = Array.isArray(v)
           ? v.filter((x): x is string => typeof x === "string" && !!x)
           : typeof v === "string" && v ? [v] : [];
