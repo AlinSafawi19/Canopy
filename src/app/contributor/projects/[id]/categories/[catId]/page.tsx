@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,19 +22,16 @@ export default async function ContributorCategoryPage({
   searchParams,
 }: {
   params: Promise<{ id: string; catId: string }>;
-  searchParams: Promise<{ page?: string; limit?: string; search?: string; sortDir?: string; filters?: string }>;
+  searchParams: Promise<{ page?: string; limit?: string; search?: string; sortDir?: string }>;
 }) {
   const { id, catId } = await params;
   const session = await getSession();
-  const { page: rawPage, limit: rawLimit, search: rs, sortDir: rsd, filters: rawFilters } = await searchParams;
+  const { page: rawPage, limit: rawLimit, search: rs, sortDir: rsd } = await searchParams;
   const page = parsePage(rawPage);
   const limit = parseLimit(rawLimit);
   const search = parseSearch(rs);
   const sortDir = parseSortDir(rsd);
   const skip = (page - 1) * limit;
-
-  let columnFilters: Record<string, string> = {};
-  try { if (rawFilters) columnFilters = JSON.parse(rawFilters) as Record<string, string>; } catch {}
 
   const assignment = await prisma.contributorAssignment.findFirst({
     where: { contributorId: session!.id, projectId: id },
@@ -54,19 +50,13 @@ export default async function ContributorCategoryPage({
   if (!category) notFound();
 
   let matchingIds: string[] | null = null;
-  const activeColumnFilters = Object.entries(columnFilters).filter(([, v]) => v.trim());
-  if (search || activeColumnFilters.length > 0) {
-    const conditions: Prisma.Sql[] = [
-      Prisma.sql`"categoryId" = ${catId}`,
-      Prisma.sql`"archivedAt" IS NULL`,
-    ];
-    if (search) conditions.push(Prisma.sql`values::text ILIKE ${'%' + search + '%'}`);
-    for (const [field, value] of activeColumnFilters) {
-      conditions.push(Prisma.sql`values->>${field} ILIKE ${'%' + value.trim() + '%'}`);
-    }
-    const rows = await prisma.$queryRaw<Array<{ id: string }>>(
-      Prisma.sql`SELECT id FROM "ContentCategoryEntry" WHERE ${Prisma.join(conditions, " AND ")}`
-    );
+  if (search) {
+    const rows = await prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM "ContentCategoryEntry"
+      WHERE "categoryId" = ${catId}
+      AND "archivedAt" IS NULL
+      AND values::text ILIKE ${'%' + search + '%'}
+    `;
     matchingIds = rows.map((r) => r.id);
   }
 
@@ -178,11 +168,9 @@ export default async function ContributorCategoryPage({
 
   const basePath = `/contributor/projects/${id}/categories/${catId}`;
 
-  const filtersStr = activeColumnFilters.length > 0 ? JSON.stringify(columnFilters) : undefined;
   const extraParams: Record<string, string> = { limit: String(limit), sortDir };
   if (search) extraParams.search = search;
-  if (filtersStr) extraParams.filters = filtersStr;
-  const sortExtras: Record<string, string> = { limit: String(limit), ...(search ? { search } : {}), ...(filtersStr ? { filters: filtersStr } : {}) };
+  const sortExtras: Record<string, string> = { limit: String(limit), ...(search ? { search } : {}) };
 
   return (
     <div className="space-y-6">
@@ -241,7 +229,6 @@ export default async function ContributorCategoryPage({
                 categoryId={catId}
                 skip={skip}
                 search={search}
-                columnFilters={columnFilters}
                 pagePath={basePath}
                 sortDir={sortDir}
                 sortExtras={sortExtras}

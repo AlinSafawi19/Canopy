@@ -1,7 +1,7 @@
 "use client";
 import { apiFetch } from "@/lib/api-fetch";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -11,7 +11,7 @@ import { SortableHeader } from "@/components/ui/sortable-header";
 import { RequestChangeButton } from "@/components/ui/request-change-button";
 import { ChangeRequestsIndicator } from "@/components/ui/change-requests-indicator";
 import { stripRichText, formatDate } from "@/lib/utils";
-import { Trash2, ExternalLink, Download, Archive, Columns3, X } from "lucide-react";
+import { Trash2, ExternalLink, Download, Archive, Columns3 } from "lucide-react";
 
 function resolvePreviewUrl(template: string, entryId: string, values: Record<string, unknown>): string {
   return template
@@ -36,9 +36,6 @@ const TYPE_COLORS: Record<string, string> = {
   count:     "text-orange-500",
 };
 
-/** Field types that support text-based column filtering */
-const FILTERABLE_TYPES = new Set(["text", "textarea", "rich_text", "number", "date", "url", "email", "boolean", "enum"]);
-
 interface Field { name: string; type: string; relationCategoryId?: string; multiple?: boolean; countCategoryId?: string; countFieldName?: string }
 interface TableEntry { id: string; values: unknown; archivedAt: Date | null }
 
@@ -49,9 +46,7 @@ interface Props {
   categoryId: string;
   skip: number;
   search?: string;
-  /** Active per-column filters — passed from server so filter state survives navigation */
-  columnFilters?: Record<string, string>;
-  /** URL path of the page — used for sort/filter links */
+  /** URL path of the page — used for sort links */
   pagePath: string;
   sortDir: "asc" | "desc";
   sortExtras: Record<string, string>;
@@ -83,7 +78,6 @@ export function EntriesTable({
   categoryId,
   skip,
   search,
-  columnFilters: columnFiltersProp = {},
   pagePath,
   sortDir,
   sortExtras,
@@ -145,37 +139,8 @@ export function EntriesTable({
     try { localStorage.removeItem(`hidden-cols-${categoryId}`); } catch {}
   }
 
-  // ── Column filters ──────────────────────────────────────────────────────────
-  const [localFilters, setLocalFilters] = useState<Record<string, string>>(columnFiltersProp);
-  const filterDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Sync when server re-renders with new prop (after navigation)
-  useEffect(() => { setLocalFilters(columnFiltersProp); }, [columnFiltersProp]);
-
-  const applyFilter = useCallback((next: Record<string, string>) => {
-    if (filterDebounce.current) clearTimeout(filterDebounce.current);
-    filterDebounce.current = setTimeout(() => {
-      const params = new URLSearchParams({ ...sortExtras, sortDir, page: "1" });
-      if (Object.keys(next).length > 0) params.set("filters", JSON.stringify(next));
-      router.push(`${pagePath}?${params.toString()}`);
-    }, 350);
-  }, [pagePath, sortDir, sortExtras, router]);
-
-  function handleFilterChange(fieldName: string, value: string) {
-    const next = { ...localFilters };
-    if (value) next[fieldName] = value; else delete next[fieldName];
-    setLocalFilters(next);
-    applyFilter(next);
-  }
-
-  function clearAllFilters() {
-    setLocalFilters({});
-    applyFilter({});
-  }
-
   // ── Derived ─────────────────────────────────────────────────────────────────
   const visibleFields = fields.filter((f) => !hiddenFields.has(f.name));
-  const activeFilterCount = Object.keys(localFilters).length;
 
   const allSelected = entries.length > 0 && entries.every((e) => selected.has(e.id));
   const someSelected = selected.size > 0;
@@ -276,17 +241,8 @@ export function EntriesTable({
         </div>
       )}
 
-      {/* Table toolbar: Columns toggle + active filter badge */}
-      <div className="flex items-center justify-end gap-2 px-4 py-2 border-b border-slate-100 bg-white">
-        {activeFilterCount > 0 && (
-          <button
-            onClick={clearAllFilters}
-            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded transition-colors"
-          >
-            <X size={11} />
-            Clear {activeFilterCount} filter{activeFilterCount !== 1 ? "s" : ""}
-          </button>
-        )}
+      {/* Table toolbar: Columns toggle */}
+      <div className="flex items-center justify-end px-4 py-2 border-b border-slate-100 bg-white">
         <div className="relative" ref={columnsPanelRef}>
           <button
             onClick={() => setShowColumnsPanel((v) => !v)}
@@ -345,7 +301,6 @@ export function EntriesTable({
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
           <thead>
-            {/* Column headers */}
             <tr className="bg-slate-50 border-b border-slate-200">
               {canDelete && (
                 <th className="w-10 px-3 py-2.5 border-r border-slate-200 sticky left-0 bg-slate-50 z-10">
@@ -393,51 +348,12 @@ export function EntriesTable({
                 </th>
               )}
             </tr>
-
-            {/* Column filter row */}
-            <tr className="bg-white border-b border-slate-200">
-              {canDelete && (
-                <td className="px-3 py-1.5 border-r border-slate-100 sticky left-0 bg-white z-10" />
-              )}
-              <td className={`px-3 py-1.5 border-r border-slate-100 sticky bg-white z-10 ${canDelete ? "left-10" : "left-0"}`} />
-              {visibleFields.map((f) => (
-                <td key={f.name} className="px-2 py-1.5 border-r border-slate-100">
-                  {FILTERABLE_TYPES.has(f.type) ? (
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={localFilters[f.name] ?? ""}
-                        onChange={(e) => handleFilterChange(f.name, e.target.value)}
-                        placeholder="Filter…"
-                        className="w-full text-xs px-2 py-1 pr-6 bg-slate-50 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 placeholder:text-slate-300 min-w-[120px]"
-                      />
-                      {localFilters[f.name] && (
-                        <button
-                          onClick={() => handleFilterChange(f.name, "")}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                        >
-                          <X size={10} />
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="block text-[10px] text-slate-300 px-2">—</span>
-                  )}
-                </td>
-              ))}
-              <td className="px-4 py-1.5 border-r border-slate-100" />
-              {hasActions && <td className="px-4 py-1.5 sticky right-0 bg-white" />}
-            </tr>
           </thead>
           <tbody>
             {entries.length === 0 ? (
               <tr>
                 <td className="px-4 py-8 text-center text-slate-400 text-sm" colSpan={colCount}>
-                  {search
-                    ? `No entries found for "${search}"`
-                    : activeFilterCount > 0
-                    ? "No entries match the current filters"
-                    : "No rows yet"}
+                  {search ? `No entries found for "${search}"` : "No rows yet"}
                 </td>
               </tr>
             ) : entries.map((entry, idx) => {
