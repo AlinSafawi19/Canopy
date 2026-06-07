@@ -54,7 +54,6 @@ export function ExportEntriesButton({
     <div className="relative" ref={ref}>
       <Button
         variant="outline"
-        size="sm"
         onClick={() => setOpen((v) => !v)}
         loading={loading !== null}
         disabled={loading !== null}

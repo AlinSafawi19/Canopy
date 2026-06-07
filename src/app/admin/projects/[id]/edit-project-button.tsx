@@ -178,7 +178,7 @@ export function EditProjectButton({ project, open: controlledOpen, onClose: cont
   return (
     <>
       {controlledOpen === undefined && (
-        <Button variant="outline" size="sm" onClick={() => setOwnOpen(true)} className="gap-1.5">
+        <Button variant="outline" onClick={() => setOwnOpen(true)} className="gap-1.5">
           <Pencil size={14} />
           Edit
         </Button>

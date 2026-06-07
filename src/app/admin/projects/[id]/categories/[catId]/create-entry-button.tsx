@@ -76,7 +76,7 @@ export function CreateEntryButton({
 
   return (
     <>
-      <Button size="sm" onClick={() => setOpen(true)} disabled={fields.length === 0}>
+      <Button onClick={() => setOpen(true)} disabled={fields.length === 0}>
         New Row
       </Button>
       <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); setTouched(false); }} title="New Entry" isDirty={touched} busy={loading}>

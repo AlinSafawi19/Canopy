@@ -442,7 +442,7 @@ export function ImportEntriesButton({
 
   return (
     <>
-      <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setOpen(true)}>
+      <Button variant="outline" className="gap-1.5" onClick={() => setOpen(true)}>
         <Upload size={14} />
         Import
       </Button>

@@ -219,7 +219,7 @@ export function ManageSchemaButton({
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={handleOpen} className="gap-1.5">
+      <Button variant="outline" onClick={handleOpen} className="gap-1.5">
         <Columns size={14} />
         Manage Columns
         {initialFields.length > 0 && (
