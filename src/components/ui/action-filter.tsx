@@ -35,7 +35,6 @@ export function ActionFilter({ value, basePath, extraParams }: Props) {
       onChange={handleChange}
       options={ACTION_OPTIONS}
       size="md"
-      autoWidth
     />
   );
 }

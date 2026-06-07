@@ -167,30 +167,40 @@ export default async function ClientLogsPage({
         <CardHeader className="border-b border-slate-100 pb-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <CardTitle>{total} {total === 1 ? "entry" : "entries"}</CardTitle>
-            <div className="flex items-center gap-2 flex-wrap">
-              <ContributorLogFilter
-                value={contributorId ?? ""}
-                initialLabel={contributorName}
-                basePath={PATH}
-                extraParams={extrasForContributor}
-              />
-              <ActionFilter
-                value={action}
-                basePath={PATH}
-                extraParams={extrasForAction}
-              />
-              <DateRangeFilter
-                startDate={startDate}
-                endDate={endDate}
-                basePath={PATH}
-                extraParams={extrasForDate}
-              />
-              <SearchInput
-                value={search}
-                placeholder="Search logs…"
-                basePath={PATH}
-                extraParams={extrasForSearch}
-              />
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <div className="flex flex-wrap gap-2 flex-1 sm:flex-none min-w-0">
+                <div className="flex-1 min-w-[120px]">
+                  <ContributorLogFilter
+                    value={contributorId ?? ""}
+                    initialLabel={contributorName}
+                    basePath={PATH}
+                    extraParams={extrasForContributor}
+                  />
+                </div>
+                <div className="flex-1 min-w-[100px]">
+                  <ActionFilter
+                    value={action}
+                    basePath={PATH}
+                    extraParams={extrasForAction}
+                  />
+                </div>
+                <div className="flex-1 min-w-[130px]">
+                  <DateRangeFilter
+                    startDate={startDate}
+                    endDate={endDate}
+                    basePath={PATH}
+                    extraParams={extrasForDate}
+                  />
+                </div>
+              </div>
+              <div className="w-full sm:w-72">
+                <SearchInput
+                  value={search}
+                  placeholder="Search logs…"
+                  basePath={PATH}
+                  extraParams={extrasForSearch}
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
