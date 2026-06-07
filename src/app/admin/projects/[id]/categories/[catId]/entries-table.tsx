@@ -1,7 +1,7 @@
 "use client";
 import { apiFetch } from "@/lib/api-fetch";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -11,13 +11,12 @@ import { SortableHeader } from "@/components/ui/sortable-header";
 import { RequestChangeButton } from "@/components/ui/request-change-button";
 import { ChangeRequestsIndicator } from "@/components/ui/change-requests-indicator";
 import { stripRichText, formatDate } from "@/lib/utils";
-import { Trash2, ExternalLink, Download, Archive } from "lucide-react";
+import { Trash2, ExternalLink, Download, Archive, Columns3, X } from "lucide-react";
 
 function resolvePreviewUrl(template: string, entryId: string, values: Record<string, unknown>): string {
   return template
     .replace("{entryId}", entryId)
     .replace(/\{([^}]+)\}/g, (match, field) => {
-      // Case-insensitive field lookup
       const key = Object.keys(values).find((k) => k.toLowerCase() === field.toLowerCase());
       const v = key ? values[key] : undefined;
       return typeof v === "string" && v ? encodeURIComponent(v) : match;
@@ -37,6 +36,9 @@ const TYPE_COLORS: Record<string, string> = {
   count:     "text-orange-500",
 };
 
+/** Field types that support text-based column filtering */
+const FILTERABLE_TYPES = new Set(["text", "textarea", "rich_text", "number", "date", "url", "email", "boolean", "enum"]);
+
 interface Field { name: string; type: string; relationCategoryId?: string; multiple?: boolean; countCategoryId?: string; countFieldName?: string }
 interface TableEntry { id: string; values: unknown; archivedAt: Date | null }
 
@@ -47,7 +49,9 @@ interface Props {
   categoryId: string;
   skip: number;
   search?: string;
-  /** URL path of the page — used for sort links */
+  /** Active per-column filters — passed from server so filter state survives navigation */
+  columnFilters?: Record<string, string>;
+  /** URL path of the page — used for sort/filter links */
   pagePath: string;
   sortDir: "asc" | "desc";
   sortExtras: Record<string, string>;
@@ -79,6 +83,7 @@ export function EntriesTable({
   categoryId,
   skip,
   search,
+  columnFilters: columnFiltersProp = {},
   pagePath,
   sortDir,
   sortExtras,
@@ -96,11 +101,81 @@ export function EntriesTable({
   entryCounts,
 }: Props) {
   const router = useRouter();
+
+  // ── Bulk selection ──────────────────────────────────────────────────────────
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
   const [archiving, setArchiving] = useState(false);
+
+  // ── Column visibility (persisted in localStorage per category) ──────────────
+  const [hiddenFields, setHiddenFields] = useState<Set<string>>(new Set());
+  const [showColumnsPanel, setShowColumnsPanel] = useState(false);
+  const columnsPanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`hidden-cols-${categoryId}`);
+      if (stored) setHiddenFields(new Set(JSON.parse(stored) as string[]));
+    } catch {}
+  }, [categoryId]);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (columnsPanelRef.current && !columnsPanelRef.current.contains(e.target as Node)) {
+        setShowColumnsPanel(false);
+      }
+    }
+    if (showColumnsPanel) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showColumnsPanel]);
+
+  function toggleField(name: string) {
+    setHiddenFields((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      try { localStorage.setItem(`hidden-cols-${categoryId}`, JSON.stringify(Array.from(next))); } catch {}
+      return next;
+    });
+  }
+
+  function showAllFields() {
+    setHiddenFields(new Set());
+    try { localStorage.removeItem(`hidden-cols-${categoryId}`); } catch {}
+  }
+
+  // ── Column filters ──────────────────────────────────────────────────────────
+  const [localFilters, setLocalFilters] = useState<Record<string, string>>(columnFiltersProp);
+  const filterDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync when server re-renders with new prop (after navigation)
+  useEffect(() => { setLocalFilters(columnFiltersProp); }, [columnFiltersProp]);
+
+  const applyFilter = useCallback((next: Record<string, string>) => {
+    if (filterDebounce.current) clearTimeout(filterDebounce.current);
+    filterDebounce.current = setTimeout(() => {
+      const params = new URLSearchParams({ ...sortExtras, sortDir, page: "1" });
+      if (Object.keys(next).length > 0) params.set("filters", JSON.stringify(next));
+      router.push(`${pagePath}?${params.toString()}`);
+    }, 350);
+  }, [pagePath, sortDir, sortExtras, router]);
+
+  function handleFilterChange(fieldName: string, value: string) {
+    const next = { ...localFilters };
+    if (value) next[fieldName] = value; else delete next[fieldName];
+    setLocalFilters(next);
+    applyFilter(next);
+  }
+
+  function clearAllFilters() {
+    setLocalFilters({});
+    applyFilter({});
+  }
+
+  // ── Derived ─────────────────────────────────────────────────────────────────
+  const visibleFields = fields.filter((f) => !hiddenFields.has(f.name));
+  const activeFilterCount = Object.keys(localFilters).length;
 
   const allSelected = entries.length > 0 && entries.every((e) => selected.has(e.id));
   const someSelected = selected.size > 0;
@@ -158,9 +233,8 @@ export function EntriesTable({
     router.refresh();
   }
 
-  // Number of <td> columns for empty-state colspan
   const hasActions = canEdit || canArchive || canDelete || !!previewUrl;
-  const colCount = fields.length + 2 + (canDelete ? 1 : 0) + (hasActions ? 1 : 0);
+  const colCount = visibleFields.length + 2 + (canDelete ? 1 : 0) + (hasActions ? 1 : 0);
 
   return (
     <>
@@ -187,23 +261,13 @@ export function EntriesTable({
             </button>
             <div className="w-px h-4 bg-indigo-200" />
             {canArchive && (
-              <Button
-                variant="warning"
-                size="sm"
-                className="gap-1.5"
-                onClick={() => setArchiveConfirmOpen(true)}
-              >
+              <Button variant="warning" size="sm" className="gap-1.5" onClick={() => setArchiveConfirmOpen(true)}>
                 <Archive size={13} />
                 Archive selected
               </Button>
             )}
             {canDelete && (
-              <Button
-                variant="danger"
-                size="sm"
-                className="gap-1.5"
-                onClick={() => setConfirmOpen(true)}
-              >
+              <Button variant="danger" size="sm" className="gap-1.5" onClick={() => setConfirmOpen(true)}>
                 <Trash2 size={13} />
                 Delete selected
               </Button>
@@ -212,11 +276,77 @@ export function EntriesTable({
         </div>
       )}
 
+      {/* Table toolbar: Columns toggle + active filter badge */}
+      <div className="flex items-center justify-end gap-2 px-4 py-2 border-b border-slate-100 bg-white">
+        {activeFilterCount > 0 && (
+          <button
+            onClick={clearAllFilters}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded transition-colors"
+          >
+            <X size={11} />
+            Clear {activeFilterCount} filter{activeFilterCount !== 1 ? "s" : ""}
+          </button>
+        )}
+        <div className="relative" ref={columnsPanelRef}>
+          <button
+            onClick={() => setShowColumnsPanel((v) => !v)}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded border transition-colors ${
+              hiddenFields.size > 0
+                ? "text-indigo-700 bg-indigo-50 border-indigo-200 hover:bg-indigo-100"
+                : "text-slate-600 bg-white border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <Columns3 size={13} />
+            Columns
+            {hiddenFields.size > 0 && (
+              <span className="ml-0.5 px-1.5 py-0 rounded-full bg-indigo-200 text-indigo-800 text-[10px] font-semibold">
+                {hiddenFields.size} hidden
+              </span>
+            )}
+          </button>
+
+          {showColumnsPanel && (
+            <div className="absolute right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-lg shadow-lg z-30 min-w-[220px] py-1">
+              <div className="px-3 py-1.5 border-b border-slate-100 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Toggle columns</span>
+                {hiddenFields.size > 0 && (
+                  <button
+                    onClick={showAllFields}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                  >
+                    Show all
+                  </button>
+                )}
+              </div>
+              <div className="max-h-64 overflow-y-auto">
+                {fields.map((f) => (
+                  <label
+                    key={f.name}
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer select-none"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!hiddenFields.has(f.name)}
+                      onChange={() => toggleField(f.name)}
+                      className="w-3.5 h-3.5 rounded border-slate-300 accent-indigo-600 cursor-pointer"
+                    />
+                    <span className="flex-1 text-sm text-slate-700 truncate">{f.name}</span>
+                    <span className={`text-[10px] uppercase tracking-wide font-medium ${TYPE_COLORS[f.type] ?? "text-slate-400"}`}>
+                      {f.type}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
           <thead>
+            {/* Column headers */}
             <tr className="bg-slate-50 border-b border-slate-200">
-              {/* Checkbox column */}
               {canDelete && (
                 <th className="w-10 px-3 py-2.5 border-r border-slate-200 sticky left-0 bg-slate-50 z-10">
                   <input
@@ -228,7 +358,6 @@ export function EntriesTable({
                   />
                 </th>
               )}
-              {/* Row number */}
               <th className={`w-10 px-3 py-2.5 text-left border-r border-slate-200 sticky bg-slate-50 z-10 ${canDelete ? "left-10" : "left-0"}`}>
                 <SortableHeader
                   label="#"
@@ -239,7 +368,7 @@ export function EntriesTable({
                   extraParams={sortExtras}
                 />
               </th>
-              {fields.map((f) => (
+              {visibleFields.map((f) => (
                 <th key={f.name} className="px-4 py-2.5 text-left font-medium text-slate-700 border-r border-slate-200 min-w-[160px] whitespace-nowrap">
                   <div className="flex flex-col gap-0.5">
                     <span>{f.name}</span>
@@ -264,12 +393,51 @@ export function EntriesTable({
                 </th>
               )}
             </tr>
+
+            {/* Column filter row */}
+            <tr className="bg-white border-b border-slate-200">
+              {canDelete && (
+                <td className="px-3 py-1.5 border-r border-slate-100 sticky left-0 bg-white z-10" />
+              )}
+              <td className={`px-3 py-1.5 border-r border-slate-100 sticky bg-white z-10 ${canDelete ? "left-10" : "left-0"}`} />
+              {visibleFields.map((f) => (
+                <td key={f.name} className="px-2 py-1.5 border-r border-slate-100">
+                  {FILTERABLE_TYPES.has(f.type) ? (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={localFilters[f.name] ?? ""}
+                        onChange={(e) => handleFilterChange(f.name, e.target.value)}
+                        placeholder="Filter…"
+                        className="w-full text-xs px-2 py-1 pr-6 bg-slate-50 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 placeholder:text-slate-300 min-w-[120px]"
+                      />
+                      {localFilters[f.name] && (
+                        <button
+                          onClick={() => handleFilterChange(f.name, "")}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                          <X size={10} />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="block text-[10px] text-slate-300 px-2">—</span>
+                  )}
+                </td>
+              ))}
+              <td className="px-4 py-1.5 border-r border-slate-100" />
+              {hasActions && <td className="px-4 py-1.5 sticky right-0 bg-white" />}
+            </tr>
           </thead>
           <tbody>
             {entries.length === 0 ? (
               <tr>
                 <td className="px-4 py-8 text-center text-slate-400 text-sm" colSpan={colCount}>
-                  {search ? `No entries found for "${search}"` : "No rows yet"}
+                  {search
+                    ? `No entries found for "${search}"`
+                    : activeFilterCount > 0
+                    ? "No entries match the current filters"
+                    : "No rows yet"}
                 </td>
               </tr>
             ) : entries.map((entry, idx) => {
@@ -293,10 +461,9 @@ export function EntriesTable({
                   <td className={`px-3 py-2.5 text-center text-xs text-slate-400 border-r border-slate-100 sticky z-10 ${canDelete ? "left-10" : "left-0"} ${isSelected ? "bg-indigo-50/50" : "bg-white"}`}>
                     {skip + idx + 1}
                   </td>
-                  {fields.map((f) => {
+                  {visibleFields.map((f) => {
                     const raw = values[f.name];
 
-                    // Count: computed reverse-relation count, never stored in values
                     if (f.type === "count") {
                       const count = entryCounts?.[f.name]?.[entry.id] ?? 0;
                       return (
@@ -308,7 +475,6 @@ export function EntriesTable({
                       );
                     }
 
-                    // Relation: render one or more chips (supports multi-value arrays)
                     if (f.type === "relation") {
                       const ids = Array.isArray(raw)
                         ? raw.filter((x): x is string => typeof x === "string" && !!x)
