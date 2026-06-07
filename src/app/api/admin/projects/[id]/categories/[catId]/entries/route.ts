@@ -54,6 +54,38 @@ export async function POST(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; catId: string }> }
+) {
+  const session = await getSession();
+  if (!session || session.role !== "admin") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { id: projectId, catId } = await params;
+
+  const category = await prisma.contentCategory.findFirst({
+    where: { id: catId, projectId, project: { adminTenantId: session.tenantId! } },
+  });
+  if (!category) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const { action, ids } = await request.json();
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return NextResponse.json({ error: "ids required" }, { status: 400 });
+  }
+
+  if (action === "archive") {
+    const { count } = await prisma.contentCategoryEntry.updateMany({
+      where: { id: { in: ids }, categoryId: catId, archivedAt: null },
+      data: { archivedAt: new Date(), archivedBy: session.id },
+    });
+    await logActivity({ session, action: "archived", resource: "entry", adminTenantId: session.tenantId!, resourceName: `${count} entries` });
+    return NextResponse.json({ ok: true, archived: count });
+  }
+
+  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; catId: string }> }

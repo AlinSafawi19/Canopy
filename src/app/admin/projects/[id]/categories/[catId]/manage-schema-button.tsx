@@ -232,14 +232,14 @@ export function ManageSchemaButton({
 
           {/* Bulk selection action bar */}
           {selected.size > 0 && (
-            <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              <span className="text-sm text-red-700 font-medium">
+            <div className="flex items-center justify-between px-1 py-1">
+              <span className="text-sm text-slate-600 font-medium">
                 {selected.size} column{selected.size !== 1 ? "s" : ""} selected
               </span>
               <button
                 type="button"
                 onClick={removeSelected}
-                className="flex items-center gap-1.5 text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
+                className="flex items-center gap-1.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-colors px-3 py-1.5 rounded-lg"
               >
                 <Trash2 size={13} />
                 Delete selected

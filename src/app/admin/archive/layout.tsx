@@ -10,7 +10,7 @@ export default async function AdminArchiveLayout({
   const session = await getSession();
   const tenantId = session!.tenantId!;
 
-  const [projectsCount, categoriesCount, entriesCount] = await Promise.all([
+  const [projectsCount, categoriesCount, entriesCount, clientsCount, contributorsCount] = await Promise.all([
     prisma.project.count({
       where: { archivedAt: { not: null }, adminTenantId: tenantId },
     }),
@@ -26,12 +26,20 @@ export default async function AdminArchiveLayout({
         category: { project: { adminTenantId: tenantId } },
       },
     }),
+    prisma.clientIdentity.count({
+      where: { archivedAt: { not: null }, tenantId },
+    }),
+    prisma.contributor.count({
+      where: { archivedAt: { not: null }, tenantId },
+    }),
   ]);
 
   const navItems = [
     { label: "Projects", segment: "projects", icon: "Folder", count: projectsCount },
     { label: "Categories", segment: "categories", icon: "Layers", count: categoriesCount },
     { label: "Entries", segment: "entries", icon: "FileText", count: entriesCount },
+    { label: "Clients", segment: "clients", icon: "Users", count: clientsCount },
+    { label: "Contributors", segment: "contributors", icon: "UserCheck", count: contributorsCount },
   ];
 
   return (

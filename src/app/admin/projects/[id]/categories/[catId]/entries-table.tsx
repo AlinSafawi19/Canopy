@@ -11,7 +11,7 @@ import { SortableHeader } from "@/components/ui/sortable-header";
 import { RequestChangeButton } from "@/components/ui/request-change-button";
 import { ChangeRequestsIndicator } from "@/components/ui/change-requests-indicator";
 import { stripRichText, formatDate } from "@/lib/utils";
-import { Trash2, ExternalLink, Download } from "lucide-react";
+import { Trash2, ExternalLink, Download, Archive } from "lucide-react";
 
 function resolvePreviewUrl(template: string, entryId: string, values: Record<string, unknown>): string {
   return template
@@ -99,6 +99,8 @@ export function EntriesTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   const allSelected = entries.length > 0 && entries.every((e) => selected.has(e.id));
   const someSelected = selected.size > 0;
@@ -128,6 +130,19 @@ export function EntriesTable({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
+  }
+
+  async function handleBulkArchive() {
+    setArchiving(true);
+    await apiFetch(`${apiBase}/${projectId}/categories/${categoryId}/entries`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "archive", ids: Array.from(selected) }),
+    });
+    setArchiving(false);
+    setArchiveConfirmOpen(false);
+    setSelected(new Set());
+    router.refresh();
   }
 
   async function handleBulkDelete() {
@@ -171,15 +186,28 @@ export function EntriesTable({
               Export Selected as JSON
             </button>
             <div className="w-px h-4 bg-indigo-200" />
-            <Button
-              variant="danger"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setConfirmOpen(true)}
-            >
-              <Trash2 size={13} />
-              Delete selected
-            </Button>
+            {canArchive && (
+              <Button
+                variant="warning"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setArchiveConfirmOpen(true)}
+              >
+                <Archive size={13} />
+                Archive selected
+              </Button>
+            )}
+            {canDelete && (
+              <Button
+                variant="danger"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setConfirmOpen(true)}
+              >
+                <Trash2 size={13} />
+                Delete selected
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -386,6 +414,17 @@ export function EntriesTable({
           </tbody>
         </table>
       </div>
+
+      <ConfirmModal
+        open={archiveConfirmOpen}
+        onClose={() => setArchiveConfirmOpen(false)}
+        onConfirm={handleBulkArchive}
+        title="Archive Entries"
+        message={`Archive ${selected.size} ${selected.size === 1 ? "entry" : "entries"}? They can be restored from the archive.`}
+        confirmLabel={`Archive ${selected.size} ${selected.size === 1 ? "entry" : "entries"}`}
+        variant="warning"
+        loading={archiving}
+      />
 
       <ConfirmModal
         open={confirmOpen}
