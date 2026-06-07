@@ -79,8 +79,15 @@ export function CreateEntryButton({
       <Button onClick={() => setOpen(true)} disabled={fields.length === 0}>
         New Row
       </Button>
-      <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); setTouched(false); }} title="New Entry" isDirty={touched} busy={loading}>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); setTouched(false); }} title="New Entry" isDirty={touched} busy={loading}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => modalRef.current?.attemptClose()}>Cancel</Button>
+            <Button type="submit" form="create-entry-form" loading={loading}>Create Entry</Button>
+          </div>
+        }
+      >
+        <form id="create-entry-form" onSubmit={handleSubmit} className="space-y-4">
           {fields.length === 0 && (
             <p className="text-sm text-slate-500">
               No fields defined for this category. Add field schema first.
@@ -188,10 +195,6 @@ export function CreateEntryButton({
             );
           })}
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" type="button" onClick={() => modalRef.current?.attemptClose()}>Cancel</Button>
-            <Button type="submit" loading={loading}>Create Entry</Button>
-          </div>
         </form>
       </Modal>
     </>

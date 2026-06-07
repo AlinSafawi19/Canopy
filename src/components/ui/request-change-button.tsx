@@ -99,6 +99,18 @@ export function RequestChangeButton({ entryId, projectId, categoryId, apiBase, o
         onClose={() => { setOpen(false); setNote(""); setError(""); }}
         title="Request Change"
         busy={submitting}
+        footer={
+          !fetching ? (
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" type="button" onClick={() => modalRef.current?.attemptClose()}>
+                Cancel
+              </Button>
+              <Button type="submit" form="request-change-form" loading={submitting} disabled={!note.trim()}>
+                Submit Request
+              </Button>
+            </div>
+          ) : undefined
+        }
       >
         {fetching ? (
           <div className="flex items-center justify-center py-6">
@@ -122,7 +134,7 @@ export function RequestChangeButton({ entryId, projectId, categoryId, apiBase, o
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form id="request-change-form" onSubmit={handleSubmit} className="space-y-3">
               {openRequests.length > 0 && (
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   New Request
@@ -140,14 +152,6 @@ export function RequestChangeButton({ entryId, projectId, categoryId, apiBase, o
                   {error}
                 </p>
               )}
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" type="button" onClick={() => modalRef.current?.attemptClose()}>
-                  Cancel
-                </Button>
-                <Button type="submit" loading={submitting} disabled={!note.trim()}>
-                  Submit Request
-                </Button>
-              </div>
             </form>
           </div>
         )}

@@ -227,7 +227,14 @@ export function ManageSchemaButton({
         )}
       </Button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Manage Columns" busy={loading}>
+      <Modal open={open} onClose={() => setOpen(false)} title="Manage Columns" busy={loading}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={attemptSave} loading={loading}>Save Columns</Button>
+          </div>
+        }
+      >
         <div className="space-y-3">
 
           {/* Bulk selection action bar */}
@@ -430,11 +437,6 @@ export function ManageSchemaButton({
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
           )}
-
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-            <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={attemptSave} loading={loading}>Save Columns</Button>
-          </div>
         </div>
       </Modal>
 

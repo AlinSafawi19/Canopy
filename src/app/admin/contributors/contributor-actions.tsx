@@ -128,14 +128,17 @@ export function ContributorActions({ contributor }: { contributor: Contributor }
         loading={loading}
       />
 
-      <Modal open={resetOpen} onClose={() => { setResetOpen(false); setError(""); }} title={`Reset — ${contributor.displayName}`} size="sm" busy={loading}>
-        <form onSubmit={resetPassword} className="space-y-4">
-          <Input label="New Password" type="password" showToggle value={newPassword} onChange={e => { setNewPassword(e.target.value); setError(""); }} required />
-          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+      <Modal open={resetOpen} onClose={() => { setResetOpen(false); setError(""); }} title={`Reset — ${contributor.displayName}`} size="sm" busy={loading}
+        footer={
           <div className="flex justify-end gap-3">
             <Button variant="outline" type="button" onClick={() => { setResetOpen(false); setError(""); }}>Cancel</Button>
-            <Button type="submit" loading={loading}>Reset</Button>
+            <Button type="submit" form="reset-password-form" loading={loading}>Reset</Button>
           </div>
+        }
+      >
+        <form id="reset-password-form" onSubmit={resetPassword} className="space-y-4">
+          <Input label="New Password" type="password" showToggle value={newPassword} onChange={e => { setNewPassword(e.target.value); setError(""); }} required />
+          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
         </form>
       </Modal>
     </>

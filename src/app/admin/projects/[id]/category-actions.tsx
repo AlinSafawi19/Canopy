@@ -157,8 +157,15 @@ export function CategoryActions({
         </ActionMenuItem>
       </ActionMenu>
 
-      <Modal ref={editModalRef} open={editOpen} onClose={() => { setEditOpen(false); setTouched(false); }} title="Edit Category" size="sm" isDirty={touched} busy={editLoading}>
-        <form onSubmit={saveEdit} className="space-y-4">
+      <Modal ref={editModalRef} open={editOpen} onClose={() => { setEditOpen(false); setTouched(false); }} title="Edit Category" size="sm" isDirty={touched} busy={editLoading}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => editModalRef.current?.attemptClose()}>Cancel</Button>
+            <Button type="submit" form="edit-category-form" loading={editLoading}>Save</Button>
+          </div>
+        }
+      >
+        <form id="edit-category-form" onSubmit={saveEdit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Name"
@@ -195,10 +202,6 @@ export function CategoryActions({
             </p>
           </div>
           {editError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{editError}</p>}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" type="button" onClick={() => editModalRef.current?.attemptClose()}>Cancel</Button>
-            <Button type="submit" loading={editLoading}>Save</Button>
-          </div>
         </form>
       </Modal>
 

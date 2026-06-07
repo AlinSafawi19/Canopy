@@ -201,8 +201,14 @@ export function AssignContributorsButton({ projectId, assignedContributors }: Pr
         title="Assign Contributor"
         size="sm"
         busy={loading}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => setAssignOpen(false)}>Cancel</Button>
+            <Button type="submit" form="assign-contrib-form" loading={loading} disabled={!selectedId}>Assign</Button>
+          </div>
+        }
       >
-        <form onSubmit={doAssign} className="space-y-4">
+        <form id="assign-contrib-form" onSubmit={doAssign} className="space-y-4">
           <ComboSelect
             endpoint="/api/client/selects/contributors"
             extraParams={{ excludeProjectId: projectId }}
@@ -219,10 +225,6 @@ export function AssignContributorsButton({ projectId, assignedContributors }: Pr
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
           )}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" type="button" onClick={() => setAssignOpen(false)}>Cancel</Button>
-            <Button type="submit" loading={loading} disabled={!selectedId}>Assign</Button>
-          </div>
         </form>
       </Modal>
 
@@ -233,13 +235,15 @@ export function AssignContributorsButton({ projectId, assignedContributors }: Pr
         title={`Permissions — ${editTarget?.displayName}`}
         size="sm"
         busy={loading}
-      >
-        <form onSubmit={doEditPermissions} className="space-y-4">
-          <PermissionsForm value={editPerms} onChange={setEditPerms} />
+        footer={
           <div className="flex justify-end gap-3">
             <Button variant="outline" type="button" onClick={() => setEditTarget(null)}>Cancel</Button>
-            <Button type="submit" loading={loading}>Save</Button>
+            <Button type="submit" form="edit-perms-form" loading={loading}>Save</Button>
           </div>
+        }
+      >
+        <form id="edit-perms-form" onSubmit={doEditPermissions} className="space-y-4">
+          <PermissionsForm value={editPerms} onChange={setEditPerms} />
         </form>
       </Modal>
 

@@ -191,8 +191,18 @@ export function ProjectActions({ project, assignedClient }: Props) {
         title={assignedClient ? "Change Client" : "Assign Client"}
         size="sm"
         busy={loading}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => { setAssignOpen(false); setAssignError(""); setSelectedId(""); setSelectedLabel(""); }}>
+              Cancel
+            </Button>
+            <Button type="submit" form="assign-client-form" loading={loading} disabled={!selectedId}>
+              {assignedClient ? "Change" : "Assign"}
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={doAssign} className="space-y-4">
+        <form id="assign-client-form" onSubmit={doAssign} className="space-y-4">
           {assignedClient && (
             <div className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">
               Currently assigned: <span className="font-medium text-slate-800">{assignedClient.displayName}</span>
@@ -211,14 +221,6 @@ export function ProjectActions({ project, assignedClient }: Props) {
           {assignError && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{assignError}</p>
           )}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" type="button" onClick={() => { setAssignOpen(false); setAssignError(""); setSelectedId(""); setSelectedLabel(""); }}>
-              Cancel
-            </Button>
-            <Button type="submit" loading={loading} disabled={!selectedId}>
-              {assignedClient ? "Change" : "Assign"}
-            </Button>
-          </div>
         </form>
       </Modal>
 

@@ -181,6 +181,26 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
         onClose={closeSetup}
         title={setupStep === "qr" ? "Set up authenticator" : "Save your backup codes"}
         busy={setupLoading}
+        footer={
+          setupStep === "qr" ? (
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" type="button" onClick={closeSetup}>Cancel</Button>
+              <Button type="submit" form="2fa-confirm" loading={setupLoading}>Verify & Enable</Button>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" size="md" onClick={downloadBackupCodes} className="gap-1.5">
+                <Download size={14} />
+                Download
+              </Button>
+              <Button variant="outline" size="md" onClick={copyBackupCodes} className="gap-1.5">
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                {copied ? "Copied" : "Copy all"}
+              </Button>
+              <Button size="md" onClick={closeSetup}>Done</Button>
+            </div>
+          )
+        }
       >
         {setupStep === "qr" ? (
           <div className="space-y-5">
@@ -214,7 +234,7 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
               </div>
             </div>
 
-            <form onSubmit={confirmSetup} className="space-y-4" id="2fa-confirm">
+            <form id="2fa-confirm" onSubmit={confirmSetup} className="space-y-4">
               <Input
                 type="text"
                 label="Verification Code"
@@ -229,10 +249,6 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
               {setupError && (
                 <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{setupError}</p>
               )}
-              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-                <Button variant="outline" type="button" onClick={closeSetup}>Cancel</Button>
-                <Button type="submit" loading={setupLoading}>Verify & Enable</Button>
-              </div>
             </form>
           </div>
         ) : (
@@ -247,18 +263,6 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
                   {code}
                 </span>
               ))}
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-              <Button variant="outline" size="md" onClick={downloadBackupCodes} className="gap-1.5">
-                <Download size={14} />
-                Download
-              </Button>
-              <Button variant="outline" size="md" onClick={copyBackupCodes} className="gap-1.5">
-                {copied ? <Check size={14} /> : <Copy size={14} />}
-                {copied ? "Copied" : "Copy all"}
-              </Button>
-              <Button size="md" onClick={closeSetup}>Done</Button>
             </div>
           </div>
         )}
@@ -296,6 +300,30 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
         open={codesOpen}
         onClose={() => setCodesOpen(false)}
         title="Your Backup Codes"
+        footer={
+          !showBackupCodes ? (
+            <div className="flex gap-3">
+              <Button variant="outline" size="md" onClick={() => setShowBackupCodes(true)} className="flex-1">
+                View Codes
+              </Button>
+              <Button variant="outline" size="md" onClick={() => setShowBackupCodes(true)} className="flex-1">
+                Regenerate
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" size="md" onClick={downloadBackupCodes} className="gap-1.5">
+                <Download size={14} />
+                Download
+              </Button>
+              <Button variant="outline" size="md" onClick={copyBackupCodes} className="gap-1.5">
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                {copied ? "Copied" : "Copy all"}
+              </Button>
+              <Button size="md" onClick={() => setCodesOpen(false)}>Done</Button>
+            </div>
+          )
+        }
       >
         <div className="space-y-4">
           {!showBackupCodes ? (
@@ -307,24 +335,6 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
                 <p className="text-sm text-indigo-700">
                   <strong>Keep these codes safe.</strong> Store them somewhere secure like a password manager.
                 </p>
-              </div>
-              <div className="flex gap-3 pt-2 border-t border-slate-100">
-                <Button
-                  variant="outline"
-                  size="md"
-                  onClick={() => setShowBackupCodes(true)}
-                  className="flex-1"
-                >
-                  View Codes
-                </Button>
-                <Button
-                  variant="outline"
-                  size="md"
-                  onClick={() => setShowBackupCodes(true)}
-                  className="flex-1"
-                >
-                  Regenerate
-                </Button>
               </div>
             </>
           ) : (
@@ -342,17 +352,6 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
               {codesError && (
                 <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{codesError}</p>
               )}
-              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-                <Button variant="outline" size="md" onClick={downloadBackupCodes} className="gap-1.5">
-                  <Download size={14} />
-                  Download
-                </Button>
-                <Button variant="outline" size="md" onClick={copyBackupCodes} className="gap-1.5">
-                  {copied ? <Check size={14} /> : <Copy size={14} />}
-                  {copied ? "Copied" : "Copy all"}
-                </Button>
-                <Button size="md" onClick={() => setCodesOpen(false)}>Done</Button>
-              </div>
             </>
           )}
         </div>

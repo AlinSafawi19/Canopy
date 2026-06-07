@@ -98,8 +98,19 @@ export function AssignClientButton({ projectId, assignedClient }: Props) {
         </Button>
       )}
 
-      <Modal open={assignOpen} onClose={() => { setAssignOpen(false); setError(""); setSelectedId(""); setSelectedLabel(""); }} title="Assign Client" size="sm" busy={loading}>
-        <form onSubmit={doAssign} className="space-y-4">
+      <Modal open={assignOpen} onClose={() => { setAssignOpen(false); setError(""); setSelectedId(""); setSelectedLabel(""); }} title="Assign Client" size="sm" busy={loading}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => { setAssignOpen(false); setError(""); setSelectedId(""); setSelectedLabel(""); }}>
+              Cancel
+            </Button>
+            <Button type="submit" form="assign-client-project-form" loading={loading} disabled={!selectedId}>
+              Assign
+            </Button>
+          </div>
+        }
+      >
+        <form id="assign-client-project-form" onSubmit={doAssign} className="space-y-4">
           <ComboSelect
             endpoint="/api/admin/selects/clients"
             extraParams={assignedClient ? { excludeId: assignedClient.id } : {}}
@@ -111,14 +122,6 @@ export function AssignClientButton({ projectId, assignedClient }: Props) {
             required
           />
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" type="button" onClick={() => { setAssignOpen(false); setError(""); setSelectedId(""); setSelectedLabel(""); }}>
-              Cancel
-            </Button>
-            <Button type="submit" loading={loading} disabled={!selectedId}>
-              Assign
-            </Button>
-          </div>
         </form>
       </Modal>
 

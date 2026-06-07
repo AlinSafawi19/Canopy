@@ -137,6 +137,12 @@ export function ClientActions({ client, assignedProjects }: Props) {
         title={`Projects — ${client.displayName}`}
         size="sm"
         busy={loading}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => setAssignOpen(false)}>Cancel</Button>
+            <Button type="submit" form="client-assign-project-form" loading={loading} disabled={!selectedProjectId}>Assign</Button>
+          </div>
+        }
       >
         <div className="space-y-4">
           {assignedProjects.length > 0 && (
@@ -161,7 +167,7 @@ export function ClientActions({ client, assignedProjects }: Props) {
             </div>
           )}
 
-          <form onSubmit={doAssign} className="space-y-3">
+          <form id="client-assign-project-form" onSubmit={doAssign} className="space-y-3">
             <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
               {assignedProjects.length > 0 ? "Add another project" : "Assign to project"}
               <span className="text-red-500 ml-0.5">*</span>
@@ -174,10 +180,6 @@ export function ClientActions({ client, assignedProjects }: Props) {
               placeholder="— choose a project —"
             />
             {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" type="button" onClick={() => setAssignOpen(false)}>Cancel</Button>
-              <Button type="submit" loading={loading} disabled={!selectedProjectId}>Assign</Button>
-            </div>
           </form>
         </div>
       </Modal>

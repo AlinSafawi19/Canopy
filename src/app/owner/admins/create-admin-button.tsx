@@ -68,8 +68,15 @@ export function CreateAdminButton() {
     <>
       <Button onClick={() => setOpen(true)} data-wt="create-admin-btn">New Admin</Button>
 
-      <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); reset(); }} title="Create Admin Account" isDirty={touched} busy={loading}>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); reset(); }} title="Create Admin Account" isDirty={touched} busy={loading}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => modalRef.current?.attemptClose()}>Cancel</Button>
+            <Button type="submit" form="create-admin-form" loading={loading}>Create & get invite link</Button>
+          </div>
+        }
+      >
+        <form id="create-admin-form" onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Display name"
@@ -107,10 +114,6 @@ export function CreateAdminButton() {
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
           )}
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" type="button" onClick={() => modalRef.current?.attemptClose()}>Cancel</Button>
-            <Button type="submit" loading={loading}>Create & get invite link</Button>
-          </div>
         </form>
       </Modal>
 

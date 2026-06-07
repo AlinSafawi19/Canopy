@@ -137,8 +137,15 @@ export function EntryActions({
         loading={loading}
       />
 
-      <Modal ref={editModalRef} open={editOpen} onClose={() => { setEditOpen(false); setTouched(false); setError(""); }} title="Edit Entry" isDirty={touched} busy={loading}>
-        <form onSubmit={save} className="space-y-4">
+      <Modal ref={editModalRef} open={editOpen} onClose={() => { setEditOpen(false); setTouched(false); setError(""); }} title="Edit Entry" isDirty={touched} busy={loading}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => editModalRef.current?.attemptClose()}>Cancel</Button>
+            <Button type="submit" form="edit-entry-form" loading={loading}>Save</Button>
+          </div>
+        }
+      >
+        <form id="edit-entry-form" onSubmit={save} className="space-y-4">
           {fields.map((field) => {
             if (field.type === "rich_text") return (
               <RichTextEditor
@@ -234,10 +241,6 @@ export function EntryActions({
             );
           })}
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" type="button" onClick={() => editModalRef.current?.attemptClose()}>Cancel</Button>
-            <Button type="submit" loading={loading}>Save</Button>
-          </div>
         </form>
       </Modal>
     </div>

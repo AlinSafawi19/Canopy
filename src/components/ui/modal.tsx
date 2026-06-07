@@ -12,6 +12,8 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
+  /** Sticky footer rendered below the scrollable content — put action buttons here. */
+  footer?: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
   isDirty?: boolean;
   /** While true, the modal can't be closed (X / backdrop / Escape) — use during in-flight actions. */
@@ -27,6 +29,7 @@ export const Modal = forwardRef<ModalRef, ModalProps>(function Modal({
   onClose,
   title,
   children,
+  footer,
   size = "md",
   isDirty = false,
   busy = false,
@@ -111,6 +114,11 @@ export const Modal = forwardRef<ModalRef, ModalProps>(function Modal({
           </div>
         )}
         <div className="p-6 overflow-y-auto flex-1 min-h-0">{children}</div>
+        {footer && (
+          <div className="flex-shrink-0 px-6 py-4 border-t border-slate-100">
+            {footer}
+          </div>
+        )}
 
         {confirmingClose && (
           <div className="absolute inset-0 z-10 bg-white/90 backdrop-blur-[2px] rounded-xl flex items-center justify-center p-6">

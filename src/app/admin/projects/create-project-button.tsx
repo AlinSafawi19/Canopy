@@ -142,7 +142,23 @@ export function CreateProjectButton() {
   return (
     <>
       <Button onClick={() => setOpen(true)}>New Project</Button>
-      <Modal ref={modalRef} open={open} onClose={cancelClose} title="Create Project" size="lg" isDirty={touched} busy={loading}>
+      <Modal ref={modalRef} open={open} onClose={cancelClose} title="Create Project" size="lg" isDirty={touched} busy={loading}
+        footer={
+          <div className="flex justify-between gap-3">
+            <Button variant="outline" type="button" onClick={() => modalRef.current?.attemptClose()}>Cancel</Button>
+            <div className="flex gap-3">
+              {step > 0 && (
+                <Button variant="outline" type="button" onClick={back}>Back</Button>
+              )}
+              {step < STEPS.length - 1 ? (
+                <Button type="button" onClick={next}>Next</Button>
+              ) : (
+                <Button type="button" onClick={handleSubmit} loading={loading}>Create Project</Button>
+              )}
+            </div>
+          </div>
+        }
+      >
 
         {/* Stepper */}
         <div className="flex items-center mb-6">
@@ -268,20 +284,6 @@ export function CreateProjectButton() {
           )}
 
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
-
-          <div className="flex justify-between gap-3 pt-2">
-            <Button variant="outline" type="button" onClick={() => modalRef.current?.attemptClose()}>Cancel</Button>
-            <div className="flex gap-3">
-              {step > 0 && (
-                <Button variant="outline" type="button" onClick={back}>Back</Button>
-              )}
-              {step < STEPS.length - 1 ? (
-                <Button type="button" onClick={next}>Next</Button>
-              ) : (
-                <Button type="button" onClick={handleSubmit} loading={loading}>Create Project</Button>
-              )}
-            </div>
-          </div>
         </form>
       </Modal>
     </>

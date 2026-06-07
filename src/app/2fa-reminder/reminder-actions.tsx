@@ -111,6 +111,26 @@ export function ReminderActions({ nextHref }: { nextHref: string }) {
         onClose={() => setSetupOpen(false)}
         title={setupStep === "qr" ? "Set up authenticator" : "Save your backup codes"}
         busy={setupLoading}
+        footer={
+          setupStep === "qr" ? (
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" type="button" onClick={() => setSetupOpen(false)}>Cancel</Button>
+              <Button type="submit" form="2fa-reminder-form" loading={setupLoading}>Verify & Enable</Button>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" size="sm" onClick={downloadBackupCodes} className="gap-1.5">
+                <Download size={14} />
+                Download
+              </Button>
+              <Button variant="outline" size="sm" onClick={copyBackupCodes} className="gap-1.5">
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                {copied ? "Copied" : "Copy all"}
+              </Button>
+              <Button size="sm" onClick={() => router.push(nextHref)}>Done</Button>
+            </div>
+          )
+        }
       >
         {setupStep === "qr" ? (
           <div className="space-y-5">
@@ -144,7 +164,7 @@ export function ReminderActions({ nextHref }: { nextHref: string }) {
               </div>
             </div>
 
-            <form onSubmit={confirmSetup} className="space-y-4">
+            <form id="2fa-reminder-form" onSubmit={confirmSetup} className="space-y-4">
               <Input
                 label="Verification Code"
                 value={verifyCode}
@@ -158,10 +178,6 @@ export function ReminderActions({ nextHref }: { nextHref: string }) {
               {setupError && (
                 <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{setupError}</p>
               )}
-              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-                <Button variant="outline" type="button" onClick={() => setSetupOpen(false)}>Cancel</Button>
-                <Button type="submit" loading={setupLoading}>Verify & Enable</Button>
-              </div>
             </form>
           </div>
         ) : (
@@ -176,18 +192,6 @@ export function ReminderActions({ nextHref }: { nextHref: string }) {
                   {code}
                 </span>
               ))}
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-              <Button variant="outline" size="sm" onClick={downloadBackupCodes} className="gap-1.5">
-                <Download size={14} />
-                Download
-              </Button>
-              <Button variant="outline" size="sm" onClick={copyBackupCodes} className="gap-1.5">
-                {copied ? <Check size={14} /> : <Copy size={14} />}
-                {copied ? "Copied" : "Copy all"}
-              </Button>
-              <Button size="sm" onClick={() => router.push(nextHref)}>Done</Button>
             </div>
           </div>
         )}

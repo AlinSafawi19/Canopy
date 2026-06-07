@@ -67,7 +67,18 @@ export function CreateApiKeyButton({ projectId, basePath = "/api/admin/projects"
       <Button size="md" variant="outline" onClick={() => setOpen(true)}>
         New Key
       </Button>
-      <Modal open={open} onClose={handleClose} title="Create API Key" size="sm" busy={loading}>
+      <Modal open={open} onClose={handleClose} title="Create API Key" size="sm" busy={loading}
+        footer={
+          createdKey ? (
+            <Button className="w-full" onClick={handleClose}>Done</Button>
+          ) : (
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={handleClose} disabled={loading}>Cancel</Button>
+              <Button onClick={handleCreate} loading={loading}>Create Key</Button>
+            </div>
+          )
+        }
+      >
         {createdKey ? (
           <div className="space-y-4">
             <div className="flex items-start gap-2.5 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
@@ -81,28 +92,21 @@ export function CreateApiKeyButton({ projectId, basePath = "/api/admin/projects"
                 <CopyButton text={createdKey} />
               </div>
             </div>
-            <Button className="w-full" onClick={handleClose}>Done</Button>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Key Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-                placeholder="e.g. Production, Portfolio Site"
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                autoFocus
-                maxLength={LIMITS.API_KEY_NAME}
-              />
-              {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={handleClose} disabled={loading}>Cancel</Button>
-              <Button onClick={handleCreate} loading={loading}>Create Key</Button>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Key Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+              placeholder="e.g. Production, Portfolio Site"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              autoFocus
+              maxLength={LIMITS.API_KEY_NAME}
+            />
+            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           </div>
         )}
       </Modal>

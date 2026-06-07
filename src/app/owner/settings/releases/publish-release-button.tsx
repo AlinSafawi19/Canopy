@@ -88,6 +88,30 @@ export function PublishReleaseButton({ editRelease, onClose, open: controlledOpe
         title={isEdit ? "Edit Release" : "New Release"}
         size="lg"
         busy={loading !== null}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => modalRef.current?.attemptClose()}>
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              type="button"
+              loading={loading === "draft"}
+              disabled={loading === "published"}
+              onClick={() => handleSubmit("draft")}
+            >
+              Save draft
+            </Button>
+            <Button
+              type="button"
+              loading={loading === "published"}
+              disabled={loading === "draft"}
+              onClick={() => handleSubmit("published")}
+            >
+              {isEdit && editRelease?.status === "published" ? "Save & republish" : "Publish & notify users"}
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -118,29 +142,6 @@ export function PublishReleaseButton({ editRelease, onClose, open: controlledOpe
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
           )}
-
-          <div className="flex justify-end gap-3 pt-1">
-            <Button variant="outline" type="button" onClick={() => modalRef.current?.attemptClose()}>
-              Cancel
-            </Button>
-            <Button
-              variant="outline"
-              type="button"
-              loading={loading === "draft"}
-              disabled={loading === "published"}
-              onClick={() => handleSubmit("draft")}
-            >
-              Save draft
-            </Button>
-            <Button
-              type="button"
-              loading={loading === "published"}
-              disabled={loading === "draft"}
-              onClick={() => handleSubmit("published")}
-            >
-              {isEdit && editRelease?.status === "published" ? "Save & republish" : "Publish & notify users"}
-            </Button>
-          </div>
         </div>
       </Modal>
     </>
