@@ -136,6 +136,7 @@ export function ClientActions({ client, assignedProjects }: Props) {
         onClose={() => setAssignOpen(false)}
         title={`Projects — ${client.displayName}`}
         size="sm"
+        busy={loading}
       >
         <div className="space-y-4">
           {assignedProjects.length > 0 && (

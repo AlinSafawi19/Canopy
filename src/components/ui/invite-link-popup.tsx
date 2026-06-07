@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Link2, Copy, Check, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 interface InviteLinkPopupProps {
   inviteUrl: string;
@@ -13,6 +14,7 @@ interface InviteLinkPopupProps {
 
 export function InviteLinkPopup({ inviteUrl, displayName, onClose }: InviteLinkPopupProps) {
   const [copied, setCopied] = useState(false);
+  useScrollLock(true);
 
   function handleCopy() {
     navigator.clipboard.writeText(inviteUrl).then(() => {

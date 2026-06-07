@@ -99,6 +99,7 @@ export function ProjectContributorsButton({ projectId, assignedContributors }: P
         onClose={() => setAssignOpen(false)}
         title="Assign Contributor"
         size="sm"
+        busy={loading}
       >
         <form onSubmit={doAssign} className="space-y-4">
           <ComboSelect

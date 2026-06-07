@@ -87,6 +87,7 @@ export function PublishReleaseButton({ editRelease, onClose, open: controlledOpe
         onClose={handleClose}
         title={isEdit ? "Edit Release" : "New Release"}
         size="lg"
+        busy={loading !== null}
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

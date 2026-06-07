@@ -79,7 +79,7 @@ export function CreateEntryButton({
       <Button size="sm" onClick={() => setOpen(true)} disabled={fields.length === 0}>
         New Row
       </Button>
-      <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); setTouched(false); }} title="New Entry" isDirty={touched}>
+      <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); setTouched(false); }} title="New Entry" isDirty={touched} busy={loading}>
         <form onSubmit={handleSubmit} className="space-y-4">
           {fields.length === 0 && (
             <p className="text-sm text-slate-500">

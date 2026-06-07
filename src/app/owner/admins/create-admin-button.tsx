@@ -68,7 +68,7 @@ export function CreateAdminButton() {
     <>
       <Button onClick={() => setOpen(true)} data-wt="create-admin-btn">New Admin</Button>
 
-      <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); reset(); }} title="Create Admin Account" isDirty={touched}>
+      <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); reset(); }} title="Create Admin Account" isDirty={touched} busy={loading}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input

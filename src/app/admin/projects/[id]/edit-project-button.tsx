@@ -183,7 +183,7 @@ export function EditProjectButton({ project, open: controlledOpen, onClose: cont
           Edit
         </Button>
       )}
-      <Modal ref={modalRef} open={open} onClose={cancelClose} title="Edit Project" size="lg" isDirty={touched}>
+      <Modal ref={modalRef} open={open} onClose={cancelClose} title="Edit Project" size="lg" isDirty={touched} busy={loading}>
         {/* Stepper */}
         <div className="flex items-center mb-6">
           {STEPS.map((s, i) => (

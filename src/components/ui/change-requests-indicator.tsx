@@ -182,7 +182,7 @@ export function ChangeRequestsIndicator({
         </button>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Change Requests" size="lg">
+      <Modal open={open} onClose={() => setOpen(false)} title="Change Requests" size="lg" busy={acting !== null}>
         {fetching ? (
           <div className="flex items-center justify-center py-10">
             <div className="w-5 h-5 rounded-full border-2 border-slate-200 border-t-indigo-500 animate-spin" />

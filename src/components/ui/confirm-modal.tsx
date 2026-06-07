@@ -27,7 +27,7 @@ export function ConfirmModal({
   children,
 }: ConfirmModalProps) {
   return (
-    <Modal open={open} onClose={onClose} title={title} size="sm">
+    <Modal open={open} onClose={onClose} title={title} size="sm" busy={loading}>
       <div className="space-y-4">
         {message && <p className="text-sm text-slate-600 break-words">{message}</p>}
         {children}

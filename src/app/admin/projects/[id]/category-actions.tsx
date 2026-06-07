@@ -157,7 +157,7 @@ export function CategoryActions({
         </ActionMenuItem>
       </ActionMenu>
 
-      <Modal ref={editModalRef} open={editOpen} onClose={() => { setEditOpen(false); setTouched(false); }} title="Edit Category" size="sm" isDirty={touched}>
+      <Modal ref={editModalRef} open={editOpen} onClose={() => { setEditOpen(false); setTouched(false); }} title="Edit Category" size="sm" isDirty={touched} busy={editLoading}>
         <form onSubmit={saveEdit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input

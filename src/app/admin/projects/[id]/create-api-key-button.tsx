@@ -67,7 +67,7 @@ export function CreateApiKeyButton({ projectId, basePath = "/api/admin/projects"
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
         New Key
       </Button>
-      <Modal open={open} onClose={handleClose} title="Create API Key" size="sm">
+      <Modal open={open} onClose={handleClose} title="Create API Key" size="sm" busy={loading}>
         {createdKey ? (
           <div className="space-y-4">
             <div className="flex items-start gap-2.5 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">

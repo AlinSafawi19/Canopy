@@ -190,6 +190,7 @@ export function ProjectActions({ project, assignedClient }: Props) {
         onClose={() => { setAssignOpen(false); setAssignError(""); setSelectedId(""); setSelectedLabel(""); }}
         title={assignedClient ? "Change Client" : "Assign Client"}
         size="sm"
+        busy={loading}
       >
         <form onSubmit={doAssign} className="space-y-4">
           {assignedClient && (

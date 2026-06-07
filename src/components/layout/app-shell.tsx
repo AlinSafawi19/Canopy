@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { NavigationLoader } from "./navigation-loader";
@@ -43,6 +44,7 @@ export function AppShell({
   pendingRequestsCount = 0,
 }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  useScrollLock(mobileOpen);
 
   return (
     <div className="min-h-screen bg-slate-50">

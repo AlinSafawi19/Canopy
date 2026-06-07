@@ -200,6 +200,7 @@ export function AssignContributorsButton({ projectId, assignedContributors }: Pr
         onClose={() => setAssignOpen(false)}
         title="Assign Contributor"
         size="sm"
+        busy={loading}
       >
         <form onSubmit={doAssign} className="space-y-4">
           <ComboSelect
@@ -231,6 +232,7 @@ export function AssignContributorsButton({ projectId, assignedContributors }: Pr
         onClose={() => setEditTarget(null)}
         title={`Permissions — ${editTarget?.displayName}`}
         size="sm"
+        busy={loading}
       >
         <form onSubmit={doEditPermissions} className="space-y-4">
           <PermissionsForm value={editPerms} onChange={setEditPerms} />

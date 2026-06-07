@@ -180,6 +180,7 @@ export function TwoFactorSection({ twoFactorEnabled }: { twoFactorEnabled: boole
         open={setupOpen}
         onClose={closeSetup}
         title={setupStep === "qr" ? "Set up authenticator" : "Save your backup codes"}
+        busy={setupLoading}
       >
         {setupStep === "qr" ? (
           <div className="space-y-5">

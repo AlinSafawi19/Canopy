@@ -217,7 +217,7 @@ export function ManageSchemaButton({
         )}
       </Button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Manage Columns">
+      <Modal open={open} onClose={() => setOpen(false)} title="Manage Columns" busy={loading}>
         <div className="space-y-3">
 
           {/* Bulk selection action bar */}

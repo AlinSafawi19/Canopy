@@ -142,7 +142,7 @@ export function CreateProjectButton() {
   return (
     <>
       <Button onClick={() => setOpen(true)}>New Project</Button>
-      <Modal ref={modalRef} open={open} onClose={cancelClose} title="Create Project" size="lg" isDirty={touched}>
+      <Modal ref={modalRef} open={open} onClose={cancelClose} title="Create Project" size="lg" isDirty={touched} busy={loading}>
 
         {/* Stepper */}
         <div className="flex items-center mb-6">

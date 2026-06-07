@@ -98,6 +98,7 @@ export function RequestChangeButton({ entryId, projectId, categoryId, apiBase, o
         open={open}
         onClose={() => { setOpen(false); setNote(""); setError(""); }}
         title="Request Change"
+        busy={submitting}
       >
         {fetching ? (
           <div className="flex items-center justify-center py-6">

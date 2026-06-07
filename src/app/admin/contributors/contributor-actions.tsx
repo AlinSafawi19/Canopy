@@ -128,7 +128,7 @@ export function ContributorActions({ contributor }: { contributor: Contributor }
         loading={loading}
       />
 
-      <Modal open={resetOpen} onClose={() => { setResetOpen(false); setError(""); }} title={`Reset — ${contributor.displayName}`} size="sm">
+      <Modal open={resetOpen} onClose={() => { setResetOpen(false); setError(""); }} title={`Reset — ${contributor.displayName}`} size="sm" busy={loading}>
         <form onSubmit={resetPassword} className="space-y-4">
           <Input label="New Password" type="password" showToggle value={newPassword} onChange={e => { setNewPassword(e.target.value); setError(""); }} required />
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}

@@ -110,6 +110,7 @@ export function ReminderActions({ nextHref }: { nextHref: string }) {
         open={setupOpen}
         onClose={() => setSetupOpen(false)}
         title={setupStep === "qr" ? "Set up authenticator" : "Save your backup codes"}
+        busy={setupLoading}
       >
         {setupStep === "qr" ? (
           <div className="space-y-5">

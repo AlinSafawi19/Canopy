@@ -45,7 +45,7 @@ export function CreateCategoryButton({ projectId, basePath = "/api/admin/project
       <Button size="sm" onClick={() => setOpen(true)}>
         Add Category
       </Button>
-      <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); setTouched(false); }} title="Create Category" size="sm" isDirty={touched}>
+      <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); setTouched(false); }} title="Create Category" size="sm" isDirty={touched} busy={loading}>
         <form onSubmit={handleSubmit} className="space-y-4" onInput={() => setTouched(true)}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Name" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} required maxLength={LIMITS.CATEGORY_NAME} />

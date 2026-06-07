@@ -64,7 +64,7 @@ export function CreateContributorButton() {
     <>
       <Button onClick={() => setOpen(true)}>New Contributor</Button>
 
-      <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); reset(); }} title="Add Contributor" isDirty={touched}>
+      <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); reset(); }} title="Add Contributor" isDirty={touched} busy={loading}>
         <form onSubmit={handleSubmit} className="space-y-4" onInput={() => setTouched(true)}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input

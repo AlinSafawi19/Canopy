@@ -145,6 +145,7 @@ export function ContributorActions({ contributor, currentProjects }: Props) {
         onClose={() => setManageOpen(false)}
         title={`Projects — ${contributor.displayName}`}
         size="sm"
+        busy={loading}
       >
         <div className="space-y-4">
           {currentProjects.length > 0 && (

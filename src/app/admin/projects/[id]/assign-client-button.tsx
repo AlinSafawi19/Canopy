@@ -98,7 +98,7 @@ export function AssignClientButton({ projectId, assignedClient }: Props) {
         </Button>
       )}
 
-      <Modal open={assignOpen} onClose={() => { setAssignOpen(false); setError(""); setSelectedId(""); setSelectedLabel(""); }} title="Assign Client" size="sm">
+      <Modal open={assignOpen} onClose={() => { setAssignOpen(false); setError(""); setSelectedId(""); setSelectedLabel(""); }} title="Assign Client" size="sm" busy={loading}>
         <form onSubmit={doAssign} className="space-y-4">
           <ComboSelect
             endpoint="/api/admin/selects/clients"

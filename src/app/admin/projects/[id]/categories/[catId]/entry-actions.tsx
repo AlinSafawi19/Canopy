@@ -137,7 +137,7 @@ export function EntryActions({
         loading={loading}
       />
 
-      <Modal ref={editModalRef} open={editOpen} onClose={() => { setEditOpen(false); setTouched(false); setError(""); }} title="Edit Entry" isDirty={touched}>
+      <Modal ref={editModalRef} open={editOpen} onClose={() => { setEditOpen(false); setTouched(false); setError(""); }} title="Edit Entry" isDirty={touched} busy={loading}>
         <form onSubmit={save} className="space-y-4">
           {fields.map((field) => {
             if (field.type === "rich_text") return (

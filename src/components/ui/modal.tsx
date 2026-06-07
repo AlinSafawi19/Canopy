@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { Button } from "./button";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
 import { createPortal } from "react-dom";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 interface ModalProps {
   open: boolean;
@@ -13,6 +14,8 @@ interface ModalProps {
   children: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
   isDirty?: boolean;
+  /** While true, the modal can't be closed (X / backdrop / Escape) — use during in-flight actions. */
+  busy?: boolean;
 }
 
 export interface ModalRef {
@@ -26,16 +29,18 @@ export const Modal = forwardRef<ModalRef, ModalProps>(function Modal({
   children,
   size = "md",
   isDirty = false,
+  busy = false,
 }, ref) {
   const [confirmingClose, setConfirmingClose] = useState(false);
 
   const attemptClose = useCallback(() => {
+    if (busy) return; // an action is running — block all close paths
     if (isDirty) {
       setConfirmingClose(true);
     } else {
       onClose();
     }
-  }, [isDirty, onClose]);
+  }, [busy, isDirty, onClose]);
 
   const forceClose = useCallback(() => {
     setConfirmingClose(false);
@@ -43,6 +48,8 @@ export const Modal = forwardRef<ModalRef, ModalProps>(function Modal({
   }, [onClose]);
 
   useImperativeHandle(ref, () => ({ attemptClose }), [attemptClose]);
+
+  useScrollLock(open);
 
   useEffect(() => {
     if (!open) setConfirmingClose(false);
@@ -96,7 +103,8 @@ export const Modal = forwardRef<ModalRef, ModalProps>(function Modal({
             <h2 className="text-base font-semibold text-slate-900">{title}</h2>
             <button
               onClick={attemptClose}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              disabled={busy}
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400"
             >
               <X size={18} />
             </button>

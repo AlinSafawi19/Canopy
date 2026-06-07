@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { Sparkles } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/button";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 interface PendingRelease {
   id: string;
@@ -22,6 +23,7 @@ interface ReleasePopupProps {
 export function ReleasePopup({ release }: ReleasePopupProps) {
   const [visible, setVisible] = useState(true);
   const [loading, setLoading] = useState(false);
+  useScrollLock(visible);
 
   async function handleAck() {
     setLoading(true);

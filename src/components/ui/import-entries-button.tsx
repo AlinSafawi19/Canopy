@@ -447,7 +447,7 @@ export function ImportEntriesButton({
         Import
       </Button>
 
-      <Modal open={open} onClose={onModalClose} title={modalTitle} size="xl">
+      <Modal open={open} onClose={onModalClose} title={modalTitle} size="xl" busy={loading}>
         {/* ── Manage Columns view ── */}
         {view === "manage" && (
           <ManageColumnsPanel
@@ -670,11 +670,11 @@ export function ImportEntriesButton({
 
           {/* Actions — pinned footer */}
           <div className={VIEW_FOOTER}>
-            <Button variant="outline" type="button" onClick={reset}>
-              Import another file
+            <Button variant="outline" type="button" onClick={handleClose}>
+              {result ? "Close" : "Cancel"}
             </Button>
             {result ? (
-              <Button type="button" variant="primary" onClick={handleClose}>{result ? "Close" : "Cancel"}</Button>
+              <Button type="button" variant="primary" onClick={reset}>Import another file</Button>
             ) : (
               <Button
                 type="button"
