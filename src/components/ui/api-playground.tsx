@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Send, Plus, X, ChevronRight, ChevronDown, FolderTree } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -103,16 +104,21 @@ export function ApiPlayground({ projects }: Props) {
 
   // collection dropdown
   const [collectionOpen, setCollectionOpen] = useState(false);
-  const [dropLeft, setDropLeft] = useState(true);
+  const [dropPos, setDropPos] = useState<{ top: number; left?: number; right?: number } | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const collectionRef = useRef<HTMLDivElement>(null);
+  const collectionBtnRef = useRef<HTMLButtonElement>(null);
+  const collectionPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setOrigin(window.location.origin); }, []);
 
   useEffect(() => {
     if (!collectionOpen) return;
     function handler(e: MouseEvent) {
-      if (!collectionRef.current?.contains(e.target as Node)) setCollectionOpen(false);
+      if (
+        collectionBtnRef.current?.contains(e.target as Node) ||
+        collectionPanelRef.current?.contains(e.target as Node)
+      ) return;
+      setCollectionOpen(false);
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -219,21 +225,39 @@ export function ApiPlayground({ projects }: Props) {
           </div>
 
           {/* Collection / endpoint browser */}
-          <div className="relative" ref={collectionRef}>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
-                if (!collectionOpen && collectionRef.current) {
-                  const rect = collectionRef.current.getBoundingClientRect();
-                  setDropLeft(rect.right + 288 > window.innerWidth);
+          <div className="relative">
+            <Button
+              ref={collectionBtnRef}
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                if (!collectionOpen && collectionBtnRef.current) {
+                  const rect = collectionBtnRef.current.getBoundingClientRect();
+                  const openRight = rect.left + 288 <= window.innerWidth - 8;
+                  setDropPos({
+                    top: rect.bottom + 4,
+                    ...(openRight ? { left: rect.left } : { right: window.innerWidth - rect.right }),
+                  });
                 }
                 setCollectionOpen((v) => !v);
-              }}>
+              }}
+            >
               <FolderTree size={14} />
               Endpoints
               <ChevronDown size={13} className={collectionOpen ? "rotate-180 transition-transform" : "transition-transform"} />
             </Button>
 
-            {collectionOpen && (
-              <div className={`absolute ${dropLeft ? "right-0" : "left-0"} top-full mt-1 w-72 max-h-96 overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200 z-50 p-1.5`}>
+            {collectionOpen && dropPos && typeof document !== "undefined" && createPortal(
+              <div
+                ref={collectionPanelRef}
+                style={{
+                  position: "fixed",
+                  top: dropPos.top,
+                  ...(dropPos.left !== undefined ? { left: dropPos.left } : { right: dropPos.right }),
+                  zIndex: 9999,
+                }}
+                className="w-72 max-h-96 overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200 p-1.5">
                 <button
                   onClick={() => loadEndpoint("/api/v1/projects", true)}
                   className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left hover:bg-slate-50 transition-colors"
@@ -287,7 +311,7 @@ export function ApiPlayground({ projects }: Props) {
                   );
                 })}
               </div>
-            )}
+            , document.body)}
           </div>
         </div>
       </CardHeader>
