@@ -64,7 +64,7 @@ export function CreateApiKeyButton({ projectId, basePath = "/api/admin/projects"
 
   return (
     <>
-      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+      <Button size="md" variant="outline" onClick={() => setOpen(true)}>
         New Key
       </Button>
       <Modal open={open} onClose={handleClose} title="Create API Key" size="sm" busy={loading}>

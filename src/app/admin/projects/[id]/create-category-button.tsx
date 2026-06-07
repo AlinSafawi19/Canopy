@@ -42,7 +42,7 @@ export function CreateCategoryButton({ projectId, basePath = "/api/admin/project
 
   return (
     <>
-      <Button size="sm" onClick={() => setOpen(true)}>
+      <Button size="md" onClick={() => setOpen(true)}>
         Add Category
       </Button>
       <Modal ref={modalRef} open={open} onClose={() => { setOpen(false); setTouched(false); }} title="Create Category" size="sm" isDirty={touched} busy={loading}>
