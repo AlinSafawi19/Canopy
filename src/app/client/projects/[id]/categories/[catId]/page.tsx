@@ -169,7 +169,7 @@ export default async function ClientCategoryPage({
         <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
           <ExportEntriesButton projectId={id} categoryId={catId} categoryName={category.name} basePath={BASE} />
           <ImportEntriesButton projectId={id} categoryId={catId} fields={fields} totalEntries={total} basePath={BASE} categories={projectCategories} />
-          <ManageSchemaButton projectId={id} categoryId={catId} fields={fields} categories={projectCategories} basePath={BASE} />
+          <ManageSchemaButton projectId={id} categoryId={catId} fields={fields} categories={projectCategories.map((c) => ({ id: c.id, name: c.name, fields: (Array.isArray(c.fields) ? c.fields : []) as Array<{ name: string; type: string; relationCategoryId?: string }> }))} basePath={BASE} />
           <CreateEntryButton categoryId={catId} projectId={id} fields={fields} basePath={BASE} />
         </div>
       </div>
