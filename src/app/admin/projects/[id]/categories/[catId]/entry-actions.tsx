@@ -1,7 +1,7 @@
 "use client";
 import { apiFetch } from "@/lib/api-fetch";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +15,21 @@ import { Select } from "@/components/ui/select";
 import { RelationSelect } from "@/components/ui/relation-select";
 import { RelationMultiSelect } from "@/components/ui/relation-multi-select";
 import { LIMITS } from "@/lib/limits";
+import { Lock, CalendarClock, Calendar } from "lucide-react";
 
 interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean }
-interface Entry { id: string; values: unknown; archivedAt: Date | null }
+interface Entry {
+  id: string;
+  values: unknown;
+  archivedAt: Date | null;
+  lockedBy?: string | null;
+  lockedByName?: string | null;
+  lockedUntil?: Date | null;
+  publishAt?: Date | null;
+  archiveAt?: Date | null;
+}
+
+const LOCK_KEEPALIVE_MS = 10 * 60 * 1000; // refresh lock every 10 min
 
 export function EntryActions({
   entry,
@@ -28,7 +40,9 @@ export function EntryActions({
   canEdit = true,
   canArchive = true,
   canDelete = true,
+  canSchedule = true,
   relatedEntries,
+  currentUserId,
 }: {
   entry: Entry;
   categoryId: string;
@@ -38,19 +52,41 @@ export function EntryActions({
   canEdit?: boolean;
   canArchive?: boolean;
   canDelete?: boolean;
+  canSchedule?: boolean;
   /** entryId → label, for pre-filling relation selects with the current value. */
   relatedEntries?: Record<string, string>;
+  /** Session user ID — used to determine if we own the lock. */
+  currentUserId: string;
 }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [touched, setTouched] = useState(false);
   const editModalRef = useRef<ModalRef>(null);
+  const keepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [values, setValues] = useState<Record<string, unknown>>(
     entry.values as Record<string, unknown>
   );
+
+  // Schedule state
+  const [publishDate, setPublishDate] = useState(
+    entry.publishAt ? new Date(entry.publishAt).toISOString().slice(0, 10) : ""
+  );
+  const [publishTime, setPublishTime] = useState(
+    entry.publishAt ? new Date(entry.publishAt).toISOString().slice(11, 16) : "09:00"
+  );
+  const [archiveDate, setArchiveDate] = useState(
+    entry.archiveAt ? new Date(entry.archiveAt).toISOString().slice(0, 10) : ""
+  );
+  const [archiveTime, setArchiveTime] = useState(
+    entry.archiveAt ? new Date(entry.archiveAt).toISOString().slice(11, 16) : "09:00"
+  );
+  const [requireApproval, setRequireApproval] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
 
   const str = (name: string): string => {
     const v = values[name];
@@ -64,6 +100,52 @@ export function EntryActions({
 
   const baseUrl = `${basePath}/${projectId}/categories/${categoryId}/entries/${entry.id}`;
 
+  // ── Lock helpers ────────────────────────────────────────────────────────────
+
+  function isLockedByOther(): boolean {
+    if (!entry.lockedBy || entry.lockedBy === currentUserId) return false;
+    if (!entry.lockedUntil) return false;
+    return new Date(entry.lockedUntil) > new Date();
+  }
+
+  async function acquireLock(): Promise<boolean> {
+    const res = await apiFetch(`${baseUrl}/lock`, { method: "POST" });
+    if (res.status === 409) {
+      const data = await res.json();
+      setError(`Locked by ${data.lockedByName ?? "another user"} — try again shortly.`);
+      return false;
+    }
+    return res.ok;
+  }
+
+  async function releaseLock() {
+    clearInterval(keepaliveRef.current!);
+    keepaliveRef.current = null;
+    await apiFetch(`${baseUrl}/lock`, { method: "DELETE" });
+  }
+
+  // ── Edit handlers ───────────────────────────────────────────────────────────
+
+  async function openEdit() {
+    setError("");
+    const acquired = await acquireLock();
+    if (!acquired) return;
+    // Start keepalive to refresh lock before it expires
+    keepaliveRef.current = setInterval(() => apiFetch(`${baseUrl}/lock`, { method: "POST" }), LOCK_KEEPALIVE_MS);
+    setValues(entry.values as Record<string, unknown>);
+    setEditOpen(true);
+  }
+
+  // Cleanup keepalive when component unmounts with modal open
+  useEffect(() => () => { if (keepaliveRef.current) clearInterval(keepaliveRef.current); }, []);
+
+  async function closeEdit() {
+    await releaseLock();
+    setEditOpen(false);
+    setTouched(false);
+    setError("");
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -74,7 +156,12 @@ export function EntryActions({
       body: JSON.stringify({ values }),
     });
     setLoading(false);
-    if (!res.ok) { setError("Failed to save"); return; }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error === "Entry is locked by another user" ? "Another user saved this entry. Refresh and try again." : "Failed to save");
+      return;
+    }
+    await releaseLock();
     setEditOpen(false);
     setTouched(false);
     router.refresh();
@@ -99,33 +186,112 @@ export function EntryActions({
     router.refresh();
   }
 
+  // ── Schedule handlers ───────────────────────────────────────────────────────
+
+  function openSchedule() {
+    setPublishDate(entry.publishAt ? new Date(entry.publishAt).toISOString().slice(0, 10) : "");
+    setPublishTime(entry.publishAt ? new Date(entry.publishAt).toISOString().slice(11, 16) : "09:00");
+    setArchiveDate(entry.archiveAt ? new Date(entry.archiveAt).toISOString().slice(0, 10) : "");
+    setArchiveTime(entry.archiveAt ? new Date(entry.archiveAt).toISOString().slice(11, 16) : "09:00");
+    setRequireApproval(false);
+    setError("");
+    setScheduleOpen(true);
+  }
+
+  async function saveSchedule(e: React.FormEvent) {
+    e.preventDefault();
+    setScheduling(true);
+    setError("");
+
+    const publishAt = publishDate ? new Date(`${publishDate}T${publishTime}:00`).toISOString() : null;
+    const archiveAt = archiveDate ? new Date(`${archiveDate}T${archiveTime}:00`).toISOString() : null;
+
+    const res = await apiFetch(baseUrl, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "schedule", publishAt, archiveAt, requireApproval }),
+    });
+    setScheduling(false);
+    if (!res.ok) { setError("Failed to save schedule"); return; }
+    setScheduleOpen(false);
+    router.refresh();
+  }
+
+  async function clearSchedule() {
+    setScheduling(true);
+    await apiFetch(baseUrl, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "schedule", publishAt: null, archiveAt: null }),
+    });
+    setScheduling(false);
+    setScheduleOpen(false);
+    router.refresh();
+  }
+
+  // ── Derived ─────────────────────────────────────────────────────────────────
+
+  const locked = isLockedByOther();
+  const hasSchedule = !!(entry.publishAt || entry.archiveAt);
+
+  function formatScheduleDate(d: Date | null | undefined) {
+    if (!d) return "";
+    return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+
   return (
-    <div className="flex items-center gap-1">
-      {canEdit && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => { setValues(entry.values as Record<string, unknown>); setError(""); setEditOpen(true); }}
-        >
-          Edit
-        </Button>
+    <div className="flex flex-col items-end gap-1">
+      {/* Schedule badges */}
+      {entry.publishAt && (
+        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5 whitespace-nowrap">
+          <CalendarClock size={9} />
+          Publishes {formatScheduleDate(entry.publishAt)}
+        </span>
+      )}
+      {entry.archiveAt && (
+        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 whitespace-nowrap">
+          <Calendar size={9} />
+          Archives {formatScheduleDate(entry.archiveAt)}
+        </span>
       )}
 
-      {(canArchive || canDelete) && (
-        <ActionMenu>
-          {canArchive && (
-            <ActionMenuItem variant="warning" onClick={doArchive} disabled={loading}>
-              Archive
-            </ActionMenuItem>
-          )}
-          {canDelete && (
-            <ActionMenuItem variant="danger" onClick={() => setConfirmOpen(true)} disabled={loading}>
-              Delete
-            </ActionMenuItem>
-          )}
-        </ActionMenu>
-      )}
+      {/* Action buttons row */}
+      <div className="flex items-center gap-1">
+        {canEdit && (
+          locked ? (
+            <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 px-2 py-1 rounded border border-slate-200 bg-slate-50 whitespace-nowrap">
+              <Lock size={10} />
+              {entry.lockedByName ?? "Locked"}
+            </span>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={openEdit}>
+              Edit
+            </Button>
+          )
+        )}
 
+        {(canArchive || canDelete || canSchedule) && (
+          <ActionMenu>
+            {canSchedule && (
+              <ActionMenuItem onClick={openSchedule}>
+                {hasSchedule ? "Edit schedule" : "Schedule"}
+              </ActionMenuItem>
+            )}
+            {canArchive && (
+              <ActionMenuItem variant="warning" onClick={doArchive} disabled={loading}>
+                Archive
+              </ActionMenuItem>
+            )}
+            {canDelete && (
+              <ActionMenuItem variant="danger" onClick={() => setConfirmOpen(true)} disabled={loading}>
+                Delete
+              </ActionMenuItem>
+            )}
+          </ActionMenu>
+        )}
+      </div>
+
+      {/* Confirm delete */}
       <ConfirmModal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
@@ -137,7 +303,14 @@ export function EntryActions({
         loading={loading}
       />
 
-      <Modal ref={editModalRef} open={editOpen} onClose={() => { setEditOpen(false); setTouched(false); setError(""); }} title="Edit Entry" isDirty={touched} busy={loading}
+      {/* Edit modal */}
+      <Modal
+        ref={editModalRef}
+        open={editOpen}
+        onClose={closeEdit}
+        title="Edit Entry"
+        isDirty={touched}
+        busy={loading}
         footer={
           <div className="flex justify-end gap-3">
             <Button variant="outline" type="button" onClick={() => editModalRef.current?.attemptClose()}>Cancel</Button>
@@ -240,6 +413,91 @@ export function EntryActions({
               <Input key={field.name} label={field.name} type={field.type === "number" ? "number" : field.type === "url" ? "url" : "text"} inputMode={field.type === "email" ? "email" : undefined} value={str(field.name)} onChange={(e) => { setValues(v => ({ ...v, [field.name]: e.target.value })); setTouched(true); }} maxLength={maxLengthByType[field.type]} />
             );
           })}
+          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+        </form>
+      </Modal>
+
+      {/* Schedule modal */}
+      <Modal
+        open={scheduleOpen}
+        onClose={() => { setScheduleOpen(false); setError(""); }}
+        title="Schedule Entry"
+        footer={
+          <div className="flex items-center justify-between gap-3">
+            {hasSchedule ? (
+              <Button variant="outline" type="button" onClick={clearSchedule} loading={scheduling}>
+                Clear schedule
+              </Button>
+            ) : <div />}
+            <div className="flex gap-3">
+              <Button variant="outline" type="button" onClick={() => setScheduleOpen(false)}>Cancel</Button>
+              <Button type="submit" form="schedule-entry-form" loading={scheduling}>Save</Button>
+            </div>
+          </div>
+        }
+      >
+        <form id="schedule-entry-form" onSubmit={saveSchedule} className="space-y-5">
+          {/* Publish at */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Publish at (un-archive)</p>
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <DatePicker
+                  label="Date"
+                  value={publishDate || null}
+                  onChange={(v) => setPublishDate(v ?? "")}
+                />
+              </div>
+              <div className="w-28">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Time</label>
+                <input
+                  type="time"
+                  value={publishTime}
+                  onChange={(e) => setPublishTime(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {publishDate && (
+              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={requireApproval}
+                  onChange={(e) => setRequireApproval(e.target.checked)}
+                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                Require approval before publishing
+                <span className="text-xs text-slate-400">(creates a change request)</span>
+              </label>
+            )}
+          </div>
+
+          <hr className="border-slate-100" />
+
+          {/* Archive at */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Archive at (take down)</p>
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <DatePicker
+                  label="Date"
+                  value={archiveDate || null}
+                  onChange={(v) => setArchiveDate(v ?? "")}
+                />
+              </div>
+              <div className="w-28">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Time</label>
+                <input
+                  type="time"
+                  value={archiveTime}
+                  onChange={(e) => setArchiveTime(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
         </form>
       </Modal>

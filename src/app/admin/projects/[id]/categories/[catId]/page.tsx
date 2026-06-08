@@ -244,6 +244,7 @@ export default async function CategoryDetailPage({
                 openRequestsByEntry={openRequestsByEntry}
                 resolvedRequestsByEntry={resolvedRequestsByEntry}
                 canReopenRequests
+                currentUserId={session!.id}
               />
               <div className="px-4 border-t border-slate-100">
                 <Pagination total={total} page={page} limit={limit} basePath={basePath} extraParams={extraParams} />

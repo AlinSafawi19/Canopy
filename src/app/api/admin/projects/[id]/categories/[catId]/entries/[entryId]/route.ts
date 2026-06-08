@@ -29,7 +29,43 @@ export async function PATCH(
     } else if (body.action === "restore") {
       await prisma.contentCategoryEntry.update({ where: { id: entryId }, data: { archivedAt: null, archivedBy: null } });
       await logActivity({ session, action: "restored", resource: "entry", resourceId: entryId, adminTenantId: session.tenantId! });
+    } else if (body.action === "schedule") {
+      const publishAt = body.publishAt ? new Date(body.publishAt) : null;
+      const archiveAt = body.archiveAt ? new Date(body.archiveAt) : null;
+
+      await prisma.contentCategoryEntry.update({
+        where: { id: entryId },
+        data: { publishAt, archiveAt },
+      });
+
+      // Approval gate: immediately create a change-request so a reviewer must sign off
+      if (body.requireApproval && publishAt) {
+        const publishStr = publishAt.toLocaleString("en-US", {
+          month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit",
+        });
+        await prisma.changeRequest.create({
+          data: {
+            entryId,
+            categoryId: catId,
+            projectId,
+            authorId: session.id,
+            authorRole: session.role,
+            authorName: session.displayName,
+            note: `[pre-publish] Scheduled to publish on ${publishStr}. Resolve this request to allow the cron job to publish it.`,
+            before: entry.values ?? undefined,
+          },
+        });
+      }
+
+      await logActivity({ session, action: "scheduled", resource: "entry", resourceId: entryId, adminTenantId: session.tenantId! });
     } else if (body.values !== undefined) {
+      // Lock check: reject if locked by someone else
+      const now = new Date();
+      const e = entry as typeof entry & { lockedBy?: string | null; lockedUntil?: Date | null };
+      if (e.lockedBy && e.lockedBy !== session.id && e.lockedUntil && e.lockedUntil > now) {
+        return NextResponse.json({ error: "Entry is locked by another user" }, { status: 409 });
+      }
+
       const fields = entry.category.fields as Array<{ name: string; type: string }>;
       const valErr = validateEntryValues(body.values, fields);
       if (valErr) return NextResponse.json({ error: valErr }, { status: 400 });

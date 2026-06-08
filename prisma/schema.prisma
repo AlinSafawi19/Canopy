@@ -82,9 +82,20 @@ model ContentCategoryEntry {
   archivedAt DateTime?
   archivedBy String?
 
+  // Edit locking — prevents silent overwrites when multiple users edit concurrently
+  lockedBy     String?
+  lockedByName String?
+  lockedUntil  DateTime?
+
+  // Scheduled publishing / archiving
+  publishAt    DateTime?
+  archiveAt    DateTime?
+
   @@index([categoryId])
   @@index([categoryId, archivedAt])
   @@index([categoryId, updatedAt])
+  @@index([publishAt])
+  @@index([archiveAt])
 }
 
 model ClientIdentity {

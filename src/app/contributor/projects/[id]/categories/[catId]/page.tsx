@@ -243,6 +243,7 @@ export default async function ContributorCategoryPage({
                 openRequestsByEntry={openRequestsByEntry}
                 resolvedRequestsByEntry={resolvedRequestsByEntry}
                 canReopenRequests={false}
+                currentUserId={session!.id}
               />
               <div className="px-4 border-t border-slate-100">
                 <Pagination total={total} page={page} limit={limit} basePath={basePath} extraParams={extraParams} />

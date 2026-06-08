@@ -52,7 +52,44 @@ export async function PATCH(
     await logActivity({ session, action: "restored", resource: "entry", resourceId: entryId, parentClientUsername });
     return NextResponse.json({ ok: true });
   }
+  if (body.action === "schedule") {
+    const publishAt = body.publishAt ? new Date(body.publishAt) : null;
+    const archiveAt = body.archiveAt ? new Date(body.archiveAt) : null;
+
+    await prisma.contentCategoryEntry.update({
+      where: { id: entryId },
+      data: { publishAt, archiveAt },
+    });
+
+    if (body.requireApproval && publishAt) {
+      const publishStr = publishAt.toLocaleString("en-US", {
+        month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit",
+      });
+      await prisma.changeRequest.create({
+        data: {
+          entryId,
+          categoryId: catId,
+          projectId,
+          authorId: session.id,
+          authorRole: session.role,
+          authorName: session.displayName,
+          note: `[pre-publish] Scheduled to publish on ${publishStr}. Resolve this request to allow the cron job to publish it.`,
+          before: result.entry.values ?? undefined,
+        },
+      });
+    }
+
+    await logActivity({ session, action: "scheduled", resource: "entry", resourceId: entryId, parentClientUsername });
+    return NextResponse.json({ ok: true });
+  }
   if (body.values !== undefined) {
+    // Lock check
+    const now = new Date();
+    const e = result.entry as typeof result.entry & { lockedBy?: string | null; lockedUntil?: Date | null };
+    if (e.lockedBy && e.lockedBy !== session.id && e.lockedUntil && e.lockedUntil > now) {
+      return NextResponse.json({ error: "Entry is locked by another user" }, { status: 409 });
+    }
+
     const fields = result.entry.category.fields as Array<{ name: string; type: string }>;
     const valErr = validateEntryValues(body.values, fields);
     if (valErr) return NextResponse.json({ error: valErr }, { status: 400 });

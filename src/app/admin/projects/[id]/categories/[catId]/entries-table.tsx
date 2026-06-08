@@ -37,7 +37,16 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 interface Field { name: string; type: string; relationCategoryId?: string; multiple?: boolean; countCategoryId?: string; countFieldName?: string }
-interface TableEntry { id: string; values: unknown; archivedAt: Date | null }
+interface TableEntry {
+  id: string;
+  values: unknown;
+  archivedAt: Date | null;
+  lockedBy?: string | null;
+  lockedByName?: string | null;
+  lockedUntil?: Date | null;
+  publishAt?: Date | null;
+  archiveAt?: Date | null;
+}
 
 interface Props {
   entries: TableEntry[];
@@ -69,6 +78,8 @@ interface Props {
   canRequestChange?: boolean;
   /** When true, admin can reopen resolved requests from the indicator modal */
   canReopenRequests?: boolean;
+  /** Session user ID — passed to EntryActions for lock ownership check */
+  currentUserId?: string;
 }
 
 export function EntriesTable({
@@ -93,6 +104,7 @@ export function EntriesTable({
   canRequestChange = false,
   canReopenRequests = false,
   entryCounts,
+  currentUserId = "",
 }: Props) {
   const router = useRouter();
 
@@ -486,6 +498,7 @@ export function EntriesTable({
                           canArchive={canArchive}
                           canDelete={canDelete}
                           relatedEntries={relatedEntries}
+                          currentUserId={currentUserId}
                         />
                       </div>
                     </td>
