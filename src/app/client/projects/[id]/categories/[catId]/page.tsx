@@ -231,6 +231,7 @@ export default async function ClientCategoryPage({
                 categoryName={category.name}
                 openRequestsByEntry={openRequestsByEntry}
                 canRequestChange
+                currentUserId={session!.id}
               />
               <div className="px-4 border-t border-slate-100">
                 <Pagination total={total} page={page} limit={limit} basePath={basePath} extraParams={extraParams} />
