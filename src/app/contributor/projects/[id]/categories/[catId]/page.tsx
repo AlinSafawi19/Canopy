@@ -187,7 +187,7 @@ export default async function ContributorCategoryPage({
             <p className="text-slate-500 text-sm">{category.description}</p>
           )}
         </div>
-        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 w-full sm:w-auto">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2 w-full sm:w-auto">
           {permissions.canViewContent && (
             <ExportEntriesButton projectId={id} categoryId={catId} categoryName={category.name} basePath={BASE} className="w-full sm:w-auto" />
           )}
