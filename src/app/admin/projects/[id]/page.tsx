@@ -168,7 +168,7 @@ export default async function ProjectDetailPage({
           )}
         </div>
         <Link href={`${BASE}/${id}/health`}>
-          <Button variant="outline" size="sm" className="gap-1.5">
+          <Button variant="outline" size="md" className="gap-1.5">
             <Activity size={14} />
             Health
           </Button>

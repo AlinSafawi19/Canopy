@@ -21,6 +21,7 @@ import {
   Archive,
   ScrollText,
   Mail,
+  BarChart3,
 } from "lucide-react";
 import { LogoMark } from "@/components/ui/logo-mark";
 import { type SessionRole } from "@/lib/auth";
@@ -49,6 +50,7 @@ const NAV_ITEMS: Record<SessionRole, NavItem[]> = {
     { label: "Dashboard", href: "/client/dashboard", icon: LayoutDashboard },
     { label: "Projects", href: "/client/projects", icon: FolderKanban },
     { label: "Contributors", href: "/client/contributors", icon: Users },
+    { label: "Analytics", href: "/client/analytics", icon: BarChart3 },
     { label: "Archive", href: "/client/archive", icon: Archive },
     { label: "Logs", href: "/client/logs", icon: ScrollText },
     { label: "API Integration", href: "/client/api-integration", icon: Code2 },
