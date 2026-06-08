@@ -23,6 +23,7 @@ function gradeFromScore(score: number): "A" | "B" | "C" | "D" | "F" {
 }
 
 export interface FieldStat {
+  categoryId: string;
   categoryName: string;
   fieldName: string;
   filled: number;
@@ -31,6 +32,7 @@ export interface FieldStat {
 }
 
 export interface CategoryStaleness {
+  categoryId: string;
   categoryName: string;
   staleCount: number;
   totalCount: number;
@@ -42,6 +44,7 @@ export interface EmptyCategory {
 }
 
 export interface ProblematicField {
+  categoryId: string;
   categoryName: string;
   fieldName: string;
   fillRate: number; // 0–1
@@ -54,7 +57,7 @@ export interface HealthReport {
     score: number;
     filledSlots: number;
     totalSlots: number;
-    /** Fields with <100% fill rate, sorted by fill rate asc */
+    /** All fields with fill rate <1, sorted worst-first */
     partialFields: FieldStat[];
   };
   freshness: {
@@ -76,7 +79,6 @@ export interface HealthReport {
     insufficient: boolean;
     healthyFields: number;
     totalFields: number;
-    /** Fields where <30% of entries fill them in (bad schema signal) */
     problematicFields: ProblematicField[];
   };
 }
@@ -103,7 +105,6 @@ export async function computeProjectHealth(projectId: string): Promise<HealthRep
 
   const staleThreshold = new Date(Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000);
 
-  // accumulators
   let filledSlots = 0, totalSlots = 0;
   let freshEntries = 0, staleEntries = 0;
   let coveredCategories = 0;
@@ -111,7 +112,6 @@ export async function computeProjectHealth(projectId: string): Promise<HealthRep
   const staleByCategory: CategoryStaleness[] = [];
   let totalSchemaFields = 0, healthySchemaFields = 0;
   const problematicFields: ProblematicField[] = [];
-  // per-field fill tracking for completeness detail
   const fieldFillMap = new Map<string, FieldStat>();
 
   for (const cat of categories) {
@@ -119,26 +119,26 @@ export async function computeProjectHealth(projectId: string): Promise<HealthRep
     const scorable = fields.filter((f) => f.type !== "count");
     const entries = cat.entries;
 
-    // ── Coverage ──────────────────────────────────────────────
+    // ── Coverage ─────────────────────────────────────────────
     if (entries.length > 0) coveredCategories++;
     else emptyCategories.push({ id: cat.id, name: cat.name });
 
-    // ── Freshness ─────────────────────────────────────────────
+    // ── Freshness ────────────────────────────────────────────
     let catStale = 0;
     for (const entry of entries) {
       if ((entry.updatedAt as Date) >= staleThreshold) freshEntries++;
       else { staleEntries++; catStale++; }
     }
     if (catStale > 0) {
-      staleByCategory.push({ categoryName: cat.name, staleCount: catStale, totalCount: entries.length });
+      staleByCategory.push({ categoryId: cat.id, categoryName: cat.name, staleCount: catStale, totalCount: entries.length });
     }
 
-    // ── Completeness (per field) ───────────────────────────────
+    // ── Completeness (per field) ─────────────────────────────
     for (const f of scorable) {
       const key = `${cat.id}|${f.name}`;
       let stat = fieldFillMap.get(key);
       if (!stat) {
-        stat = { categoryName: cat.name, fieldName: f.name, filled: 0, total: 0, fillRate: 0 };
+        stat = { categoryId: cat.id, categoryName: cat.name, fieldName: f.name, filled: 0, total: 0, fillRate: 0 };
         fieldFillMap.set(key, stat);
       }
       for (const entry of entries) {
@@ -150,7 +150,7 @@ export async function computeProjectHealth(projectId: string): Promise<HealthRep
       stat.fillRate = stat.total === 0 ? 1 : stat.filled / stat.total;
     }
 
-    // ── Schema Health (only cats with ≥2 entries) ─────────────
+    // ── Schema Health (cats with ≥2 entries) ─────────────────
     if (entries.length >= MIN_ENTRIES_FOR_SCHEMA_CHECK) {
       for (const f of scorable) {
         totalSchemaFields++;
@@ -160,25 +160,22 @@ export async function computeProjectHealth(projectId: string): Promise<HealthRep
         }).length;
         const rate = filled / entries.length;
         if (rate >= FILL_RATE_THRESHOLD) healthySchemaFields++;
-        else problematicFields.push({ categoryName: cat.name, fieldName: f.name, fillRate: rate });
+        else problematicFields.push({ categoryId: cat.id, categoryName: cat.name, fieldName: f.name, fillRate: rate });
       }
     }
   }
 
   const totalEntries = freshEntries + staleEntries;
-
   const completenessScore = totalSlots === 0 ? 100 : clamp100((filledSlots / totalSlots) * 100);
   const freshnessScore    = totalEntries === 0 ? 100 : clamp100((freshEntries / totalEntries) * 100);
   const coverageScore     = clamp100((coveredCategories / categories.length) * 100);
   const schemaInsufficient = totalSchemaFields === 0;
   const schemaHealthScore  = schemaInsufficient ? 0 : clamp100((healthySchemaFields / totalSchemaFields) * 100);
 
-  // Exclude schema health from overall when there's not enough data
   const scoreComponents = [completenessScore, freshnessScore, coverageScore];
   if (!schemaInsufficient) scoreComponents.push(schemaHealthScore);
   const score = clamp100(scoreComponents.reduce((a, b) => a + b, 0) / scoreComponents.length);
 
-  // Partial fields: all fields with <100% fill, sorted worst first
   const partialFields = [...fieldFillMap.values()]
     .filter((s) => s.fillRate < 1)
     .sort((a, b) => a.fillRate - b.fillRate);
