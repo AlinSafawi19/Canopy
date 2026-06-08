@@ -215,11 +215,20 @@ export function EntryActions({
     }
   }
 
-  function handleModalMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+  function broadcastCursor(x: number, y: number) {
     const now = Date.now();
     if (now - lastCursorRef.current < CURSOR_THROTTLE_MS) return;
     lastCursorRef.current = now;
-    broadcast("cursor-move", { x: e.clientX, y: e.clientY });
+    broadcast("cursor-move", { x, y });
+  }
+
+  function handleModalMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    broadcastCursor(e.clientX, e.clientY);
+  }
+
+  function handleModalTouchMove(e: React.TouchEvent<HTMLDivElement>) {
+    const t = e.touches[0];
+    if (t) broadcastCursor(t.clientX, t.clientY);
   }
 
   // ── Schedule state ───────────────────────────────────────────────────────────
@@ -521,9 +530,9 @@ export function EntryActions({
         }
       >
         {/* Modal content wrapper — tracks mouse for cursor broadcasting */}
-        <div className="relative" onMouseMove={handleModalMouseMove}>
+        <div className="relative" onMouseMove={handleModalMouseMove} onTouchMove={handleModalTouchMove}>
 
-          {/* Floating cursors — fixed so they're not clipped by the modal's overflow-y-auto */}
+          {/* Floating cursors */}
           {peerList.map((p) => {
             if (p.x === null || p.y === null) return null;
             return (
