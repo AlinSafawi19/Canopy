@@ -102,6 +102,7 @@ export function EntryActions({
     }
 
     (async () => {
+      try {
       const PusherClient = (await import("pusher-js")).default;
       const pusher = new PusherClient(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
         cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
@@ -151,6 +152,7 @@ export function EntryActions({
           : prev
         );
       });
+      } catch (err) { console.error("[Pusher] init failed", err); }
     })();
 
     return () => {
@@ -201,10 +203,7 @@ export function EntryActions({
     const now = Date.now();
     if (now - lastCursorRef.current < CURSOR_THROTTLE_MS) return;
     lastCursorRef.current = now;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = Number(((e.clientX - rect.left) / rect.width * 100).toFixed(1));
-    const y = Number(((e.clientY - rect.top) / rect.height * 100).toFixed(1));
-    broadcast("cursor-move", { x, y });
+    broadcast("cursor-move", { x: e.clientX, y: e.clientY });
   }
 
   // ── Schedule state ───────────────────────────────────────────────────────────
@@ -508,12 +507,12 @@ export function EntryActions({
         {/* Modal content wrapper — tracks mouse for cursor broadcasting */}
         <div className="relative" onMouseMove={handleModalMouseMove}>
 
-          {/* Floating cursors */}
+          {/* Floating cursors — fixed so they're not clipped by the modal's overflow-y-auto */}
           {peerList.map((p) => {
             if (p.x === null || p.y === null) return null;
             return (
-              <div key={p.name + "-cursor"} className="absolute pointer-events-none z-50 transition-[left,top] duration-75"
-                style={{ left: `${p.x}%`, top: `${p.y}%` }}>
+              <div key={p.name + "-cursor"} className="fixed pointer-events-none z-[9999]"
+                style={{ left: p.x, top: p.y, transition: "left 75ms linear, top 75ms linear" }}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="drop-shadow-sm">
                   <path d="M0 0 L0 11 L3 8 L5.5 13 L7 12 L4.5 7 L9 7 Z" fill={p.color} stroke="white" strokeWidth="1" strokeLinejoin="round" />
                 </svg>
