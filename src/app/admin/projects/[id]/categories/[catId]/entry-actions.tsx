@@ -24,6 +24,7 @@ interface Entry {
   id: string;
   values: unknown;
   archivedAt: Date | null;
+  archivedBy?: string | null;
   publishAt?: Date | null;
   archiveAt?: Date | null;
 }
@@ -542,7 +543,7 @@ export function EntryActions({
       {/* Schedule badges */}
       {entry.publishAt && (
         <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5 whitespace-nowrap">
-          <CalendarClock size={9} />Publishes {formatScheduleDate(entry.publishAt)}
+          <CalendarClock size={9} />Goes live {formatScheduleDate(entry.publishAt)}
         </span>
       )}
       {entry.archiveAt && (
@@ -660,13 +661,18 @@ export function EntryActions({
             return (
               <>
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Publish at (un-archive)</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Go live on</p>
                   <div className="flex gap-2 items-end">
                     <div className="flex-1"><DatePicker label="Date" value={publishDate || null} onChange={(v) => setPublishDate(v ?? "")} disablePast /></div>
                     <TimePicker label="Time" value={publishTime} onChange={setPublishTime} minTime={pubMinTime} className="w-28" />
                   </div>
                   <QuickDateButtons onDate={setPublishDate} />
                   <QuickTimeButtons onTime={setPublishTime} minTime={pubMinTime} />
+                  {publishDate && !entry.archivedAt && (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                      This entry will be hidden immediately and go live on the scheduled date.
+                    </p>
+                  )}
                   {publishDate && (
                     <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
                       <input type="checkbox" checked={requireApproval} onChange={(e) => setRequireApproval(e.target.checked)}
@@ -678,7 +684,7 @@ export function EntryActions({
                 </div>
                 <hr className="border-slate-100" />
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Archive at (take down)</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Archive on</p>
                   <div className="flex gap-2 items-end">
                     <div className="flex-1"><DatePicker label="Date" value={archiveDate || null} onChange={(v) => setArchiveDate(v ?? "")} disablePast /></div>
                     <TimePicker label="Time" value={archiveTime} onChange={setArchiveTime} minTime={arcMinTime} className="w-28" />

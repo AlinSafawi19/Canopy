@@ -61,7 +61,12 @@ export async function PATCH(
 
     await prisma.contentCategoryEntry.update({
       where: { id: entryId },
-      data: { publishAt, archiveAt },
+      data: {
+        publishAt,
+        archiveAt,
+        ...(publishAt && !result.entry.archivedAt ? { archivedAt: now, archivedBy: "schedule" } : {}),
+        ...(!publishAt && !archiveAt && result.entry.archivedBy === "schedule" ? { archivedAt: null, archivedBy: null } : {}),
+      },
     });
 
     if (body.requireApproval && publishAt) {

@@ -42,6 +42,7 @@ interface TableEntry {
   id: string;
   values: unknown;
   archivedAt: Date | null;
+  archivedBy?: string | null;
   publishAt?: Date | null;
   archiveAt?: Date | null;
 }

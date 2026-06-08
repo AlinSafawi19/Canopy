@@ -38,7 +38,14 @@ export async function PATCH(
 
       await prisma.contentCategoryEntry.update({
         where: { id: entryId },
-        data: { publishAt, archiveAt },
+        data: {
+          publishAt,
+          archiveAt,
+          // Hide immediately when scheduling a future publish; cron only un-archives entries with archivedAt set
+          ...(publishAt && !entry.archivedAt ? { archivedAt: now, archivedBy: "schedule" } : {}),
+          // Restore if clearing a schedule that was the only reason the entry was hidden
+          ...(!publishAt && !archiveAt && entry.archivedBy === "schedule" ? { archivedAt: null, archivedBy: null } : {}),
+        },
       });
 
       // Approval gate: immediately create a change-request so a reviewer must sign off
