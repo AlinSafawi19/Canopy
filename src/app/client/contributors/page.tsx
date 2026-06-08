@@ -10,6 +10,8 @@ import { Pagination } from "@/components/ui/pagination";
 import { SearchInput } from "@/components/ui/search-input";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { parsePage, parseLimit, parseSearch, parseSortDir } from "@/lib/pagination";
+import { InviteStatusCell } from "@/components/ui/invite-status-cell";
+import { inviteStatus } from "@/lib/invite-tokens";
 
 const BASE = "/client/contributors";
 const VALID_SORTS = ["displayName", "updatedAt"] as const;
@@ -42,7 +44,7 @@ export default async function ClientContributorsPage({
     } : {}),
   };
 
-  const [total, contributors] = await Promise.all([
+  const [total, contributors, rawInviteTokens] = await Promise.all([
     prisma.contributor.count({ where }),
     prisma.contributor.findMany({
       where,
@@ -55,6 +57,10 @@ export default async function ClientContributorsPage({
         assignments: { select: { projectId: true } },
       },
     }),
+    prisma.inviteToken.findMany({
+      where: { targetKind: "contributor" },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   const allProjectIds = [...new Set(contributors.flatMap((c) => c.assignments.map((a) => a.projectId)))];
@@ -62,6 +68,13 @@ export default async function ClientContributorsPage({
     ? await prisma.project.findMany({ where: { id: { in: allProjectIds } }, select: { id: true, name: true } })
     : [];
   const projectMap = Object.fromEntries(projects.map((p) => [p.id, p.name]));
+
+  const inviteMap = new Map(
+    contributors.map((c) => {
+      const token = rawInviteTokens.find((t) => t.targetId === c.id) ?? null;
+      return [c.id, token];
+    })
+  );
 
   const extraParams: Record<string, string> = { limit: String(limit), sortBy, sortDir };
   if (search) extraParams.search = search;
@@ -98,6 +111,7 @@ export default async function ClientContributorsPage({
                 <TableHead>Email</TableHead>
                 <TableHead>Projects</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Invite</TableHead>
                 <TableHead><SortableHeader label="Updated" field="updatedAt" sortBy={sortBy} sortDir={sortDir} basePath={BASE} extraParams={sortExtras} /></TableHead>
                 <TableHead className="sticky right-0 bg-slate-50">Actions</TableHead>
               </TableRow>
@@ -105,7 +119,7 @@ export default async function ClientContributorsPage({
             <TableBody>
               {contributors.length === 0 && (
                 <TableRow>
-                  <TableCell className="text-slate-400 text-center" colSpan={7}>
+                  <TableCell className="text-slate-400 text-center" colSpan={8}>
                     {search ? `No contributors found for "${search}"` : "No contributors yet"}
                   </TableCell>
                 </TableRow>
@@ -130,6 +144,13 @@ export default async function ClientContributorsPage({
                       {c.archivedAt
                         ? <Badge variant="danger">Archived</Badge>
                         : <Badge variant="success">Active</Badge>}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const t = inviteMap.get(c.id) ?? null;
+                        const st = t ? inviteStatus(t) : "none";
+                        return <InviteStatusCell targetKind="contributor" targetId={c.id} displayName={c.displayName} status={st} token={t?.token} />;
+                      })()}
                     </TableCell>
                     <TableCell className="text-slate-500">{formatDate(c.updatedAt)}</TableCell>
                     <TableCell className="sticky right-0 bg-white">
