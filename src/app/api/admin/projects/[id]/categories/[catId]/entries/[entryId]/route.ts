@@ -35,16 +35,20 @@ export async function PATCH(
       const now = new Date();
       if (publishAt && publishAt <= now) return NextResponse.json({ error: "Publish date must be in the future" }, { status: 422 });
       if (archiveAt && archiveAt <= now) return NextResponse.json({ error: "Archive date must be in the future" }, { status: 422 });
+      if (publishAt && archiveAt && archiveAt <= publishAt) return NextResponse.json({ error: "Archive date must be after the publish date" }, { status: 422 });
+
+      // Auto-archive only when publishAt is newly set (was null before)
+      const isNewPublish = !!publishAt && !entry.publishAt;
+      // Auto-restore only when publishAt is being cleared and the entry was hidden solely for scheduling
+      const isClearingPublish = !publishAt && !!entry.publishAt;
 
       await prisma.contentCategoryEntry.update({
         where: { id: entryId },
         data: {
           publishAt,
           archiveAt,
-          // Hide immediately when scheduling a future publish; cron only un-archives entries with archivedAt set
-          ...(publishAt && !entry.archivedAt ? { archivedAt: now, archivedBy: "schedule" } : {}),
-          // Restore if clearing a schedule that was the only reason the entry was hidden
-          ...(!publishAt && !archiveAt && entry.archivedBy === "schedule" ? { archivedAt: null, archivedBy: null } : {}),
+          ...(isNewPublish && !entry.archivedAt ? { archivedAt: now, archivedBy: "schedule" } : {}),
+          ...(isClearingPublish && entry.archivedBy === "schedule" ? { archivedAt: null, archivedBy: null } : {}),
         },
       });
 

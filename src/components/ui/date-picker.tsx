@@ -14,6 +14,8 @@ interface DatePickerProps {
   placeholder?: string;
   disabled?: boolean;
   disablePast?: boolean;
+  /** Disable all days before this date */
+  minDate?: Date;
   className?: string;
 }
 
@@ -24,6 +26,7 @@ export function DatePicker({
   placeholder = "Pick a date",
   disabled,
   disablePast,
+  minDate,
   className,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
@@ -100,7 +103,7 @@ export function DatePicker({
             <DayPicker
               mode="single"
               selected={selected}
-              disabled={disablePast ? { before: new Date() } : undefined}
+              disabled={minDate ? { before: minDate } : disablePast ? { before: new Date() } : undefined}
               onSelect={(date) => {
                 onChange(date ? format(date, "yyyy-MM-dd") : null);
                 setOpen(false);

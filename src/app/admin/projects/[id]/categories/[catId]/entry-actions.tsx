@@ -657,16 +657,21 @@ export function EntryActions({
           {(() => {
             const today = toYMD(new Date());
             const pubMinTime = publishDate === today ? nowHHMM() : undefined;
-            const arcMinTime = archiveDate === today ? nowHHMM() : undefined;
+            // Archive must be after publish date (if set) or after now
+            const arcMinDate = publishDate ? new Date(publishDate) : new Date();
+            // Archive time floor: after publish time if same day, after now if today, else none
+            const arcMinTime = archiveDate && archiveDate === publishDate
+              ? publishTime
+              : archiveDate === today ? nowHHMM() : undefined;
             return (
               <>
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Go live on</p>
                   <div className="flex gap-2 items-end">
-                    <div className="flex-1"><DatePicker label="Date" value={publishDate || null} onChange={(v) => setPublishDate(v ?? "")} disablePast /></div>
+                    <div className="flex-1"><DatePicker label="Date" value={publishDate || null} onChange={(v) => { setPublishDate(v ?? ""); if (archiveDate && v && (v ?? "") > archiveDate) setArchiveDate(""); }} disablePast /></div>
                     <TimePicker label="Time" value={publishTime} onChange={setPublishTime} minTime={pubMinTime} className="w-28" />
                   </div>
-                  <QuickDateButtons onDate={setPublishDate} />
+                  <QuickDateButtons onDate={(v) => { setPublishDate(v); if (archiveDate && v > archiveDate) setArchiveDate(""); }} />
                   <QuickTimeButtons onTime={setPublishTime} minTime={pubMinTime} />
                   {publishDate && !entry.archivedAt && (
                     <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
@@ -686,11 +691,14 @@ export function EntryActions({
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Archive on</p>
                   <div className="flex gap-2 items-end">
-                    <div className="flex-1"><DatePicker label="Date" value={archiveDate || null} onChange={(v) => setArchiveDate(v ?? "")} disablePast /></div>
+                    <div className="flex-1"><DatePicker label="Date" value={archiveDate || null} onChange={(v) => setArchiveDate(v ?? "")} minDate={arcMinDate} /></div>
                     <TimePicker label="Time" value={archiveTime} onChange={setArchiveTime} minTime={arcMinTime} className="w-28" />
                   </div>
                   <QuickDateButtons onDate={setArchiveDate} />
                   <QuickTimeButtons onTime={setArchiveTime} minTime={arcMinTime} />
+                  {publishDate && archiveDate && (
+                    <p className="text-xs text-slate-500">Archive must be after the go-live date.</p>
+                  )}
                 </div>
               </>
             );

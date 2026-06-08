@@ -58,14 +58,18 @@ export async function PATCH(
     const now = new Date();
     if (publishAt && publishAt <= now) return NextResponse.json({ error: "Publish date must be in the future" }, { status: 422 });
     if (archiveAt && archiveAt <= now) return NextResponse.json({ error: "Archive date must be in the future" }, { status: 422 });
+    if (publishAt && archiveAt && archiveAt <= publishAt) return NextResponse.json({ error: "Archive date must be after the publish date" }, { status: 422 });
+
+    const isNewPublish = !!publishAt && !result.entry.publishAt;
+    const isClearingPublish = !publishAt && !!result.entry.publishAt;
 
     await prisma.contentCategoryEntry.update({
       where: { id: entryId },
       data: {
         publishAt,
         archiveAt,
-        ...(publishAt && !result.entry.archivedAt ? { archivedAt: now, archivedBy: "schedule" } : {}),
-        ...(!publishAt && !archiveAt && result.entry.archivedBy === "schedule" ? { archivedAt: null, archivedBy: null } : {}),
+        ...(isNewPublish && !result.entry.archivedAt ? { archivedAt: now, archivedBy: "schedule" } : {}),
+        ...(isClearingPublish && result.entry.archivedBy === "schedule" ? { archivedAt: null, archivedBy: null } : {}),
       },
     });
 
