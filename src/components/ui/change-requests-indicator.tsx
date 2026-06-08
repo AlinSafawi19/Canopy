@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MessageSquare, CheckCircle, GripVertical, Inbox, ChevronDown, ChevronUp } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 import { Modal } from "@/components/ui/modal";
+import { ChangeRequestThread } from "@/components/ui/change-request-thread";
 import { formatDateTime } from "@/lib/utils";
 
 interface ChangeRequest {
@@ -313,6 +314,14 @@ export function ChangeRequestsIndicator({
                               {" · "}{formatDateTime(req.createdAt)}
                             </p>
                             <SnapshotDiff before={req.before} after={null} />
+                            <ChangeRequestThread
+                              requestId={req.id}
+                              initialNote={req.note}
+                              initialAuthorName={req.authorName}
+                              initialAuthorRole={req.authorRole}
+                              initialCreatedAt={req.createdAt}
+                              commentsUrl={`${baseUrl}/${req.id}/comments`}
+                            />
                           </div>
                           {acting === req.id && (
                             <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-200 border-t-indigo-500 animate-spin flex-shrink-0 mt-0.5" />
@@ -377,6 +386,14 @@ export function ChangeRequestsIndicator({
                               )}
                             </p>
                             <SnapshotDiff before={req.before} after={req.after} />
+                            <ChangeRequestThread
+                              requestId={req.id}
+                              initialNote={req.note}
+                              initialAuthorName={req.authorName}
+                              initialAuthorRole={req.authorRole}
+                              initialCreatedAt={req.createdAt}
+                              commentsUrl={`${baseUrl}/${req.id}/comments`}
+                            />
                           </div>
                           {acting === req.id && (
                             <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-200 border-t-indigo-500 animate-spin flex-shrink-0 mt-0.5" />

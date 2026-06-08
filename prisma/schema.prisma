@@ -367,9 +367,23 @@ model ChangeRequest {
   resolvedBy     String?
   resolvedByName String?
   createdAt      DateTime  @default(now())
+  comments       ChangeRequestComment[]
 
   @@index([entryId])
   @@index([projectId, resolvedAt])
+}
+
+model ChangeRequestComment {
+  id              String        @id @default(cuid())
+  changeRequestId String
+  changeRequest   ChangeRequest @relation(fields: [changeRequestId], references: [id], onDelete: Cascade)
+  authorId        String
+  authorRole      String
+  authorName      String
+  body            String        @db.VarChar(2000)
+  createdAt       DateTime      @default(now())
+
+  @@index([changeRequestId, createdAt])
 }
 
 model AuditLog {

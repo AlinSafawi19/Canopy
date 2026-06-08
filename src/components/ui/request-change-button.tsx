@@ -7,12 +7,14 @@ import { apiFetch } from "@/lib/api-fetch";
 import { Modal, ModalRef } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ChangeRequestThread } from "@/components/ui/change-request-thread";
 import { formatDateTime } from "@/lib/utils";
 
 interface ChangeRequest {
   id: string;
   note: string;
   authorName: string;
+  authorRole: string;
   resolvedAt: string | null;
   createdAt: string;
 }
@@ -128,6 +130,14 @@ export function RequestChangeButton({ entryId, projectId, categoryId, apiBase, o
                     <div key={req.id} className="py-3 first:pt-0 last:pb-0">
                       <p className="text-sm text-slate-800 leading-snug">{req.note}</p>
                       <p className="text-xs text-slate-400 mt-1">{formatDateTime(req.createdAt)}</p>
+                      <ChangeRequestThread
+                        requestId={req.id}
+                        initialNote={req.note}
+                        initialAuthorName={req.authorName}
+                        initialAuthorRole={req.authorRole ?? "client"}
+                        initialCreatedAt={req.createdAt}
+                        commentsUrl={`${baseUrl}/${req.id}/comments`}
+                      />
                     </div>
                   ))}
                 </div>
