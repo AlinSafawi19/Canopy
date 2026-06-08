@@ -43,6 +43,14 @@ const PRESENCE_KEEPALIVE_MS = 30 * 1000;
 function toYMD(d: Date) {
   return d.toISOString().slice(0, 10);
 }
+function localYMD(d: Date | string) {
+  const dt = new Date(d);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+function localHHMM(d: Date | string) {
+  const dt = new Date(d);
+  return `${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`;
+}
 
 const DATE_SHORTCUTS = [
   { label: "Today",      fn: () => toYMD(new Date()) },
@@ -295,16 +303,16 @@ export function EntryActions({
 
   // ── Schedule state ───────────────────────────────────────────────────────────
   const [publishDate, setPublishDate] = useState(
-    entry.publishAt ? new Date(entry.publishAt).toISOString().slice(0, 10) : ""
+    entry.publishAt ? localYMD(entry.publishAt) : ""
   );
   const [publishTime, setPublishTime] = useState(
-    entry.publishAt ? new Date(entry.publishAt).toISOString().slice(11, 16) : "09:00"
+    entry.publishAt ? localHHMM(entry.publishAt) : "09:00"
   );
   const [archiveDate, setArchiveDate] = useState(
-    entry.archiveAt ? new Date(entry.archiveAt).toISOString().slice(0, 10) : ""
+    entry.archiveAt ? localYMD(entry.archiveAt) : ""
   );
   const [archiveTime, setArchiveTime] = useState(
-    entry.archiveAt ? new Date(entry.archiveAt).toISOString().slice(11, 16) : "09:00"
+    entry.archiveAt ? localHHMM(entry.archiveAt) : "09:00"
   );
   const [requireApproval, setRequireApproval] = useState(false);
   const [scheduling, setScheduling] = useState(false);
@@ -392,10 +400,10 @@ export function EntryActions({
   // ── Schedule handlers ────────────────────────────────────────────────────────
 
   function openSchedule() {
-    setPublishDate(entry.publishAt ? new Date(entry.publishAt).toISOString().slice(0, 10) : "");
-    setPublishTime(entry.publishAt ? new Date(entry.publishAt).toISOString().slice(11, 16) : "09:00");
-    setArchiveDate(entry.archiveAt ? new Date(entry.archiveAt).toISOString().slice(0, 10) : "");
-    setArchiveTime(entry.archiveAt ? new Date(entry.archiveAt).toISOString().slice(11, 16) : "09:00");
+    setPublishDate(entry.publishAt ? localYMD(entry.publishAt) : "");
+    setPublishTime(entry.publishAt ? localHHMM(entry.publishAt) : "09:00");
+    setArchiveDate(entry.archiveAt ? localYMD(entry.archiveAt) : "");
+    setArchiveTime(entry.archiveAt ? localHHMM(entry.archiveAt) : "09:00");
     setRequireApproval(false);
     setError("");
     setScheduleOpen(true);
