@@ -42,6 +42,14 @@ export async function PATCH(
       // Auto-restore only when publishAt is being cleared and the entry was hidden solely for scheduling
       const isClearingPublish = !publishAt && !!entry.publishAt;
 
+      // Resolve stale [pre-publish] requests whenever publishAt changes (cleared or rescheduled)
+      if (entry.publishAt && String(entry.publishAt) !== String(publishAt)) {
+        await prisma.changeRequest.updateMany({
+          where: { entryId, resolvedAt: null, note: { startsWith: "[pre-publish]" } },
+          data: { resolvedAt: now, resolvedBy: session.id, resolvedByName: session.displayName },
+        });
+      }
+
       await prisma.contentCategoryEntry.update({
         where: { id: entryId },
         data: {

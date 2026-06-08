@@ -63,6 +63,14 @@ export async function PATCH(
     const isNewPublish = !!publishAt && !result.entry.publishAt;
     const isClearingPublish = !publishAt && !!result.entry.publishAt;
 
+    // Resolve stale [pre-publish] requests whenever publishAt changes (cleared or rescheduled)
+    if (result.entry.publishAt && String(result.entry.publishAt) !== String(publishAt)) {
+      await prisma.changeRequest.updateMany({
+        where: { entryId, resolvedAt: null, note: { startsWith: "[pre-publish]" } },
+        data: { resolvedAt: now, resolvedBy: session.id, resolvedByName: session.displayName },
+      });
+    }
+
     await prisma.contentCategoryEntry.update({
       where: { id: entryId },
       data: {
