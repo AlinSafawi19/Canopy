@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageSquarePlus } from "lucide-react";
+import { MessageSquarePlus, CheckCircle2 } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 import { Modal, ModalRef } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ interface ChangeRequest {
   authorName: string;
   authorRole: string;
   resolvedAt: string | null;
+  resolvedByName: string | null;
   createdAt: string;
 }
 
@@ -77,7 +78,8 @@ export function RequestChangeButton({ entryId, projectId, categoryId, apiBase, o
     router.refresh();
   }
 
-  const openRequests = requests.filter((r) => !r.resolvedAt);
+  const openRequests     = requests.filter((r) => !r.resolvedAt);
+  const resolvedRequests = requests.filter((r) => !!r.resolvedAt);
 
   return (
     <>
@@ -144,8 +146,38 @@ export function RequestChangeButton({ entryId, projectId, categoryId, apiBase, o
               </div>
             )}
 
+            {resolvedRequests.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  Resolved
+                </p>
+                <div className="divide-y divide-slate-100">
+                  {resolvedRequests.map((req) => (
+                    <div key={req.id} className="py-3 first:pt-0 last:pb-0">
+                      <p className="text-sm text-slate-400 leading-snug line-through">{req.note}</p>
+                      <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                        <CheckCircle2 size={11} className="text-emerald-500 flex-shrink-0" />
+                        {req.resolvedByName
+                          ? <><span className="text-emerald-600 font-medium">{req.resolvedByName}</span>{" resolved · "}{formatDateTime(req.resolvedAt!)}</>
+                          : formatDateTime(req.resolvedAt!)}
+                      </p>
+                      <ChangeRequestThread
+                        requestId={req.id}
+                        initialNote={req.note}
+                        initialAuthorName={req.authorName}
+                        initialAuthorRole={req.authorRole ?? "client"}
+                        initialCreatedAt={req.createdAt}
+                        commentsUrl={`${baseUrl}/${req.id}/comments`}
+                        readOnly
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <form id="request-change-form" onSubmit={handleSubmit} className="space-y-3">
-              {openRequests.length > 0 && (
+              {(openRequests.length > 0 || resolvedRequests.length > 0) && (
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   New Request
                 </p>
