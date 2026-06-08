@@ -30,7 +30,12 @@ export async function PATCH(
     if (body.action === "resolve") {
       await prisma.changeRequest.update({
         where: { id: reqId },
-        data: { resolvedAt: new Date(), resolvedBy: session.id, resolvedByName: session.displayName },
+        data: {
+          resolvedAt: new Date(),
+          resolvedBy: session.id,
+          resolvedByName: session.displayName,
+          after: entry.values ?? undefined,
+        },
       });
       await logActivity({ session, action: "resolved_change_request", resource: "entry", resourceId: entryId, adminTenantId: session.tenantId! });
     } else if (body.action === "reopen") {

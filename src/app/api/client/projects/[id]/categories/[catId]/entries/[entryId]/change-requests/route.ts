@@ -78,6 +78,7 @@ export async function POST(
         authorRole: "client",
         authorName: session.displayName,
         note,
+        before: entry.values ?? undefined,
       },
     });
 

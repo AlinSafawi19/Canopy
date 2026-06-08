@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageSquare, CheckCircle, GripVertical, Inbox } from "lucide-react";
+import { MessageSquare, CheckCircle, GripVertical, Inbox, ChevronDown, ChevronUp } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 import { Modal } from "@/components/ui/modal";
 import { formatDateTime } from "@/lib/utils";
@@ -16,6 +16,77 @@ interface ChangeRequest {
   resolvedBy: string | null;
   resolvedByName: string | null;
   createdAt: string;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+}
+
+function formatValue(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  if (Array.isArray(v)) return v.length === 0 ? "—" : v.join(", ");
+  if (typeof v === "boolean") return v ? "true" : "false";
+  const str = String(v).replace(/<[^>]*>/g, "").trim();
+  return str.length > 80 ? str.slice(0, 80) + "…" : str || "—";
+}
+
+function SnapshotDiff({ before, after }: { before: Record<string, unknown> | null; after: Record<string, unknown> | null }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!before) return null;
+
+  const hasBoth = before && after;
+  const keys = hasBoth
+    ? [...new Set([...Object.keys(before), ...Object.keys(after)])]
+    : Object.keys(before);
+  const changedKeys = hasBoth ? keys.filter((k) => formatValue(before[k]) !== formatValue(after![k])) : keys;
+  if (changedKeys.length === 0) return null;
+
+  const label = hasBoth ? `${changedKeys.length} changed field${changedKeys.length !== 1 ? "s" : ""}` : "Snapshot";
+
+  return (
+    <div className="mt-1.5">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400 hover:text-indigo-500 transition-colors"
+      >
+        {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+        {label}
+      </button>
+      {expanded && (
+        <div className="mt-1.5 rounded-lg border border-slate-200 overflow-hidden text-[10px]">
+          {hasBoth ? (
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-2 py-1 text-left font-semibold text-slate-400 w-1/4">Field</th>
+                  <th className="px-2 py-1 text-left font-semibold text-red-400 w-[37.5%]">Before</th>
+                  <th className="px-2 py-1 text-left font-semibold text-emerald-500 w-[37.5%]">After</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {changedKeys.map((k) => (
+                  <tr key={k}>
+                    <td className="px-2 py-1 font-medium text-slate-500 truncate">{k}</td>
+                    <td className="px-2 py-1 text-red-600 break-words">{formatValue(before[k])}</td>
+                    <td className="px-2 py-1 text-emerald-700 break-words">{formatValue(after![k])}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <table className="w-full">
+              <tbody className="divide-y divide-slate-100">
+                {changedKeys.map((k) => (
+                  <tr key={k}>
+                    <td className="px-2 py-1 font-medium text-slate-400 w-1/3 truncate">{k}</td>
+                    <td className="px-2 py-1 text-slate-600 break-words">{formatValue(before[k])}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface Props {
@@ -241,6 +312,7 @@ export function ChangeRequestsIndicator({
                               <span className="font-medium text-slate-500">{req.authorName}</span>
                               {" · "}{formatDateTime(req.createdAt)}
                             </p>
+                            <SnapshotDiff before={req.before} after={null} />
                           </div>
                           {acting === req.id && (
                             <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-200 border-t-indigo-500 animate-spin flex-shrink-0 mt-0.5" />
@@ -304,6 +376,7 @@ export function ChangeRequestsIndicator({
                                 <> · <span className="text-emerald-600 font-medium">✓ {req.resolvedByName}</span></>
                               )}
                             </p>
+                            <SnapshotDiff before={req.before} after={req.after} />
                           </div>
                           {acting === req.id && (
                             <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-200 border-t-indigo-500 animate-spin flex-shrink-0 mt-0.5" />

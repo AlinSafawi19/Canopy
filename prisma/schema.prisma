@@ -361,6 +361,8 @@ model ChangeRequest {
   authorRole     String
   authorName     String
   note           String    @db.VarChar(1000)
+  before         Json?
+  after          Json?
   resolvedAt     DateTime?
   resolvedBy     String?
   resolvedByName String?
