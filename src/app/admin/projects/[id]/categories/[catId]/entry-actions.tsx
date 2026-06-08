@@ -548,18 +548,6 @@ export function EntryActions({
 
   return (
     <div className="flex flex-col items-end gap-1">
-      {/* Schedule badges */}
-      {entry.publishAt && (
-        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5 whitespace-nowrap">
-          <CalendarClock size={9} />Goes live {formatScheduleDate(entry.publishAt)}
-        </span>
-      )}
-      {entry.archiveAt && (
-        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 whitespace-nowrap">
-          <Calendar size={9} />Archives {formatScheduleDate(entry.archiveAt)}
-        </span>
-      )}
-
       {/* Action buttons + presence avatars on the same row */}
       <div className="flex items-center gap-1">
         {/* Row-level presence avatars */}
@@ -587,6 +575,22 @@ export function EntryActions({
           </ActionMenu>
         )}
       </div>
+
+      {/* Schedule badges — shown below the action buttons */}
+      {(entry.publishAt || entry.archiveAt) && (
+        <div className="flex flex-wrap gap-1 justify-end">
+          {entry.publishAt && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5 whitespace-nowrap">
+              <CalendarClock size={9} />Goes live {formatScheduleDate(entry.publishAt)}
+            </span>
+          )}
+          {entry.archiveAt && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 whitespace-nowrap">
+              <Calendar size={9} />Archives {formatScheduleDate(entry.archiveAt)}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Confirm delete */}
       <ConfirmModal open={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={doDelete}
