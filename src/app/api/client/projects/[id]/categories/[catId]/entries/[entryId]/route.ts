@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { validateEntryValues } from "@/lib/limits";
+import { validateEntryValues, sanitizeEntryValues } from "@/lib/limits";
 import { logActivity } from "@/lib/activity-log";
 
 async function getAssignedEntry(entryId: string, catId: string, projectId: string, clientId: string) {
@@ -37,9 +37,10 @@ export async function PATCH(
     await prisma.contentCategoryEntry.update({ where: { id: entryId }, data: { archivedAt: null, archivedBy: null } });
     await logActivity({ session, action: "restored", resource: "entry", resourceId: entryId });
   } else if (body.values !== undefined) {
-    const valErr = validateEntryValues(body.values, entry.category.fields as Array<{ name: string; type: string }>);
+    const fields = entry.category.fields as Array<{ name: string; type: string }>;
+    const valErr = validateEntryValues(body.values, fields);
     if (valErr) return NextResponse.json({ error: valErr }, { status: 400 });
-    await prisma.contentCategoryEntry.update({ where: { id: entryId }, data: { values: body.values } });
+    await prisma.contentCategoryEntry.update({ where: { id: entryId }, data: { values: sanitizeEntryValues(body.values, fields) } });
     await logActivity({ session, action: "updated", resource: "entry", resourceId: entryId });
   } else {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });

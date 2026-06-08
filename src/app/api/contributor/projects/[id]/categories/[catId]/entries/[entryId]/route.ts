@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parsePermissions } from "@/lib/contributor-permissions";
-import { validateEntryValues } from "@/lib/limits";
+import { validateEntryValues, sanitizeEntryValues } from "@/lib/limits";
 import { logActivity } from "@/lib/activity-log";
 
 async function getAssignedEntry(entryId: string, catId: string, projectId: string, contributorId: string) {
@@ -53,9 +53,10 @@ export async function PATCH(
     return NextResponse.json({ ok: true });
   }
   if (body.values !== undefined) {
-    const valErr = validateEntryValues(body.values, result.entry.category.fields as Array<{ name: string; type: string }>);
+    const fields = result.entry.category.fields as Array<{ name: string; type: string }>;
+    const valErr = validateEntryValues(body.values, fields);
     if (valErr) return NextResponse.json({ error: valErr }, { status: 400 });
-    await prisma.contentCategoryEntry.update({ where: { id: entryId }, data: { values: body.values } });
+    await prisma.contentCategoryEntry.update({ where: { id: entryId }, data: { values: sanitizeEntryValues(body.values, fields) } });
     await logActivity({ session, action: "updated", resource: "entry", resourceId: entryId, parentClientUsername });
   } else {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });

@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Plus, Trash2, Columns, X } from "lucide-react";
 import type { MigrationImpact } from "@/lib/field-coerce";
+import { SAFE_FIELD_NAME_RE } from "@/lib/limits";
 
 interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean; countCategoryId?: string; countFieldName?: string }
 interface Category { id: string; name: string; fields?: Array<{ name: string; type: string; relationCategoryId?: string }> }
@@ -153,6 +154,12 @@ export function ManageSchemaButton({
     const names = fields.map((f) => f.name.trim());
     if (names.some((n) => !n)) { setError("All columns must have a name"); return false; }
     if (new Set(names).size !== names.length) { setError("Column names must be unique"); return false; }
+    for (const name of names) {
+      if (!SAFE_FIELD_NAME_RE.test(name)) {
+        setError(`"${name}" is not a valid column name — names must start with a letter or underscore and may only contain letters, digits, underscores, and spaces (max 64 characters)`);
+        return false;
+      }
+    }
     for (const f of fields) {
       if (f.type === "enum" && (!f.options || f.options.length < 2)) {
         setError(`"${f.name || "Enum column"}" must have at least 2 options`);

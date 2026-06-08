@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateId } from "@/lib/utils";
-import { validateEntryValues } from "@/lib/limits";
+import { validateEntryValues, sanitizeEntryValues } from "@/lib/limits";
 import { logActivity } from "@/lib/activity-log";
 
 async function getAssignedCategory(catId: string, projectId: string, clientId: string) {
@@ -32,8 +32,10 @@ export async function POST(
     return NextResponse.json({ error: "sortIndex must be a non-negative integer" }, { status: 400 });
   }
 
-  const valErr = validateEntryValues(values, category.fields as Array<{ name: string; type: string }>);
+  const fields = category.fields as Array<{ name: string; type: string }>;
+  const valErr = validateEntryValues(values, fields);
   if (valErr) return NextResponse.json({ error: valErr }, { status: 400 });
+  const sanitizedValues = sanitizeEntryValues(values, fields);
 
   const lastEntry = await prisma.contentCategoryEntry.findFirst({
     where: { categoryId: catId },
@@ -45,7 +47,7 @@ export async function POST(
     data: {
       id: generateId(),
       categoryId: catId,
-      values: values ?? {},
+      values: sanitizedValues ?? {},
       sortIndex: sortIndex ?? (lastEntry ? lastEntry.sortIndex + 1 : 0),
     },
   });

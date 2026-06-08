@@ -45,8 +45,32 @@ export function maxLen(value: unknown, max: number, label: string): string | nul
   return null;
 }
 
+export const SAFE_FIELD_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_ ]{0,63}$/;
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const URL_RE = /^https?:\/\/.+/i;
+
+function stripHtml(value: string): string {
+  return value.replace(/<[^>]*>/g, "").replace(/&[a-z]+;/gi, (e) => {
+    const map: Record<string, string> = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" };
+    return map[e] ?? e;
+  });
+}
+
+/** Strips HTML from plain text fields to prevent stored XSS. Returns a new values object. */
+export function sanitizeEntryValues<T extends Record<string, unknown>>(
+  values: T | null | undefined,
+  fields: Array<{ name: string; type: string }>,
+): T {
+  if (!values) return {} as T;
+  const result: Record<string, unknown> = { ...values };
+  for (const field of fields) {
+    if (field.type !== "text") continue;
+    const v = result[field.name];
+    if (typeof v === "string") result[field.name] = stripHtml(v);
+  }
+  return result as T;
+}
 
 /** Validates entry values against their category field types. Returns first error or null. */
 export function validateEntryValues(

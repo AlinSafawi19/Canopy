@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { LIMITS, maxLen } from "@/lib/limits";
+import { LIMITS, maxLen, SAFE_FIELD_NAME_RE } from "@/lib/limits";
 import { firstError } from "@/lib/validation";
 import { logActivity } from "@/lib/activity-log";
 import { migrateEntryValues, computeMigrationImpact, type FieldShape } from "@/lib/field-coerce";
@@ -39,6 +39,14 @@ export async function PATCH(
     } else if (body.fields !== undefined) {
       const oldFields = Array.isArray(category.fields) ? (category.fields as unknown as FieldShape[]) : [];
       const newFields = body.fields as FieldShape[];
+      for (const field of newFields) {
+        if (typeof field.name !== "string" || !SAFE_FIELD_NAME_RE.test(field.name)) {
+          return NextResponse.json(
+            { error: `"${field.name}" is not a valid column name — names must start with a letter or underscore and may only contain letters, digits, underscores, and spaces (max 64 characters)` },
+            { status: 400 },
+          );
+        }
+      }
       if (body.dryRun) {
         const impact = await computeMigrationImpact(catId, oldFields, newFields);
         return NextResponse.json({ impact });
