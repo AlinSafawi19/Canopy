@@ -107,6 +107,22 @@ export function EntriesTable({
 }: Props) {
   const router = useRouter();
 
+  // ── Real-time schedule updates ──────────────────────────────────────────────
+  useEffect(() => {
+    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+    if (!key || !cluster) return;
+    let cancelled = false;
+    import("pusher-js").then(({ default: Pusher }) => {
+      if (cancelled) return;
+      const pusher = new Pusher(key, { cluster });
+      const channel = pusher.subscribe(`category-${categoryId}`);
+      channel.bind("schedule-fired", () => router.refresh());
+      return () => { pusher.unsubscribe(`category-${categoryId}`); pusher.disconnect(); };
+    });
+    return () => { cancelled = true; };
+  }, [categoryId, router]);
+
   // ── Presence polling ────────────────────────────────────────────────────────
   const [presence, setPresence] = useState<Record<string, { userId: string; name: string; color: string }[]>>({});
   useEffect(() => {

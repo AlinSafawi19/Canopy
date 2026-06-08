@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { pusherServer } from "@/lib/pusher-server";
 
 /**
  * Called by a cron scheduler (Vercel Cron, external cron, etc.) or manually.
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
 
   let published = 0;
   let skippedForApproval = 0;
+  const publishedCategories = new Set<string>();
 
   for (const entry of toPublish) {
     // Approval gate: skip if there are open change requests
@@ -50,6 +52,7 @@ export async function POST(req: NextRequest) {
       where: { id: entry.id },
       data: { archivedAt: null, archivedBy: null, publishAt: null },
     });
+    publishedCategories.add(entry.categoryId);
     published++;
   }
 
@@ -59,14 +62,17 @@ export async function POST(req: NextRequest) {
       archiveAt: { lte: now },
       archivedAt: null,
     },
-    select: { id: true },
+    select: { id: true, categoryId: true },
   });
+
+  const archivedCategories = new Set<string>();
 
   for (const entry of toArchive) {
     await prisma.contentCategoryEntry.update({
       where: { id: entry.id },
       data: { archivedAt: now, archivedBy: "system", archiveAt: null },
     });
+    archivedCategories.add(entry.categoryId);
   }
 
   // ── 3. Pre-publish notifications (24h window) ───────────────────────────────
@@ -109,6 +115,14 @@ export async function POST(req: NextRequest) {
     });
     notificationsSent++;
   }
+
+  // ── 4. Notify connected clients via Pusher ──────────────────────────────────
+  const changedCategories = new Set([...publishedCategories, ...archivedCategories]);
+  await Promise.all(
+    Array.from(changedCategories).map((catId) =>
+      pusherServer.trigger(`category-${catId}`, "schedule-fired", {}).catch(() => {})
+    )
+  );
 
   return NextResponse.json({
     ok: true,
