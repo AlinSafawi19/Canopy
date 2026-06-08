@@ -80,6 +80,8 @@ export interface HealthReport {
     healthyFields: number;
     totalFields: number;
     problematicFields: ProblematicField[];
+    /** Categories that have fewer than 2 entries (need more content for schema analysis) */
+    lowEntriesCategories: { id: string; name: string; entryCount: number }[];
   };
 }
 
@@ -112,6 +114,7 @@ export async function computeProjectHealth(projectId: string): Promise<HealthRep
   const staleByCategory: CategoryStaleness[] = [];
   let totalSchemaFields = 0, healthySchemaFields = 0;
   const problematicFields: ProblematicField[] = [];
+  const lowEntriesCategories: { id: string; name: string; entryCount: number }[] = [];
   const fieldFillMap = new Map<string, FieldStat>();
 
   for (const cat of categories) {
@@ -151,6 +154,9 @@ export async function computeProjectHealth(projectId: string): Promise<HealthRep
     }
 
     // ── Schema Health (cats with ≥2 entries) ─────────────────
+    if (entries.length > 0 && entries.length < MIN_ENTRIES_FOR_SCHEMA_CHECK) {
+      lowEntriesCategories.push({ id: cat.id, name: cat.name, entryCount: entries.length });
+    }
     if (entries.length >= MIN_ENTRIES_FOR_SCHEMA_CHECK) {
       for (const f of scorable) {
         totalSchemaFields++;
@@ -172,7 +178,11 @@ export async function computeProjectHealth(projectId: string): Promise<HealthRep
   const schemaInsufficient = totalSchemaFields === 0;
   const schemaHealthScore  = schemaInsufficient ? 0 : clamp100((healthySchemaFields / totalSchemaFields) * 100);
 
-  const scoreComponents = [completenessScore, freshnessScore, coverageScore];
+  // Only include components that have actual data to assess.
+  // Defaulting empty components to 100 inflates the overall score.
+  const scoreComponents: number[] = [coverageScore];
+  if (totalSlots > 0)      scoreComponents.push(completenessScore);
+  if (totalEntries > 0)    scoreComponents.push(freshnessScore);
   if (!schemaInsufficient) scoreComponents.push(schemaHealthScore);
   const score = clamp100(scoreComponents.reduce((a, b) => a + b, 0) / scoreComponents.length);
 
@@ -192,6 +202,7 @@ export async function computeProjectHealth(projectId: string): Promise<HealthRep
       healthyFields: healthySchemaFields,
       totalFields: totalSchemaFields,
       problematicFields: problematicFields.sort((a, b) => a.fillRate - b.fillRate),
+      lowEntriesCategories,
     },
   };
 }

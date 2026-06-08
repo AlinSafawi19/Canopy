@@ -138,7 +138,7 @@ export default async function ProjectHealthPage({
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-sm font-semibold text-slate-700">
                   <span className="flex items-center gap-2"><CheckCircle2 size={14} className="text-slate-400" />Completeness</span>
-                  <span className={`text-2xl font-black tabular-nums ${scoreColor(report.completeness.score).text}`}>
+                  <span className={`text-2xl font-black tabular-nums ml-4 ${scoreColor(report.completeness.score).text}`}>
                     {report.completeness.score}<span className="text-sm font-normal text-slate-400">/100</span>
                   </span>
                 </CardTitle>
@@ -176,7 +176,7 @@ export default async function ProjectHealthPage({
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-sm font-semibold text-slate-700">
                   <span className="flex items-center gap-2"><Clock size={14} className="text-slate-400" />Freshness</span>
-                  <span className={`text-2xl font-black tabular-nums ${scoreColor(report.freshness.score).text}`}>
+                  <span className={`text-2xl font-black tabular-nums ml-4 ${scoreColor(report.freshness.score).text}`}>
                     {report.freshness.score}<span className="text-sm font-normal text-slate-400">/100</span>
                   </span>
                 </CardTitle>
@@ -223,7 +223,7 @@ export default async function ProjectHealthPage({
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-sm font-semibold text-slate-700">
                   <span className="flex items-center gap-2"><FolderOpen size={14} className="text-slate-400" />Coverage</span>
-                  <span className={`text-2xl font-black tabular-nums ${scoreColor(report.coverage.score).text}`}>
+                  <span className={`text-2xl font-black tabular-nums ml-4 ${scoreColor(report.coverage.score).text}`}>
                     {report.coverage.score}<span className="text-sm font-normal text-slate-400">/100</span>
                   </span>
                 </CardTitle>
@@ -262,29 +262,45 @@ export default async function ProjectHealthPage({
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-sm font-semibold text-slate-700">
                   <span className="flex items-center gap-2"><Lightbulb size={14} className="text-slate-400" />Schema Health</span>
-                  {report.schemaHealth.insufficient
-                    ? <span className="text-sm font-semibold text-slate-400">N/A</span>
-                    : <span className={`text-2xl font-black tabular-nums ${scoreColor(report.schemaHealth.score).text}`}>
-                        {report.schemaHealth.score}<span className="text-sm font-normal text-slate-400">/100</span>
-                      </span>
-                  }
+                  <span className={`text-2xl font-black tabular-nums ml-4 ${report.schemaHealth.insufficient ? "text-slate-400" : scoreColor(report.schemaHealth.score).text}`}>
+                    {report.schemaHealth.score}<span className="text-sm font-normal text-slate-400">/100</span>
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1">
                 {report.schemaHealth.insufficient ? (
-                  <div className="flex items-start gap-2 p-3 mt-1 rounded-lg bg-slate-50 border border-slate-200">
-                    <Info size={13} className="text-slate-400 flex-shrink-0 mt-0.5" />
-                    <div className="space-y-2">
-                      <p className="text-xs text-slate-500">
-                        Schema health requires at least 2 entries per category. Add more entries to detect fields that are consistently skipped.
-                      </p>
-                      {report.coverage.emptyCategories.length === 0 && (
-                        <p className="text-xs text-slate-400">
-                          You have content in all categories — just not enough entries per category yet.
-                        </p>
-                      )}
+                  <>
+                    <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden mt-1">
+                      <div className="h-full w-0 rounded-full bg-slate-300" />
                     </div>
-                  </div>
+                    <div className="flex items-start gap-2 p-3 mt-2 rounded-lg bg-amber-50 border border-amber-200">
+                      <Info size={13} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-700">
+                        Schema analysis needs at least <strong>2 entries per category</strong>. Add more entries to detect fields that are consistently skipped.
+                      </p>
+                    </div>
+                    {report.schemaHealth.lowEntriesCategories.length > 0 && (
+                      <>
+                        <SectionLabel>Add entries to unlock schema analysis</SectionLabel>
+                        <div className="space-y-1.5">
+                          {report.schemaHealth.lowEntriesCategories.map((cat) => (
+                            <div key={cat.id} className="flex items-center justify-between gap-2 py-1 border-b border-slate-50 last:border-0">
+                              <div>
+                                <span className="text-xs text-slate-700 font-medium">{cat.name}</span>
+                                <span className="text-[10px] text-slate-400 ml-1.5">{cat.entryCount} of 2 entries</span>
+                              </div>
+                              <Link href={`${catBase}/${cat.id}`}>
+                                <button className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-500 hover:text-indigo-700 transition-colors">
+                                  <PlusCircle size={9} />
+                                  Add entry
+                                </button>
+                              </Link>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
                 ) : (
                   <>
                     <p className="text-xs text-slate-500">

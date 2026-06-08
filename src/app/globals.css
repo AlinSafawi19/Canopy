@@ -91,6 +91,12 @@ body {
   outline-offset: 2px;
 }
 
+/* Recharts — suppress focus outlines on chart wrapper and SVG nodes */
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus {
+  outline: none;
+}
+
 /* ── Dark mode ── */
 
 /* Explicit dark: always dark regardless of system preference */
