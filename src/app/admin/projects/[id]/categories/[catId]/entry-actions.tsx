@@ -106,7 +106,23 @@ export function EntryActions({
       const PusherClient = (await import("pusher-js")).default;
       const pusher = new PusherClient(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
         cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-        authEndpoint: "/api/pusher/auth",
+        channelAuthorization: {
+          endpoint: "/api/pusher/auth",
+          transport: "ajax",
+          customHandler: async (params, callback) => {
+            try {
+              const res = await apiFetch("/api/pusher/auth", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ socket_id: params.socketId, channel_name: params.channelName }).toString(),
+              });
+              if (!res.ok) { callback(new Error(`Auth ${res.status}`), null); return; }
+              callback(null, await res.json());
+            } catch (err) {
+              callback(err instanceof Error ? err : new Error(String(err)), null);
+            }
+          },
+        },
       });
       pusherRef.current = pusher;
 
