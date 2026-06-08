@@ -68,6 +68,7 @@ export async function PATCH(
       data: {
         publishAt,
         archiveAt,
+        requiresApproval: publishAt ? !!body.requireApproval : false,
         ...(isNewPublish && !result.entry.archivedAt ? { archivedAt: now, archivedBy: "schedule" } : {}),
         ...(isClearingPublish && result.entry.archivedBy === "schedule" ? { archivedAt: null, archivedBy: null } : {}),
       },

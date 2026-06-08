@@ -83,8 +83,9 @@ model ContentCategoryEntry {
   archivedBy String?
 
   // Scheduled publishing / archiving
-  publishAt    DateTime?
-  archiveAt    DateTime?
+  publishAt        DateTime?
+  archiveAt        DateTime?
+  requiresApproval Boolean   @default(false)
 
   @@index([categoryId])
   @@index([categoryId, archivedAt])

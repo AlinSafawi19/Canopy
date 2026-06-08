@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       publishAt: { lte: now },
       archivedAt: { not: null },
     },
-    select: { id: true, categoryId: true, category: { select: { projectId: true } } },
+    select: { id: true, categoryId: true, requiresApproval: true, category: { select: { projectId: true } } },
   });
 
   let published = 0;
@@ -39,13 +39,15 @@ export async function POST(req: NextRequest) {
   const publishedCategories = new Set<string>();
 
   for (const entry of toPublish) {
-    // Approval gate: skip if there are open change requests
-    const openRequests = await prisma.changeRequest.count({
-      where: { entryId: entry.id, resolvedAt: null },
-    });
-    if (openRequests > 0) {
-      skippedForApproval++;
-      continue;
+    // Approval gate: only block if this entry requires approval and has open change requests
+    if (entry.requiresApproval) {
+      const openRequests = await prisma.changeRequest.count({
+        where: { entryId: entry.id, resolvedAt: null },
+      });
+      if (openRequests > 0) {
+        skippedForApproval++;
+        continue;
+      }
     }
 
     await prisma.contentCategoryEntry.update({
@@ -80,6 +82,7 @@ export async function POST(req: NextRequest) {
     where: {
       publishAt: { gt: now, lte: in24h },
       archivedAt: { not: null },
+      requiresApproval: true,
     },
     select: { id: true, categoryId: true, publishAt: true, category: { select: { projectId: true } } },
   });
