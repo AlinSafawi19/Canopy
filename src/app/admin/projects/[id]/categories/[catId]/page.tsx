@@ -196,8 +196,8 @@ export default async function CategoryDetailPage({
             <p className="text-slate-500 text-sm">{category.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-          <ExportEntriesButton projectId={id} categoryId={catId} categoryName={category.name} />
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 w-full sm:w-auto">
+          <ExportEntriesButton projectId={id} categoryId={catId} categoryName={category.name} className="w-full sm:w-auto" />
           <ImportEntriesButton projectId={id} categoryId={catId} fields={fields} totalEntries={total} categories={projectCategories} />
           <ManageSchemaButton projectId={id} categoryId={catId} fields={fields} categories={projectCategories.map((c) => ({ id: c.id, name: c.name, fields: (Array.isArray(c.fields) ? c.fields : []) as Array<{ name: string; type: string; relationCategoryId?: string }> }))} />
           <CreateEntryButton categoryId={catId} projectId={id} fields={fields} />

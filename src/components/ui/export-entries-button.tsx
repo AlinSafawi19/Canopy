@@ -10,6 +10,7 @@ interface Props {
   categoryId: string;
   categoryName: string;
   basePath?: string;
+  className?: string;
 }
 
 export function ExportEntriesButton({
@@ -17,6 +18,7 @@ export function ExportEntriesButton({
   categoryId,
   categoryName,
   basePath = "/api/admin/projects",
+  className,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState<"csv" | "json" | null>(null);
@@ -51,13 +53,13 @@ export function ExportEntriesButton({
   }
 
   return (
-    <div className="relative" ref={ref}>
+    <div className={`relative${className ? ` ${className}` : ""}`} ref={ref}>
       <Button
         variant="outline"
         onClick={() => setOpen((v) => !v)}
         loading={loading !== null}
         disabled={loading !== null}
-        className="gap-1.5"
+        className={`gap-1.5${className ? ` ${className}` : ""}`}
       >
         <Download size={14} />
         Export
