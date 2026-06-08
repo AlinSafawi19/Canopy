@@ -511,7 +511,7 @@ export function EntriesTable({
                           canDelete={canDelete}
                           relatedEntries={relatedEntries}
                           currentUserId={currentUserId}
-                          otherEditors={(presence[entry.id] ?? []).filter((p) => p.userId !== currentUserId)}
+                          activeEditors={presence[entry.id] ?? []}
                         />
                       </div>
                     </td>

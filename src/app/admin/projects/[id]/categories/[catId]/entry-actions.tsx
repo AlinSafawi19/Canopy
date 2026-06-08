@@ -16,7 +16,7 @@ import { RelationSelect } from "@/components/ui/relation-select";
 import { RelationMultiSelect } from "@/components/ui/relation-multi-select";
 import { LIMITS } from "@/lib/limits";
 import { CalendarClock, Calendar } from "lucide-react";
-import { presenceInitials } from "@/lib/presence";
+import { presenceInitials } from "@/lib/presence-client";
 
 interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean }
 interface Entry {
@@ -42,7 +42,7 @@ export function EntryActions({
   canSchedule = true,
   relatedEntries,
   currentUserId,
-  otherEditors = [],
+  activeEditors = [],
 }: {
   entry: Entry;
   categoryId: string;
@@ -56,8 +56,8 @@ export function EntryActions({
   /** entryId → label, for pre-filling relation selects with the current value. */
   relatedEntries?: Record<string, string>;
   currentUserId: string;
-  /** Other users currently editing this entry — passed from the entries table's presence poll. */
-  otherEditors?: Editor[];
+  /** All users currently editing this entry — from the entries table's presence poll. */
+  activeEditors?: Editor[];
 }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -231,7 +231,12 @@ export function EntryActions({
   // ── Derived ─────────────────────────────────────────────────────────────────
 
   const hasSchedule = !!(entry.publishAt || entry.archiveAt);
-  const others = otherEditors.filter((e) => e.userId !== currentUserId);
+  const others = activeEditors.filter((e) => e.userId !== currentUserId);
+  // Combine polled presence with local edit state so you always see yourself immediately
+  const selfPolled = activeEditors.find((e) => e.userId === currentUserId);
+  const visibleEditors: Editor[] = editOpen && !selfPolled
+    ? [{ userId: currentUserId, name: "You", color: "#6366F1" }, ...activeEditors.filter((e) => e.userId !== currentUserId)]
+    : activeEditors;
 
   function formatScheduleDate(d: Date | null | undefined) {
     if (!d) return "";
@@ -240,21 +245,24 @@ export function EntryActions({
 
   return (
     <div className="flex flex-col items-end gap-1">
-      {/* Who else is editing — shown on the table row */}
-      {others.length > 0 && (
+      {/* Who is editing this entry — shown on the table row */}
+      {visibleEditors.length > 0 && (
         <div className="flex items-center gap-0.5">
-          {others.slice(0, 3).map((ed) => (
-            <span
-              key={ed.userId}
-              title={ed.name}
-              className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold text-white ring-1 ring-white"
-              style={{ backgroundColor: ed.color }}
-            >
-              {presenceInitials(ed.name)}
-            </span>
-          ))}
-          {others.length > 3 && (
-            <span className="text-[9px] text-slate-400 ml-0.5">+{others.length - 3}</span>
+          {visibleEditors.slice(0, 4).map((ed) => {
+            const isSelf = ed.userId === currentUserId;
+            return (
+              <span
+                key={ed.userId}
+                title={isSelf ? "You (editing)" : ed.name}
+                className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold text-white ring-1 ring-white ${isSelf ? "animate-pulse" : ""}`}
+                style={{ backgroundColor: ed.color }}
+              >
+                {isSelf ? "✎" : presenceInitials(ed.name)}
+              </span>
+            );
+          })}
+          {visibleEditors.length > 4 && (
+            <span className="text-[9px] text-slate-400 ml-0.5">+{visibleEditors.length - 4}</span>
           )}
         </div>
       )}
