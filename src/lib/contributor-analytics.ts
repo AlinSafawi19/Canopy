@@ -71,8 +71,6 @@ export async function computeContributorAnalytics(
   if (myContributors.length === 0) return emptyReport(0);
 
   const contributorIds = myContributors.map((c) => c.id);
-  const profileMap = new Map(myContributors.map((c) => [c.id, c]));
-
   const requests = await prisma.changeRequest.findMany({
     where: { authorId: { in: contributorIds }, authorRole: "contributor" },
     select: {
