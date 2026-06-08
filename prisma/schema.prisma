@@ -77,11 +77,14 @@ model ContentCategoryEntry {
   category   ContentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   values     Json
   sortIndex  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
   archivedAt DateTime?
   archivedBy String?
 
   @@index([categoryId])
   @@index([categoryId, archivedAt])
+  @@index([categoryId, updatedAt])
 }
 
 model ClientIdentity {

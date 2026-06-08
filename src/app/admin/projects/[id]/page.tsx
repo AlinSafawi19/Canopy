@@ -16,7 +16,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { Pagination } from "@/components/ui/pagination";
 import { parsePage, parseLimit, parseSearch } from "@/lib/pagination";
-import { Globe, GitBranch, ExternalLink, Server, Tag, ArrowLeft, User, Key } from "lucide-react";
+import { Globe, GitBranch, ExternalLink, Server, Tag, ArrowLeft, User, Key, Activity } from "lucide-react";
 
 const BASE = "/admin/projects";
 const CAT_SORTS = ["name"] as const;
@@ -167,6 +167,12 @@ export default async function ProjectDetailPage({
             <p className="text-slate-500 text-sm mt-0.5">{project.shortDescription}</p>
           )}
         </div>
+        <Link href={`${BASE}/${id}/health`}>
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <Activity size={14} />
+            Health
+          </Button>
+        </Link>
         <EditProjectButton project={{
           id: project.id,
           name: project.name,
