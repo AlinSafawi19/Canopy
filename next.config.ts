@@ -19,8 +19,8 @@ function generateCSP(nonce?: string): string {
     // Video backgrounds — admins can paste external URLs so allow all HTTPS
     "media-src 'self' blob: https:",
     "font-src 'self'",
-    // All API calls go to same origin
-    "connect-src 'self'",
+    // Same-origin API calls + Pusher WebSocket and SockJS fallback
+    "connect-src 'self' wss://ws-us2.pusher.com https://sockjs-us2.pusher.com",
     "object-src 'none'",
     "frame-src 'none'",
     "frame-ancestors 'none'",
