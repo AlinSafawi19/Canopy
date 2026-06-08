@@ -83,13 +83,6 @@ export async function PATCH(
     return NextResponse.json({ ok: true });
   }
   if (body.values !== undefined) {
-    // Lock check
-    const now = new Date();
-    const e = result.entry as typeof result.entry & { lockedBy?: string | null; lockedUntil?: Date | null };
-    if (e.lockedBy && e.lockedBy !== session.id && e.lockedUntil && e.lockedUntil > now) {
-      return NextResponse.json({ error: "Entry is locked by another user" }, { status: 409 });
-    }
-
     const fields = result.entry.category.fields as Array<{ name: string; type: string }>;
     const valErr = validateEntryValues(body.values, fields);
     if (valErr) return NextResponse.json({ error: valErr }, { status: 400 });

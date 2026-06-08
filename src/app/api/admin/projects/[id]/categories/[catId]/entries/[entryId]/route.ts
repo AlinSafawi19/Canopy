@@ -59,13 +59,6 @@ export async function PATCH(
 
       await logActivity({ session, action: "scheduled", resource: "entry", resourceId: entryId, adminTenantId: session.tenantId! });
     } else if (body.values !== undefined) {
-      // Lock check: reject if locked by someone else
-      const now = new Date();
-      const e = entry as typeof entry & { lockedBy?: string | null; lockedUntil?: Date | null };
-      if (e.lockedBy && e.lockedBy !== session.id && e.lockedUntil && e.lockedUntil > now) {
-        return NextResponse.json({ error: "Entry is locked by another user" }, { status: 409 });
-      }
-
       const fields = entry.category.fields as Array<{ name: string; type: string }>;
       const valErr = validateEntryValues(body.values, fields);
       if (valErr) return NextResponse.json({ error: valErr }, { status: 400 });

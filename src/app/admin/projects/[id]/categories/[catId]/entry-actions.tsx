@@ -15,21 +15,20 @@ import { Select } from "@/components/ui/select";
 import { RelationSelect } from "@/components/ui/relation-select";
 import { RelationMultiSelect } from "@/components/ui/relation-multi-select";
 import { LIMITS } from "@/lib/limits";
-import { Lock, CalendarClock, Calendar } from "lucide-react";
+import { CalendarClock, Calendar } from "lucide-react";
+import { presenceInitials } from "@/lib/presence";
 
 interface Field { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean }
 interface Entry {
   id: string;
   values: unknown;
   archivedAt: Date | null;
-  lockedBy?: string | null;
-  lockedByName?: string | null;
-  lockedUntil?: Date | null;
   publishAt?: Date | null;
   archiveAt?: Date | null;
 }
+interface Editor { userId: string; name: string; color: string }
 
-const LOCK_KEEPALIVE_MS = 10 * 60 * 1000; // refresh lock every 10 min
+const PRESENCE_KEEPALIVE_MS = 30 * 1000;
 
 export function EntryActions({
   entry,
@@ -43,6 +42,7 @@ export function EntryActions({
   canSchedule = true,
   relatedEntries,
   currentUserId,
+  otherEditors = [],
 }: {
   entry: Entry;
   categoryId: string;
@@ -55,8 +55,9 @@ export function EntryActions({
   canSchedule?: boolean;
   /** entryId → label, for pre-filling relation selects with the current value. */
   relatedEntries?: Record<string, string>;
-  /** Session user ID — used to determine if we own the lock. */
   currentUserId: string;
+  /** Other users currently editing this entry — passed from the entries table's presence poll. */
+  otherEditors?: Editor[];
 }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -99,48 +100,47 @@ export function EntryActions({
   };
 
   const baseUrl = `${basePath}/${projectId}/categories/${categoryId}/entries/${entry.id}`;
+  const presenceUrl = `${basePath}/${projectId}/categories/${categoryId}/presence`;
 
-  // ── Lock helpers ────────────────────────────────────────────────────────────
+  // ── Presence helpers ─────────────────────────────────────────────────────────
 
-  function isLockedByOther(): boolean {
-    if (!entry.lockedBy || entry.lockedBy === currentUserId) return false;
-    if (!entry.lockedUntil) return false;
-    return new Date(entry.lockedUntil) > new Date();
+  async function registerPresence() {
+    try {
+      await apiFetch(presenceUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entryId: entry.id }),
+      });
+    } catch { /* non-fatal */ }
   }
 
-  async function acquireLock(): Promise<boolean> {
-    const res = await apiFetch(`${baseUrl}/lock`, { method: "POST" });
-    if (res.status === 409) {
-      const data = await res.json();
-      setError(`Locked by ${data.lockedByName ?? "another user"} — try again shortly.`);
-      return false;
-    }
-    return res.ok;
-  }
-
-  async function releaseLock() {
+  async function deregisterPresence() {
     clearInterval(keepaliveRef.current!);
     keepaliveRef.current = null;
-    await apiFetch(`${baseUrl}/lock`, { method: "DELETE" });
+    try {
+      await apiFetch(presenceUrl, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entryId: entry.id }),
+      });
+    } catch { /* non-fatal */ }
   }
 
   // ── Edit handlers ───────────────────────────────────────────────────────────
 
   async function openEdit() {
     setError("");
-    const acquired = await acquireLock();
-    if (!acquired) return;
-    // Start keepalive to refresh lock before it expires
-    keepaliveRef.current = setInterval(() => apiFetch(`${baseUrl}/lock`, { method: "POST" }), LOCK_KEEPALIVE_MS);
+    await registerPresence();
+    keepaliveRef.current = setInterval(registerPresence, PRESENCE_KEEPALIVE_MS);
     setValues(entry.values as Record<string, unknown>);
     setEditOpen(true);
   }
 
-  // Cleanup keepalive when component unmounts with modal open
+  // Cleanup presence when component unmounts with modal open
   useEffect(() => () => { if (keepaliveRef.current) clearInterval(keepaliveRef.current); }, []);
 
   async function closeEdit() {
-    await releaseLock();
+    await deregisterPresence();
     setEditOpen(false);
     setTouched(false);
     setError("");
@@ -157,11 +157,10 @@ export function EntryActions({
     });
     setLoading(false);
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error === "Entry is locked by another user" ? "Another user saved this entry. Refresh and try again." : "Failed to save");
+      setError("Failed to save");
       return;
     }
-    await releaseLock();
+    await deregisterPresence();
     setEditOpen(false);
     setTouched(false);
     router.refresh();
@@ -231,8 +230,8 @@ export function EntryActions({
 
   // ── Derived ─────────────────────────────────────────────────────────────────
 
-  const locked = isLockedByOther();
   const hasSchedule = !!(entry.publishAt || entry.archiveAt);
+  const others = otherEditors.filter((e) => e.userId !== currentUserId);
 
   function formatScheduleDate(d: Date | null | undefined) {
     if (!d) return "";
@@ -241,6 +240,25 @@ export function EntryActions({
 
   return (
     <div className="flex flex-col items-end gap-1">
+      {/* Who else is editing — shown on the table row */}
+      {others.length > 0 && (
+        <div className="flex items-center gap-0.5">
+          {others.slice(0, 3).map((ed) => (
+            <span
+              key={ed.userId}
+              title={ed.name}
+              className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold text-white ring-1 ring-white"
+              style={{ backgroundColor: ed.color }}
+            >
+              {presenceInitials(ed.name)}
+            </span>
+          ))}
+          {others.length > 3 && (
+            <span className="text-[9px] text-slate-400 ml-0.5">+{others.length - 3}</span>
+          )}
+        </div>
+      )}
+
       {/* Schedule badges */}
       {entry.publishAt && (
         <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5 whitespace-nowrap">
@@ -258,16 +276,9 @@ export function EntryActions({
       {/* Action buttons row */}
       <div className="flex items-center gap-1">
         {canEdit && (
-          locked ? (
-            <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 px-2 py-1 rounded border border-slate-200 bg-slate-50 whitespace-nowrap">
-              <Lock size={10} />
-              {entry.lockedByName ?? "Locked"}
-            </span>
-          ) : (
-            <Button variant="ghost" size="sm" onClick={openEdit}>
-              Edit
-            </Button>
-          )
+          <Button variant="ghost" size="sm" onClick={openEdit}>
+            Edit
+          </Button>
         )}
 
         {(canArchive || canDelete || canSchedule) && (
@@ -318,6 +329,27 @@ export function EntryActions({
           </div>
         }
       >
+        {others.length > 0 && (
+          <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center gap-0.5">
+              {others.slice(0, 4).map((ed) => (
+                <span
+                  key={ed.userId}
+                  title={ed.name}
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold text-white ring-2 ring-white"
+                  style={{ backgroundColor: ed.color }}
+                >
+                  {presenceInitials(ed.name)}
+                </span>
+              ))}
+            </div>
+            <span className="text-xs text-amber-700">
+              {others.length === 1
+                ? `${others[0].name} is also editing`
+                : `${others.map((e) => e.name).join(", ")} are also editing`}
+            </span>
+          </div>
+        )}
         <form id="edit-entry-form" onSubmit={save} className="space-y-4">
           {fields.map((field) => {
             if (field.type === "rich_text") return (

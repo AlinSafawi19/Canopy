@@ -41,9 +41,6 @@ interface TableEntry {
   id: string;
   values: unknown;
   archivedAt: Date | null;
-  lockedBy?: string | null;
-  lockedByName?: string | null;
-  lockedUntil?: Date | null;
   publishAt?: Date | null;
   archiveAt?: Date | null;
 }
@@ -78,7 +75,7 @@ interface Props {
   canRequestChange?: boolean;
   /** When true, admin can reopen resolved requests from the indicator modal */
   canReopenRequests?: boolean;
-  /** Session user ID — passed to EntryActions for lock ownership check */
+  /** Session user ID — used to exclude self from presence avatars */
   currentUserId?: string;
 }
 
@@ -107,6 +104,21 @@ export function EntriesTable({
   currentUserId = "",
 }: Props) {
   const router = useRouter();
+
+  // ── Presence polling ────────────────────────────────────────────────────────
+  const [presence, setPresence] = useState<Record<string, { userId: string; name: string; color: string }[]>>({});
+  useEffect(() => {
+    let mounted = true;
+    const poll = async () => {
+      try {
+        const res = await apiFetch(`${apiBase}/${projectId}/categories/${categoryId}/presence`);
+        if (res.ok && mounted) setPresence(await res.json());
+      } catch { /* non-fatal */ }
+    };
+    poll();
+    const id = setInterval(poll, 5000);
+    return () => { mounted = false; clearInterval(id); };
+  }, [apiBase, projectId, categoryId]);
 
   // ── Bulk selection ──────────────────────────────────────────────────────────
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -499,6 +511,7 @@ export function EntriesTable({
                           canDelete={canDelete}
                           relatedEntries={relatedEntries}
                           currentUserId={currentUserId}
+                          otherEditors={(presence[entry.id] ?? []).filter((p) => p.userId !== currentUserId)}
                         />
                       </div>
                     </td>
