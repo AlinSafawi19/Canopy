@@ -2,6 +2,7 @@
 import { apiFetch } from "@/lib/api-fetch";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -130,6 +131,8 @@ export function EntriesTable({
   // ── Column visibility (persisted in localStorage per category) ──────────────
   const [hiddenFields, setHiddenFields] = useState<Set<string>>(new Set());
   const [showColumnsPanel, setShowColumnsPanel] = useState(false);
+  const [columnsPanelCoords, setColumnsPanelCoords] = useState<{ top: number; right: number } | null>(null);
+  const columnsButtonRef = useRef<HTMLButtonElement>(null);
   const columnsPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -141,13 +144,23 @@ export function EntriesTable({
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (columnsPanelRef.current && !columnsPanelRef.current.contains(e.target as Node)) {
-        setShowColumnsPanel(false);
-      }
+      if (
+        columnsButtonRef.current?.contains(e.target as Node) ||
+        columnsPanelRef.current?.contains(e.target as Node)
+      ) return;
+      setShowColumnsPanel(false);
     }
     if (showColumnsPanel) document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showColumnsPanel]);
+
+  function openColumnsPanel() {
+    if (columnsButtonRef.current) {
+      const r = columnsButtonRef.current.getBoundingClientRect();
+      setColumnsPanelCoords({ top: r.bottom + 6, right: window.innerWidth - r.right });
+    }
+    setShowColumnsPanel((v) => !v);
+  }
 
   function toggleField(name: string) {
     setHiddenFields((prev) => {
@@ -267,59 +280,57 @@ export function EntriesTable({
 
       {/* Table toolbar: Columns toggle */}
       <div className="flex items-center justify-end px-4 py-2 border-b border-slate-100 bg-white">
-        <div className="relative" ref={columnsPanelRef}>
-          <button
-            onClick={() => setShowColumnsPanel((v) => !v)}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded border transition-colors ${
-              hiddenFields.size > 0
-                ? "text-indigo-700 bg-indigo-50 border-indigo-200 hover:bg-indigo-100"
-                : "text-slate-600 bg-white border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            <Columns3 size={13} />
-            Columns
-            {hiddenFields.size > 0 && (
-              <span className="ml-0.5 px-1.5 py-0 rounded-full bg-indigo-200 text-indigo-800 text-[10px] font-semibold">
-                {hiddenFields.size} hidden
-              </span>
-            )}
-          </button>
-
-          {showColumnsPanel && (
-            <div className="absolute right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-lg shadow-lg z-30 min-w-[220px] py-1">
-              <div className="px-3 py-1.5 border-b border-slate-100 flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Toggle columns</span>
-                {hiddenFields.size > 0 && (
-                  <button
-                    onClick={showAllFields}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                  >
-                    Show all
-                  </button>
-                )}
-              </div>
-              <div className="max-h-64 overflow-y-auto">
-                {fields.map((f) => (
-                  <label
-                    key={f.name}
-                    className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer select-none"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={!hiddenFields.has(f.name)}
-                      onChange={() => toggleField(f.name)}
-                      className="w-3.5 h-3.5 rounded border-slate-300 accent-indigo-600 cursor-pointer"
-                    />
-                    <span className="flex-1 text-sm text-slate-700 truncate">{f.name}</span>
-                    <span className={`text-[10px] uppercase tracking-wide font-medium ${TYPE_COLORS[f.type] ?? "text-slate-400"}`}>
-                      {f.type}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
+        <button
+          ref={columnsButtonRef}
+          onClick={openColumnsPanel}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded border transition-colors ${
+            hiddenFields.size > 0
+              ? "text-indigo-700 bg-indigo-50 border-indigo-200 hover:bg-indigo-100"
+              : "text-slate-600 bg-white border-slate-200 hover:bg-slate-50"
+          }`}
+        >
+          <Columns3 size={13} />
+          Columns
+          {hiddenFields.size > 0 && (
+            <span className="ml-0.5 px-1.5 py-0 rounded-full bg-indigo-200 text-indigo-800 text-[10px] font-semibold">
+              {hiddenFields.size} hidden
+            </span>
           )}
-        </div>
+        </button>
+
+        {showColumnsPanel && columnsPanelCoords && typeof document !== "undefined" && createPortal(
+          <div
+            ref={columnsPanelRef}
+            className="fixed z-[9999] bg-white border border-slate-200 rounded-lg shadow-lg min-w-[220px] py-1"
+            style={{ top: columnsPanelCoords.top, right: columnsPanelCoords.right }}
+          >
+            <div className="px-3 py-1.5 border-b border-slate-100 flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Toggle columns</span>
+              {hiddenFields.size > 0 && (
+                <button onClick={showAllFields} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                  Show all
+                </button>
+              )}
+            </div>
+            <div className="max-h-64 overflow-y-auto">
+              {fields.map((f) => (
+                <label key={f.name} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={!hiddenFields.has(f.name)}
+                    onChange={() => toggleField(f.name)}
+                    className="w-3.5 h-3.5 rounded border-slate-300 accent-indigo-600 cursor-pointer"
+                  />
+                  <span className="flex-1 text-sm text-slate-700 truncate">{f.name}</span>
+                  <span className={`text-[10px] uppercase tracking-wide font-medium ${TYPE_COLORS[f.type] ?? "text-slate-400"}`}>
+                    {f.type}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>,
+          document.body,
+        )}
       </div>
 
       <div className="overflow-x-auto">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { DayPicker } from "react-day-picker";
 import { format, parseISO } from "date-fns";
 import { Calendar, X } from "lucide-react";
@@ -12,6 +13,7 @@ interface DatePickerProps {
   label?: string;
   placeholder?: string;
   disabled?: boolean;
+  disablePast?: boolean;
   className?: string;
 }
 
@@ -21,18 +23,33 @@ export function DatePicker({
   label,
   placeholder = "Pick a date",
   disabled,
+  disablePast,
   className,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   const selected = value ? parseISO(value) : undefined;
   const display = selected ? format(selected, "MMM d, yyyy") : null;
 
+  function openPicker() {
+    if (buttonRef.current) {
+      const r = buttonRef.current.getBoundingClientRect();
+      setCoords({ top: r.bottom + 4, left: r.left });
+    }
+    setOpen(true);
+  }
+
   useEffect(() => {
     if (!open) return;
     function onOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (
+        buttonRef.current?.contains(e.target as Node) ||
+        popoverRef.current?.contains(e.target as Node)
+      ) return;
+      setOpen(false);
     }
     function onEscape(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
@@ -46,13 +63,14 @@ export function DatePicker({
   }, [open]);
 
   return (
-    <div className={cn("flex flex-col gap-1.5", className)} ref={ref}>
+    <div className={cn("flex flex-col gap-1.5", className)}>
       {label && <label className="text-sm font-medium text-slate-700">{label}</label>}
       <div className="relative">
         <button
+          ref={buttonRef}
           type="button"
           disabled={disabled}
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => (open ? setOpen(false) : openPicker())}
           className={cn(
             "h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-left flex items-center gap-2",
             "focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow duration-150",
@@ -73,18 +91,24 @@ export function DatePicker({
           )}
         </button>
 
-        {open && (
-          <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg p-3">
+        {open && coords && typeof document !== "undefined" && createPortal(
+          <div
+            ref={popoverRef}
+            className="fixed z-[9999] bg-white border border-slate-200 rounded-xl shadow-lg p-3"
+            style={{ top: coords.top, left: coords.left }}
+          >
             <DayPicker
               mode="single"
               selected={selected}
+              disabled={disablePast ? { before: new Date() } : undefined}
               onSelect={(date) => {
                 onChange(date ? format(date, "yyyy-MM-dd") : null);
                 setOpen(false);
               }}
               defaultMonth={selected}
             />
-          </div>
+          </div>,
+          document.body,
         )}
       </div>
     </div>

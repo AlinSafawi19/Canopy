@@ -32,6 +32,9 @@ export async function PATCH(
     } else if (body.action === "schedule") {
       const publishAt = body.publishAt ? new Date(body.publishAt) : null;
       const archiveAt = body.archiveAt ? new Date(body.archiveAt) : null;
+      const now = new Date();
+      if (publishAt && publishAt <= now) return NextResponse.json({ error: "Publish date must be in the future" }, { status: 422 });
+      if (archiveAt && archiveAt <= now) return NextResponse.json({ error: "Archive date must be in the future" }, { status: 422 });
 
       await prisma.contentCategoryEntry.update({
         where: { id: entryId },

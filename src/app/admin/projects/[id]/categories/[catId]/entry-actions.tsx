@@ -11,6 +11,7 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { ActionMenu, ActionMenuItem } from "@/components/ui/action-menu";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import { Select } from "@/components/ui/select";
 import { RelationSelect } from "@/components/ui/relation-select";
 import { RelationMultiSelect } from "@/components/ui/relation-multi-select";
@@ -37,6 +38,66 @@ interface PeerState {
 }
 
 const PRESENCE_KEEPALIVE_MS = 30 * 1000;
+
+function toYMD(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+const DATE_SHORTCUTS = [
+  { label: "Today",      fn: () => toYMD(new Date()) },
+  { label: "Tomorrow",   fn: () => { const d = new Date(); d.setDate(d.getDate() + 1); return toYMD(d); } },
+  { label: "Next week",  fn: () => { const d = new Date(); d.setDate(d.getDate() + 7); return toYMD(d); } },
+  { label: "Next month", fn: () => { const d = new Date(); d.setMonth(d.getMonth() + 1); return toYMD(d); } },
+];
+
+const TIME_SHORTCUTS = [
+  { label: "Now",       fn: () => { const n = new Date(); return `${String(n.getHours()).padStart(2,"0")}:${String(n.getMinutes()).padStart(2,"0")}`; } },
+  { label: "Morning",   fn: () => "09:00" },
+  { label: "Noon",      fn: () => "12:00" },
+  { label: "Afternoon", fn: () => "15:00" },
+  { label: "Evening",   fn: () => "18:00" },
+  { label: "Night",     fn: () => "21:00" },
+];
+
+function nowHHMM() {
+  const n = new Date();
+  return `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
+}
+
+function QuickDateButtons({ onDate }: { onDate: (v: string) => void }) {
+  const today = toYMD(new Date());
+  return (
+    <div className="flex flex-wrap gap-1">
+      {DATE_SHORTCUTS.map(({ label, fn }) => {
+        const val = fn();
+        if (val < today) return null;
+        return (
+          <button key={label} type="button" onClick={() => onDate(val)}
+            className="px-2 py-0.5 text-[11px] font-medium rounded-md border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors">
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function QuickTimeButtons({ onTime, minTime }: { onTime: (v: string) => void; minTime?: string }) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {TIME_SHORTCUTS.map(({ label, fn }) => {
+        const val = fn();
+        if (minTime && val < minTime) return null;
+        return (
+          <button key={label} type="button" onClick={() => onTime(val)}
+            className="px-2 py-0.5 text-[11px] font-medium rounded-md border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors">
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 const CURSOR_THROTTLE_MS = 50;
 
 export function EntryActions({
@@ -351,7 +412,11 @@ export function EntryActions({
       body: JSON.stringify({ action: "schedule", publishAt, archiveAt, requireApproval }),
     });
     setScheduling(false);
-    if (!res.ok) { setError("Failed to save schedule"); return; }
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      setError(body?.error ?? "Failed to save schedule");
+      return;
+    }
     setScheduleOpen(false);
     router.refresh();
   }
@@ -474,23 +539,6 @@ export function EntryActions({
 
   return (
     <div className="flex flex-col items-end gap-1">
-      {/* Row-level presence avatars */}
-      {visibleEditors.length > 0 && (
-        <div className="flex items-center gap-0.5">
-          {visibleEditors.slice(0, 4).map((ed) => {
-            const isSelf = ed.userId === currentUserId;
-            return (
-              <span key={ed.userId} title={isSelf ? "You (editing)" : ed.name}
-                className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold text-white ring-1 ring-white ${isSelf ? "animate-pulse" : ""}`}
-                style={{ backgroundColor: ed.color }}>
-                {isSelf ? "✎" : presenceInitials(ed.name)}
-              </span>
-            );
-          })}
-          {visibleEditors.length > 4 && <span className="text-[9px] text-slate-400 ml-0.5">+{visibleEditors.length - 4}</span>}
-        </div>
-      )}
-
       {/* Schedule badges */}
       {entry.publishAt && (
         <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5 whitespace-nowrap">
@@ -503,8 +551,24 @@ export function EntryActions({
         </span>
       )}
 
-      {/* Action buttons row */}
+      {/* Action buttons + presence avatars on the same row */}
       <div className="flex items-center gap-1">
+        {/* Row-level presence avatars */}
+        {visibleEditors.length > 0 && (
+          <div className="flex items-center gap-0.5 mr-1">
+            {visibleEditors.slice(0, 4).map((ed) => {
+              const isSelf = ed.userId === currentUserId;
+              return (
+                <span key={ed.userId} title={isSelf ? "You (editing)" : ed.name}
+                  className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold text-white ring-1 ring-white ${isSelf ? "animate-pulse" : ""}`}
+                  style={{ backgroundColor: ed.color }}>
+                  {isSelf ? "✎" : presenceInitials(ed.name)}
+                </span>
+              );
+            })}
+            {visibleEditors.length > 4 && <span className="text-[9px] text-slate-400 ml-0.5">+{visibleEditors.length - 4}</span>}
+          </div>
+        )}
         {canEdit && <Button variant="ghost" size="sm" onClick={openEdit}>Edit</Button>}
         {(canArchive || canDelete || canSchedule) && (
           <ActionMenu>
@@ -589,37 +653,42 @@ export function EntryActions({
         }
       >
         <form id="schedule-entry-form" onSubmit={saveSchedule} className="space-y-5">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Publish at (un-archive)</p>
-            <div className="flex gap-2 items-end">
-              <div className="flex-1"><DatePicker label="Date" value={publishDate || null} onChange={(v) => setPublishDate(v ?? "")} /></div>
-              <div className="w-28">
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Time</label>
-                <input type="time" value={publishTime} onChange={(e) => setPublishTime(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
-              </div>
-            </div>
-            {publishDate && (
-              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                <input type="checkbox" checked={requireApproval} onChange={(e) => setRequireApproval(e.target.checked)}
-                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-                Require approval before publishing
-                <span className="text-xs text-slate-400">(creates a change request)</span>
-              </label>
-            )}
-          </div>
-          <hr className="border-slate-100" />
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Archive at (take down)</p>
-            <div className="flex gap-2 items-end">
-              <div className="flex-1"><DatePicker label="Date" value={archiveDate || null} onChange={(v) => setArchiveDate(v ?? "")} /></div>
-              <div className="w-28">
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Time</label>
-                <input type="time" value={archiveTime} onChange={(e) => setArchiveTime(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
-              </div>
-            </div>
-          </div>
+          {(() => {
+            const today = toYMD(new Date());
+            const pubMinTime = publishDate === today ? nowHHMM() : undefined;
+            const arcMinTime = archiveDate === today ? nowHHMM() : undefined;
+            return (
+              <>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Publish at (un-archive)</p>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1"><DatePicker label="Date" value={publishDate || null} onChange={(v) => setPublishDate(v ?? "")} disablePast /></div>
+                    <TimePicker label="Time" value={publishTime} onChange={setPublishTime} minTime={pubMinTime} className="w-28" />
+                  </div>
+                  <QuickDateButtons onDate={setPublishDate} />
+                  <QuickTimeButtons onTime={setPublishTime} minTime={pubMinTime} />
+                  {publishDate && (
+                    <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                      <input type="checkbox" checked={requireApproval} onChange={(e) => setRequireApproval(e.target.checked)}
+                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                      Require approval before publishing
+                      <span className="text-xs text-slate-400">(creates a change request)</span>
+                    </label>
+                  )}
+                </div>
+                <hr className="border-slate-100" />
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Archive at (take down)</p>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1"><DatePicker label="Date" value={archiveDate || null} onChange={(v) => setArchiveDate(v ?? "")} disablePast /></div>
+                    <TimePicker label="Time" value={archiveTime} onChange={setArchiveTime} minTime={arcMinTime} className="w-28" />
+                  </div>
+                  <QuickDateButtons onDate={setArchiveDate} />
+                  <QuickTimeButtons onTime={setArchiveTime} minTime={arcMinTime} />
+                </div>
+              </>
+            );
+          })()}
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
         </form>
       </Modal>
