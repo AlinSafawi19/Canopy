@@ -101,7 +101,7 @@ export async function computeProjectHealth(projectId: string): Promise<HealthRep
 
     // ── Freshness + Completeness ───────────────────────────────
     for (const entry of entries) {
-      (entry.updatedAt as Date) >= staleThreshold ? freshEntries++ : staleEntries++;
+      if ((entry.updatedAt as Date) >= staleThreshold) freshEntries++; else staleEntries++;
 
       const vals = (entry.values ?? {}) as Record<string, unknown>;
       for (const f of scorable) {
