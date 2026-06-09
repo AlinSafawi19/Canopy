@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendReleaseEmails } from "@/lib/release-emails";
+import { sanitizeReleaseNotes } from "@/lib/sanitize";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
       data: {
         version: version.trim(),
         title: title.trim(),
-        notes: notes.trim(),
+        notes: sanitizeReleaseNotes(notes.trim()),
         status: publish ? "published" : "draft",
         publishedAt: publish ? new Date() : null,
         createdBy: session.id,

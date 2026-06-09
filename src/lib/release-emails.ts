@@ -1,6 +1,7 @@
 import { sendMail } from "@/lib/mailer";
 import { prisma } from "@/lib/prisma";
 import { escapeHtml } from "@/lib/utils";
+import { sanitizeReleaseNotes } from "@/lib/sanitize";
 
 interface ReleasePayload {
   version: string;
@@ -51,7 +52,7 @@ function buildHtml(displayName: string, release: ReleasePayload): string {
         .rn hr { border:none; border-top:1px solid #e2e8f0; margin:12px 0; }
       </style>
       <div class="rn" style="margin-bottom:32px;">
-        ${release.notes}
+        ${sanitizeReleaseNotes(release.notes)}
       </div>
       <p style="color:#94a3b8;font-size:12px;margin:0;">You&rsquo;re receiving this because you have an active Canopy account.</p>
     </div>

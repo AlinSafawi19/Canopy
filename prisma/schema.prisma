@@ -67,8 +67,25 @@ model ContentCategory {
   archivedAt  DateTime?
   archivedBy  String?
   entries     ContentCategoryEntry[]
+  webhooks    Webhook[]
 
   @@index([projectId])
+}
+
+model Webhook {
+  id              String          @id @default(cuid())
+  categoryId      String
+  category        ContentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name            String          @db.VarChar(100)
+  url             String          @db.VarChar(500)
+  secret          String          @db.VarChar(255)
+  events          Json            @default("[\"entry.created\",\"entry.updated\",\"entry.archived\"]")
+  enabled         Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  lastTriggeredAt DateTime?
+  lastStatus      Int?
+
+  @@index([categoryId])
 }
 
 model ContentCategoryEntry {

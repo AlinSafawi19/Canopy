@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendReleaseEmails } from "@/lib/release-emails";
+import { sanitizeReleaseNotes } from "@/lib/sanitize";
 
 export async function PATCH(
   request: NextRequest,
@@ -28,7 +29,7 @@ export async function PATCH(
       data: {
         ...(body.version !== undefined && { version: body.version.trim() }),
         ...(body.title   !== undefined && { title:   body.title.trim()   }),
-        ...(body.notes   !== undefined && { notes:   body.notes          }),
+        ...(body.notes   !== undefined && { notes:   sanitizeReleaseNotes(body.notes) }),
         status: newStatus,
         ...(isPublishing && { publishedAt: new Date() }),
         ...(newStatus === "draft" && wasPublished && { publishedAt: null }),
