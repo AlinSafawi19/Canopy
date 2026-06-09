@@ -14,6 +14,11 @@ export async function POST(request: NextRequest) {
   const { id, role } = session;
 
   try {
+    const release = await prisma.release.findUnique({ where: { id: releaseId }, select: { status: true } });
+    if (!release || release.status !== "published") {
+      return NextResponse.json({ error: "Release not found" }, { status: 404 });
+    }
+
     if (role === "owner") {
       await prisma.platformOwner.update({ where: { id }, data: { lastSeenReleaseId: releaseId } });
     } else if (role === "admin") {
