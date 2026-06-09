@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { hashApiKey } from "@/lib/api-key";
 import { parsePage, paginationArgs, paginationMeta } from "@/lib/pagination";
 import { LIMITS, maxLen } from "@/lib/limits";
 
@@ -38,9 +39,9 @@ export async function GET(
       WHERE "projectId" = ${id} AND "adminTenantId" = ${project.adminTenantId}
     `,
     prisma.$queryRaw<
-      Array<{ id: string; name: string; key: string; createdAt: Date; lastUsedAt: Date | null }>
+      Array<{ id: string; name: string; keyPrefix: string; createdAt: Date; lastUsedAt: Date | null }>
     >`
-      SELECT id, name, key, "createdAt", "lastUsedAt"
+      SELECT id, name, "keyPrefix", "createdAt", "lastUsedAt"
       FROM "ApiKey"
       WHERE "projectId" = ${id} AND "adminTenantId" = ${project.adminTenantId}
       ORDER BY "createdAt" DESC
@@ -74,13 +75,16 @@ export async function POST(
   if (lenErr) return NextResponse.json({ error: lenErr }, { status: 400 });
 
   const key = "cms_" + crypto.randomBytes(32).toString("hex");
+  const keyHash = hashApiKey(key);
+  const keyPrefix = key.slice(0, 12);
   const newId = crypto.randomUUID();
   const now = new Date();
 
   await prisma.$executeRaw`
-    INSERT INTO "ApiKey" (id, name, key, "projectId", "adminTenantId", "createdAt")
-    VALUES (${newId}, ${name.trim()}, ${key}, ${id}, ${project.adminTenantId}, ${now})
+    INSERT INTO "ApiKey" (id, name, "keyHash", "keyPrefix", "projectId", "adminTenantId", "createdAt")
+    VALUES (${newId}, ${name.trim()}, ${keyHash}, ${keyPrefix}, ${id}, ${project.adminTenantId}, ${now})
   `;
 
+  // Return the plaintext key exactly once — it is not stored and cannot be recovered
   return NextResponse.json({ id: newId, name: name.trim(), key }, { status: 201 });
 }
