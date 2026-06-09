@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { generateId } from "@/lib/utils";
 import { validateEntryValues, sanitizeEntryValues } from "@/lib/limits";
 import { logActivity } from "@/lib/activity-log";
+import { dispatchWebhooks } from "@/lib/webhook";
 
 export async function POST(
   request: NextRequest,
@@ -48,6 +49,7 @@ export async function POST(
     });
 
     await logActivity({ session, action: "created", resource: "entry", resourceId: entry.id, adminTenantId: session.tenantId! });
+    dispatchWebhooks(catId, "entry.created", entry.id);
 
     return NextResponse.json({ id: entry.id }, { status: 201 });
   } catch (err) {
@@ -82,6 +84,7 @@ export async function PATCH(
       data: { archivedAt: new Date(), archivedBy: session.id },
     });
     await logActivity({ session, action: "archived", resource: "entry", adminTenantId: session.tenantId!, resourceName: `${count} entries` });
+    for (const id of ids) dispatchWebhooks(catId, "entry.archived", id);
     return NextResponse.json({ ok: true, archived: count });
   }
 

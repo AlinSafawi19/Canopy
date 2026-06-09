@@ -14,6 +14,8 @@ import { Pagination } from "@/components/ui/pagination";
 import { SearchInput } from "@/components/ui/search-input";
 import { parsePage, parseLimit, parseSearch, parseSortDir } from "@/lib/pagination";
 import { getEntryLabel } from "@/lib/utils";
+import { WebhooksSection } from "./webhooks-section";
+import { Webhook } from "lucide-react";
 
 
 export default async function CategoryDetailPage({
@@ -62,13 +64,18 @@ export default async function CategoryDetailPage({
     ...(matchingIds !== null ? { id: { in: matchingIds } } : {}),
   };
 
-  const [total, entries] = await Promise.all([
+  const [total, entries, webhooks] = await Promise.all([
     prisma.contentCategoryEntry.count({ where: activeWhere }),
     prisma.contentCategoryEntry.findMany({
       where: activeWhere,
       orderBy: { sortIndex: sortDir },
       skip,
       take: limit,
+    }),
+    prisma.webhook.findMany({
+      where: { categoryId: catId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, url: true, events: true, enabled: true, createdAt: true, lastTriggeredAt: true, lastStatus: true },
     }),
   ]);
 
@@ -203,6 +210,28 @@ export default async function CategoryDetailPage({
           <CreateEntryButton categoryId={catId} projectId={id} fields={fields} />
         </div>
       </div>
+
+      {/* Webhooks */}
+      <Card className="overflow-hidden">
+        <CardHeader className="border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <Webhook size={16} className="text-slate-400" />
+            <CardTitle>Webhooks</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <WebhooksSection
+            projectId={id}
+            categoryId={catId}
+            initialWebhooks={webhooks.map((wh) => ({
+              ...wh,
+              events: wh.events as string[],
+              createdAt: wh.createdAt.toISOString(),
+              lastTriggeredAt: wh.lastTriggeredAt ? wh.lastTriggeredAt.toISOString() : null,
+            }))}
+          />
+        </CardContent>
+      </Card>
 
       {/* Database table */}
       <Card className="overflow-hidden">

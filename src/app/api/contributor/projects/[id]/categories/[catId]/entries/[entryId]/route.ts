@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { parsePermissions } from "@/lib/contributor-permissions";
 import { validateEntryValues, sanitizeEntryValues } from "@/lib/limits";
 import { logActivity } from "@/lib/activity-log";
+import { dispatchWebhooks } from "@/lib/webhook";
 
 async function getAssignedEntry(entryId: string, catId: string, projectId: string, contributorId: string) {
   const assignment = await prisma.contributorAssignment.findFirst({
@@ -42,6 +43,7 @@ export async function PATCH(
   if (body.action === "archive") {
     await prisma.contentCategoryEntry.update({ where: { id: entryId }, data: { archivedAt: new Date(), archivedBy: session.id } });
     await logActivity({ session, action: "archived", resource: "entry", resourceId: entryId, parentClientUsername });
+    dispatchWebhooks(catId, "entry.archived", entryId);
     return NextResponse.json({ ok: true });
   }
   if (body.action === "restore") {
@@ -109,6 +111,7 @@ export async function PATCH(
     if (valErr) return NextResponse.json({ error: valErr }, { status: 400 });
     await prisma.contentCategoryEntry.update({ where: { id: entryId }, data: { values: sanitizeEntryValues(body.values, fields) } });
     await logActivity({ session, action: "updated", resource: "entry", resourceId: entryId, parentClientUsername });
+    dispatchWebhooks(catId, "entry.updated", entryId);
   } else {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }

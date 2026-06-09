@@ -5,6 +5,7 @@ import { generateId } from "@/lib/utils";
 import { parsePermissions } from "@/lib/contributor-permissions";
 import { validateEntryValues, sanitizeEntryValues } from "@/lib/limits";
 import { logActivity } from "@/lib/activity-log";
+import { dispatchWebhooks } from "@/lib/webhook";
 
 async function getAssignedCategory(catId: string, projectId: string, contributorId: string) {
   const assignment = await prisma.contributorAssignment.findFirst({
@@ -61,6 +62,7 @@ export async function POST(
   });
   const parentClientUsername = contributorRecord?.parentClientUsername ?? undefined;
   await logActivity({ session, action: "created", resource: "entry", resourceId: entry.id, parentClientUsername });
+  dispatchWebhooks(catId, "entry.created", entry.id);
 
   return NextResponse.json({ id: entry.id }, { status: 201 });
 }

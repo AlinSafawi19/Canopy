@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { validateEntryValues, sanitizeEntryValues } from "@/lib/limits";
 import { logActivity } from "@/lib/activity-log";
+import { dispatchWebhooks } from "@/lib/webhook";
 
 export async function PATCH(
   request: NextRequest,
@@ -26,6 +27,7 @@ export async function PATCH(
     if (body.action === "archive") {
       await prisma.contentCategoryEntry.update({ where: { id: entryId }, data: { archivedAt: new Date(), archivedBy: session.id } });
       await logActivity({ session, action: "archived", resource: "entry", resourceId: entryId, adminTenantId: session.tenantId! });
+      dispatchWebhooks(catId, "entry.archived", entryId);
     } else if (body.action === "restore") {
       await prisma.contentCategoryEntry.update({ where: { id: entryId }, data: { archivedAt: null, archivedBy: null } });
       await logActivity({ session, action: "restored", resource: "entry", resourceId: entryId, adminTenantId: session.tenantId! });
@@ -87,6 +89,7 @@ export async function PATCH(
       if (valErr) return NextResponse.json({ error: valErr }, { status: 400 });
       await prisma.contentCategoryEntry.update({ where: { id: entryId }, data: { values: sanitizeEntryValues(body.values, fields) } });
       await logActivity({ session, action: "updated", resource: "entry", resourceId: entryId, adminTenantId: session.tenantId! });
+      dispatchWebhooks(catId, "entry.updated", entryId);
     } else {
       return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
