@@ -30,6 +30,10 @@ export const LIMITS = {
   // API Key
   API_KEY_NAME: 100,
 
+  // Webhook
+  WEBHOOK_NAME: 100,
+  WEBHOOK_URL: 500,
+
   // Entry field values by type
   ENTRY_TEXT: 500,
   ENTRY_TEXTAREA: 5000,
