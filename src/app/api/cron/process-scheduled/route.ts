@@ -15,11 +15,8 @@ import { pusherServer } from "@/lib/pusher-server";
  */
 export async function POST(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const now = new Date();
@@ -136,10 +133,6 @@ export async function POST(req: NextRequest) {
   });
 }
 
-/** Allow GET for easy manual triggering from the browser (dev only). */
-export async function GET(req: NextRequest) {
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Use POST" }, { status: 405 });
-  }
-  return POST(req);
+export async function GET() {
+  return NextResponse.json({ error: "Use POST" }, { status: 405 });
 }
