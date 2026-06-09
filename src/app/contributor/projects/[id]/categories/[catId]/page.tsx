@@ -94,6 +94,12 @@ export default async function ContributorCategoryPage({
   const openRequestsByEntry = Object.fromEntries(openCounts.map((r) => [r.entryId, r._count.entryId]));
   const resolvedRequestsByEntry = Object.fromEntries(resolvedCounts.map((r) => [r.entryId, r._count.entryId]));
 
+  const projectCategories = await prisma.contentCategory.findMany({
+    where: { projectId: id, archivedAt: null },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
   const fields: Array<{ name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean; countCategoryId?: string; countFieldName?: string }> = Array.isArray(category.fields)
     ? (category.fields as unknown as Array<{ name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean; countCategoryId?: string; countFieldName?: string }>)
     : [];
@@ -193,7 +199,7 @@ export default async function ContributorCategoryPage({
           )}
           {permissions.canCreateEntries && (
             <>
-              <ImportEntriesButton projectId={id} categoryId={catId} fields={fields} totalEntries={total} basePath={BASE} />
+              <ImportEntriesButton projectId={id} categoryId={catId} fields={fields} totalEntries={total} basePath={BASE} categories={projectCategories} />
               <CreateEntryButton categoryId={catId} projectId={id} fields={fields} basePath={BASE} />
             </>
           )}
