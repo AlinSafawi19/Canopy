@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, ROLE_HOME, type SessionRole } from "@/lib/auth";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
-import { isSessionValid } from "@/lib/session-validator-edge";
 
 const PUBLIC_PATHS = [
   "/login",
@@ -194,15 +193,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    try {
-      const sessionValid = await isSessionValid(token);
-      if (sessionValid === false) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-    } catch {
-      // Allow through if revocation check fails; JWT validity is already confirmed
-    }
-
     return NextResponse.next();
   }
 
@@ -218,22 +208,6 @@ export async function middleware(request: NextRequest) {
     const response = NextResponse.redirect(new URL("/login", request.url));
     response.cookies.delete("cms_session");
     return response;
-  }
-
-  // Check if session has been explicitly revoked (e.g., password change, logout)
-  // If the check fails, allow the request through since JWT is still valid
-  try {
-    const sessionValid = await isSessionValid(token);
-    if (sessionValid === false) {
-      // Only redirect if explicitly revoked, not on database errors
-      const response = NextResponse.redirect(new URL("/login", request.url));
-      response.cookies.delete("cms_session");
-      return response;
-    }
-  } catch (err) {
-    // If session check fails, allow through since JWT is valid
-    // This prevents lockouts during migrations or database issues
-    console.debug("[middleware] session validation check failed, allowing request", err);
   }
 
   const allowedPrefix = ROLE_PREFIXES[session.role];
