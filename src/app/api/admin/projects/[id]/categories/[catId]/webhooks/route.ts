@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { LIMITS, maxLen } from "@/lib/limits";
-import { ALL_WEBHOOK_EVENTS } from "@/lib/webhook";
+import { ALL_WEBHOOK_EVENTS, validateWebhookUrl } from "@/lib/webhook";
 import crypto from "crypto";
-
-const URL_RE = /^https?:\/\/.+/i;
 
 export async function GET(
   _request: NextRequest,
@@ -60,8 +58,8 @@ export async function POST(
 
     if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 });
     if (!url?.trim()) return NextResponse.json({ error: "URL is required" }, { status: 400 });
-    if (!URL_RE.test(url.trim()))
-      return NextResponse.json({ error: "URL must start with http:// or https://" }, { status: 400 });
+    const urlErr = await validateWebhookUrl(url.trim());
+    if (urlErr) return NextResponse.json({ error: urlErr }, { status: 400 });
 
     const lenErr = maxLen(name, LIMITS.WEBHOOK_NAME, "Name") ?? maxLen(url, LIMITS.WEBHOOK_URL, "URL");
     if (lenErr) return NextResponse.json({ error: lenErr }, { status: 400 });
