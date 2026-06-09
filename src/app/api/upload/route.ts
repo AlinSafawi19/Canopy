@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { Storage } from "@google-cloud/storage";
 import { fileTypeFromBuffer } from "file-type";
+import { prisma } from "@/lib/prisma";
 
 const ALLOWED_TYPES: Record<string, string> = {
   "image/jpeg": ".jpg",
@@ -32,6 +33,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "File too large (max 50 MB)" }, { status: 413 });
   }
 
+  const projectId = (formData.get("projectId") as string | null) ?? undefined;
+
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileType = await fileTypeFromBuffer(buffer);
@@ -53,9 +56,13 @@ export async function POST(request: NextRequest) {
     const gcsFile = bucket.file(filename);
     await gcsFile.save(buffer, { metadata: { contentType: fileType.mime } });
 
-    return NextResponse.json({
-      url: `https://storage.googleapis.com/${bucketName}/${filename}`,
+    const url = `https://storage.googleapis.com/${bucketName}/${filename}`;
+
+    await prisma.upload.create({
+      data: { gcsUrl: url, uploadedBy: session.id, uploaderRole: session.role, projectId },
     });
+
+    return NextResponse.json({ url });
   } catch (err) {
     console.error("[upload]", err);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
@@ -78,15 +85,33 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }
 
+  const record = await prisma.upload.findUnique({ where: { gcsUrl: url } });
+  if (!record) {
+    return NextResponse.json({ error: "File not found" }, { status: 404 });
+  }
+
+  const allowed = canDelete(session, record);
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const filename = url.slice(prefix.length);
 
   try {
     const credentials = JSON.parse(keyRaw);
     const storage = new Storage({ credentials });
     await storage.bucket(bucketName).file(filename).delete();
+    await prisma.upload.delete({ where: { gcsUrl: url } });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[upload DELETE]", err);
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   }
+}
+
+function canDelete(
+  session: { id: string; role: string },
+  record: { uploadedBy: string }
+): boolean {
+  return record.uploadedBy === session.id || session.role === "admin";
 }

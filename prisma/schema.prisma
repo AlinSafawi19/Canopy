@@ -413,6 +413,18 @@ model ChangeRequestComment {
   @@index([changeRequestId, createdAt])
 }
 
+model Upload {
+  id           String   @id @default(cuid())
+  gcsUrl       String   @unique @db.VarChar(1000)
+  uploadedBy   String
+  uploaderRole String   @db.VarChar(20)
+  projectId    String?
+  createdAt    DateTime @default(now())
+
+  @@index([uploadedBy])
+  @@index([projectId])
+}
+
 model AuditLog {
   id         String   @id @default(cuid())
   actorId    String
