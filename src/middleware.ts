@@ -179,6 +179,30 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith("/api/")) {
+    // /api/v1/ uses API-key auth validated per-route in Node runtime
+    if (pathname.startsWith("/api/v1/")) {
+      return NextResponse.next();
+    }
+
+    const token = request.cookies.get("cms_session")?.value;
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const session = await verifyToken(token);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+      const sessionValid = await isSessionValid(token);
+      if (sessionValid === false) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    } catch {
+      // Allow through if revocation check fails; JWT validity is already confirmed
+    }
+
     return NextResponse.next();
   }
 
