@@ -21,7 +21,9 @@ export async function PATCH(
   const body = await request.json();
 
   try {
-    const admin = await prisma.adminIdentity.findUnique({ where: { id } });
+    const admin = await prisma.adminIdentity.findFirst({
+      where: { id, createdByOwnerId: session.id },
+    });
     if (!admin) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     if (body.action === "archive") {
@@ -67,7 +69,9 @@ export async function DELETE(
 
   const { id } = await params;
   try {
-    const admin = await prisma.adminIdentity.findUnique({ where: { id } });
+    const admin = await prisma.adminIdentity.findFirst({
+      where: { id, createdByOwnerId: session.id },
+    });
     if (!admin) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const t = admin.tenantId;

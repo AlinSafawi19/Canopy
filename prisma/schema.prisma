@@ -170,8 +170,11 @@ model AdminIdentity {
   twoFactorEnabled    Boolean   @default(false)
   mustShow2faReminder Boolean   @default(true)
   lastSeenReleaseId   String?
+  createdByOwnerId    String?
+  createdByOwner      PlatformOwner? @relation(fields: [createdByOwnerId], references: [id])
 
   @@index([archivedAt])
+  @@index([createdByOwnerId])
 }
 
 model PlatformOwner {
@@ -189,6 +192,7 @@ model PlatformOwner {
   twoFactorEnabled     Boolean   @default(false)
   mustShow2faReminder  Boolean   @default(true)
   lastSeenReleaseId    String?
+  admins               AdminIdentity[]
 }
 
 model TwoFactorBackupCode {

@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
         email: email.trim().toLowerCase(),
         tenantId: nanoid(),
         updatedBy: session.id,
+        createdByOwnerId: session.id,
       },
     });
 
