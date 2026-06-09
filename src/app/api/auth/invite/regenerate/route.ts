@@ -23,7 +23,10 @@ export async function POST(request: NextRequest) {
 
   // Ensure target exists and belongs to caller's workspace
   if (targetKind === "admin") {
-    const u = await prisma.adminIdentity.findUnique({ where: { id: targetId }, select: { id: true } });
+    // updatedBy is set to the owner's id at creation and never mutated by any
+    // subsequent update path, making it the only available ownership signal
+    // in the current schema (AdminIdentity has no direct owner FK).
+    const u = await prisma.adminIdentity.findFirst({ where: { id: targetId, updatedBy: session.id }, select: { id: true } });
     if (!u) return NextResponse.json({ error: "Not found." }, { status: 404 });
   } else if (targetKind === "client") {
     const u = await prisma.clientIdentity.findUnique({ where: { id: targetId, tenantId: session.tenantId! }, select: { id: true } });
