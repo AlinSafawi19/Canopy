@@ -100,6 +100,7 @@ export function CreateEntryButton({
                 label={field.name}
                 value={str(field.name)}
                 onChange={(v) => setValue(field.name, v)}
+                projectId={projectId}
               />
             );
             if (field.type === "textarea") return (

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getEntryLabel } from "@/lib/utils";
+import { parsePermissions } from "@/lib/contributor-permissions";
 
 export async function GET(
   request: NextRequest,
@@ -17,6 +18,11 @@ export async function GET(
     where: { contributorId: session.id, projectId },
   });
   if (!assignment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const perms = parsePermissions(assignment.permissions as unknown);
+  if (!perms.canEditEntries && !perms.canCreateEntries) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const category = await prisma.contentCategory.findFirst({
     where: { id: catId, projectId },

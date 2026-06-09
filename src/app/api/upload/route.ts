@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { Storage } from "@google-cloud/storage";
 import { fileTypeFromBuffer } from "file-type";
 import { prisma } from "@/lib/prisma";
+import { parsePermissions } from "@/lib/contributor-permissions";
 
 const ALLOWED_TYPES: Record<string, string> = {
   "image/jpeg": ".jpg",
@@ -18,6 +19,7 @@ const ALLOWED_TYPES: Record<string, string> = {
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.role === "owner") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const bucketName = process.env.GOOGLE_CLOUD_BUCKET;
   const keyRaw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
@@ -34,6 +36,26 @@ export async function POST(request: NextRequest) {
   }
 
   const projectId = (formData.get("projectId") as string | null) ?? undefined;
+
+  if (session.role === "client") {
+    if (!projectId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const assignment = await prisma.clientAssignment.findFirst({
+      where: { projectId, clientId: session.id, archivedAt: null },
+    });
+    if (!assignment) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (session.role === "contributor") {
+    if (!projectId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const assignment = await prisma.contributorAssignment.findFirst({
+      where: { contributorId: session.id, projectId },
+    });
+    if (!assignment) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const perms = parsePermissions(assignment.permissions as unknown);
+    if (!perms.canEditEntries && !perms.canCreateEntries) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -72,6 +94,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.role === "owner") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const bucketName = process.env.GOOGLE_CLOUD_BUCKET;
   const keyRaw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
@@ -113,5 +136,6 @@ function canDelete(
   session: { id: string; role: string },
   record: { uploadedBy: string }
 ): boolean {
-  return record.uploadedBy === session.id || session.role === "admin";
+  if (session.role === "owner") return false;
+  return record.uploadedBy === session.id;
 }

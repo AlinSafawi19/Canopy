@@ -463,7 +463,8 @@ export function EntryActions({
     if (field.type === "rich_text") {
       fieldEl = (
         <RichTextEditor label={field.name} value={str(field.name)}
-          onChange={(v) => { setValues((vals) => ({ ...vals, [field.name]: v })); setTouched(true); }} />
+          onChange={(v) => { setValues((vals) => ({ ...vals, [field.name]: v })); setTouched(true); }}
+          projectId={projectId} />
       );
     } else if (field.type === "textarea") {
       fieldEl = (

@@ -61,6 +61,7 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   minHeight?: string;
+  projectId?: string;
 }
 
 function extractGcsUrls(html: string): Set<string> {
@@ -111,10 +112,12 @@ function ImagePopover({
   anchorRect,
   onInsert,
   onClose,
+  projectId,
 }: {
   anchorRect: DOMRect;
   onInsert: (src: string) => void;
   onClose: () => void;
+  projectId?: string;
 }) {
   const [tab, setTab] = useState<"url" | "upload">("url");
   const [url, setUrl] = useState("");
@@ -158,6 +161,7 @@ function ImagePopover({
     try {
       const form = new FormData();
       form.append("file", file);
+      if (projectId) form.append("projectId", projectId);
       const res = await apiFetch("/api/upload", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) { setUploadError(data.error ?? "Upload failed"); return; }
@@ -269,6 +273,7 @@ export function RichTextEditor({
   onChange,
   placeholder = "Write something…",
   minHeight = "120px",
+  projectId,
 }: RichTextEditorProps) {
   const [imgPopoverOpen, setImgPopoverOpen] = useState(false);
   const [imgBtnRect, setImgBtnRect] = useState<DOMRect | null>(null);
@@ -413,6 +418,7 @@ export function RichTextEditor({
                 anchorRect={imgBtnRect}
                 onInsert={insertImage}
                 onClose={() => { setImgPopoverOpen(false); setImgBtnRect(null); }}
+                projectId={projectId}
               />
             )}
         </div>
