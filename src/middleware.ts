@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken, ROLE_HOME, type SessionRole } from "@/lib/auth";
+import { verifyToken, ROLE_HOME, type SessionRole } from "@/lib/auth-edge";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const PUBLIC_PATHS = [
