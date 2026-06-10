@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PerPageSelector } from "./per-page-selector";
+import { cn } from "@/lib/utils";
 
 interface Props {
   total: number;
@@ -10,6 +11,7 @@ interface Props {
   extraParams?: Record<string, string>;
   pageParam?: string;
   limitParam?: string;
+  className?: string;
 }
 
 function pageHref(basePath: string, p: number, limit: number, extra?: Record<string, string>, pageParam = "page", limitParam = "limit") {
@@ -37,7 +39,7 @@ function getPages(current: number, total: number): (number | null)[] {
 const btnBase =
   "inline-flex items-center justify-center w-8 h-8 rounded-md text-sm border transition-colors";
 
-export function Pagination({ total, page, limit, basePath, extraParams, pageParam = "page", limitParam = "limit" }: Props) {
+export function Pagination({ total, page, limit, basePath, extraParams, pageParam = "page", limitParam = "limit", className }: Props) {
   if (total === 0) return null;
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -46,7 +48,7 @@ export function Pagination({ total, page, limit, basePath, extraParams, pagePara
   const pages = getPages(page, totalPages);
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-3">
+    <div className={cn("flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-3", className)}>
       {/* Left: rows per page + total */}
       <div className="flex items-center gap-2 text-sm text-slate-500 order-2 sm:order-1">
         <span>Rows per page:</span>

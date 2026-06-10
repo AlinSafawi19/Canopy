@@ -27,7 +27,7 @@ const EVENT_LABELS: Record<WebhookEventKey, string> = {
   "entry.archived": "Archived",
 };
 
-interface WebhookRow {
+export interface WebhookRow {
   id: string;
   name: string;
   url: string;
@@ -42,6 +42,8 @@ interface Props {
   projectId: string;
   categoryId: string;
   initialWebhooks: WebhookRow[];
+  createOpen: boolean;
+  onCreateClose: () => void;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -220,9 +222,8 @@ function CreateWebhookModal({
   );
 }
 
-export function WebhooksSection({ projectId, categoryId, initialWebhooks }: Props) {
+export function WebhooksSection({ projectId, categoryId, initialWebhooks, createOpen, onCreateClose }: Props) {
   const router = useRouter();
-  const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WebhookRow | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -334,15 +335,9 @@ export function WebhooksSection({ projectId, categoryId, initialWebhooks }: Prop
         </TableBody>
       </Table>
 
-      <div className="px-4 py-3 border-t border-slate-100 flex justify-end">
-        <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
-          Add Webhook
-        </Button>
-      </div>
-
       <CreateWebhookModal
         open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={onCreateClose}
         projectId={projectId}
         categoryId={categoryId}
       />

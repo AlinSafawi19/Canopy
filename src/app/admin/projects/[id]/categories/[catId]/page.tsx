@@ -14,8 +14,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { SearchInput } from "@/components/ui/search-input";
 import { parsePage, parseLimit, parseSearch, parseSortDir } from "@/lib/pagination";
 import { getEntryLabel } from "@/lib/utils";
-import { WebhooksSection } from "./webhooks-section";
-import { Webhook } from "lucide-react";
+import { WebhooksButton } from "./webhooks-button";
 
 
 export default async function CategoryDetailPage({
@@ -23,16 +22,18 @@ export default async function CategoryDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string; catId: string }>;
-  searchParams: Promise<{ page?: string; limit?: string; search?: string; sortDir?: string }>;
+  searchParams: Promise<{ page?: string; limit?: string; search?: string; sortDir?: string; wPage?: string; wLimit?: string }>;
 }) {
   const { id, catId } = await params;
   const session = await getSession();
-  const { page: rawPage, limit: rawLimit, search: rs, sortDir: rsd } = await searchParams;
+  const { page: rawPage, limit: rawLimit, search: rs, sortDir: rsd, wPage: rawWPage, wLimit: rawWLimit } = await searchParams;
   const page = parsePage(rawPage);
   const limit = parseLimit(rawLimit);
   const search = parseSearch(rs);
   const sortDir = parseSortDir(rsd);
   const skip = (page - 1) * limit;
+  const wPage = parsePage(rawWPage);
+  const wLimit = parseLimit(rawWLimit);
 
   const category = await prisma.contentCategory.findFirst({
     where: {
@@ -64,7 +65,7 @@ export default async function CategoryDetailPage({
     ...(matchingIds !== null ? { id: { in: matchingIds } } : {}),
   };
 
-  const [total, entries, webhooks] = await Promise.all([
+  const [total, entries, webhookTotal, webhooks] = await Promise.all([
     prisma.contentCategoryEntry.count({ where: activeWhere }),
     prisma.contentCategoryEntry.findMany({
       where: activeWhere,
@@ -72,9 +73,12 @@ export default async function CategoryDetailPage({
       skip,
       take: limit,
     }),
+    prisma.webhook.count({ where: { categoryId: catId } }),
     prisma.webhook.findMany({
       where: { categoryId: catId },
       orderBy: { createdAt: "asc" },
+      skip: (wPage - 1) * wLimit,
+      take: wLimit,
       select: { id: true, name: true, url: true, events: true, enabled: true, createdAt: true, lastTriggeredAt: true, lastStatus: true },
     }),
   ]);
@@ -183,9 +187,11 @@ export default async function CategoryDetailPage({
 
   const basePath = `/admin/projects/${id}/categories/${catId}`;
 
-  const extraParams: Record<string, string> = { limit: String(limit), sortDir };
+  const extraParams: Record<string, string> = { limit: String(limit), sortDir, wPage: String(wPage), wLimit: String(wLimit) };
   if (search) extraParams.search = search;
   const sortExtras: Record<string, string> = { limit: String(limit), ...(search ? { search } : {}) };
+  const wExtraParams: Record<string, string> = { page: String(page), limit: String(limit), sortDir };
+  if (search) wExtraParams.search = search;
 
   return (
     <div className="space-y-6">
@@ -204,23 +210,7 @@ export default async function CategoryDetailPage({
           )}
         </div>
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2 w-full sm:w-auto">
-          <ExportEntriesButton projectId={id} categoryId={catId} categoryName={category.name} className="w-full sm:w-auto" />
-          <ImportEntriesButton projectId={id} categoryId={catId} fields={fields} totalEntries={total} categories={projectCategories} />
-          <ManageSchemaButton projectId={id} categoryId={catId} fields={fields} categories={projectCategories.map((c) => ({ id: c.id, name: c.name, fields: (Array.isArray(c.fields) ? c.fields : []) as Array<{ name: string; type: string; relationCategoryId?: string }> }))} />
-          <CreateEntryButton categoryId={catId} projectId={id} fields={fields} />
-        </div>
-      </div>
-
-      {/* Webhooks */}
-      <Card className="overflow-hidden">
-        <CardHeader className="border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <Webhook size={16} className="text-slate-400" />
-            <CardTitle>Webhooks</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <WebhooksSection
+          <WebhooksButton
             projectId={id}
             categoryId={catId}
             initialWebhooks={webhooks.map((wh) => ({
@@ -229,9 +219,18 @@ export default async function CategoryDetailPage({
               createdAt: wh.createdAt.toISOString(),
               lastTriggeredAt: wh.lastTriggeredAt ? wh.lastTriggeredAt.toISOString() : null,
             }))}
+            total={webhookTotal}
+            page={wPage}
+            limit={wLimit}
+            basePath={basePath}
+            extraParams={wExtraParams}
           />
-        </CardContent>
-      </Card>
+          <ExportEntriesButton projectId={id} categoryId={catId} categoryName={category.name} className="w-full sm:w-auto" />
+          <ImportEntriesButton projectId={id} categoryId={catId} fields={fields} totalEntries={total} categories={projectCategories} />
+          <ManageSchemaButton projectId={id} categoryId={catId} fields={fields} categories={projectCategories.map((c) => ({ id: c.id, name: c.name, fields: (Array.isArray(c.fields) ? c.fields : []) as Array<{ name: string; type: string; relationCategoryId?: string }> }))} />
+          <CreateEntryButton categoryId={catId} projectId={id} fields={fields} />
+        </div>
+      </div>
 
       {/* Database table */}
       <Card className="overflow-hidden">
