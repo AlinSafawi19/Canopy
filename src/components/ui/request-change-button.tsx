@@ -89,7 +89,7 @@ export function RequestChangeButton({ entryId, projectId, categoryId, apiBase, o
         className="relative inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50 rounded transition-colors"
       >
         <MessageSquarePlus size={12} />
-        Request
+        <span className="hidden sm:inline">Request</span>
         {openCount > 0 && (
           <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-white text-[9px] font-bold leading-none">
             {openCount > 9 ? "9+" : openCount}

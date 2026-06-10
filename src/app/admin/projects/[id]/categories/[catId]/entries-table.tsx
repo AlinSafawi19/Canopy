@@ -516,7 +516,7 @@ export function EntriesTable({
                             title="Preview on site"
                           >
                             <ExternalLink size={12} />
-                            Preview
+                            <span className="hidden sm:inline">Preview</span>
                           </a>
                         )}
                         {canRequestChange && (

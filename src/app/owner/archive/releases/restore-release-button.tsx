@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { RotateCcw } from "lucide-react";
 import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/button";
 
@@ -21,8 +22,9 @@ export function RestoreReleaseButton({ id }: { id: string }) {
   }
 
   return (
-    <Button variant="outline" size="sm" loading={loading} onClick={handleRestore}>
-      Restore
+    <Button variant="outline" size="sm" loading={loading} onClick={handleRestore} title="Restore">
+      <RotateCcw size={14} />
+      <span className="hidden sm:inline">Restore</span>
     </Button>
   );
 }

@@ -3,6 +3,7 @@ import { apiFetch } from "@/lib/api-fetch";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActionMenu, ActionMenuItem } from "@/components/ui/action-menu";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -37,8 +38,9 @@ export function ArchiveProjectActions({
 
   return (
     <div className="flex items-center gap-1">
-      <Button variant="outline" size="sm" onClick={doRestore} disabled={loading}>
-        Restore
+      <Button variant="outline" size="sm" onClick={doRestore} disabled={loading} title="Restore">
+        <RotateCcw size={14} />
+        <span className="hidden sm:inline">Restore</span>
       </Button>
       <ActionMenu>
         <ActionMenuItem variant="danger" onClick={() => setConfirmDelete(true)} disabled={loading}>
@@ -95,8 +97,9 @@ export function ArchiveCategoryActions({
 
   return (
     <div className="flex items-center gap-1">
-      <Button variant="outline" size="sm" onClick={doRestore} disabled={loading}>
-        Restore
+      <Button variant="outline" size="sm" onClick={doRestore} disabled={loading} title="Restore">
+        <RotateCcw size={14} />
+        <span className="hidden sm:inline">Restore</span>
       </Button>
       <ActionMenu>
         <ActionMenuItem variant="danger" onClick={() => setConfirmDelete(true)} disabled={loading}>
@@ -167,8 +170,10 @@ export function ArchiveEntryActions({
           size="sm"
           onClick={doRestore}
           disabled={loading}
+          title="Restore"
         >
-          Restore
+          <RotateCcw size={14} />
+          <span className="hidden sm:inline">Restore</span>
         </Button>
       )}
       {canDelete && (
