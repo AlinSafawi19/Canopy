@@ -15,8 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Trash2, Webhook, ToggleLeft, ToggleRight } from "lucide-react";
 
-const ALL_EVENTS = ["entry.created", "entry.updated", "entry.archived"] as const;
-type WebhookEventKey = typeof ALL_EVENTS[number];
+type WebhookEventKey = "entry.created" | "entry.updated" | "entry.archived";
 
 const EVENT_LABELS: Record<WebhookEventKey, string> = {
   "entry.created": "Created",
