@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api-fetch";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import {
   Table,
@@ -15,8 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { LIMITS } from "@/lib/limits";
-import { Trash2, Copy, Check, Webhook, ToggleLeft, ToggleRight } from "lucide-react";
+import { Trash2, Webhook, ToggleLeft, ToggleRight } from "lucide-react";
 
 const ALL_EVENTS = ["entry.created", "entry.updated", "entry.archived"] as const;
 type WebhookEventKey = typeof ALL_EVENTS[number];
@@ -42,26 +39,6 @@ interface Props {
   projectId: string;
   categoryId: string;
   initialWebhooks: WebhookRow[];
-  createOpen: boolean;
-  onCreateClose: () => void;
-}
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-  return (
-    <button
-      onClick={handleCopy}
-      className="p-1 rounded text-slate-400 hover:text-slate-300 transition-colors"
-      title="Copy"
-    >
-      {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-    </button>
-  );
 }
 
 function StatusBadge({ status }: { status: number | null }) {
@@ -73,156 +50,7 @@ function StatusBadge({ status }: { status: number | null }) {
   return <Badge variant="danger">{status}</Badge>;
 }
 
-function CreateWebhookModal({
-  open,
-  onClose,
-  projectId,
-  categoryId,
-}: {
-  open: boolean;
-  onClose: () => void;
-  projectId: string;
-  categoryId: string;
-}) {
-  const router = useRouter();
-  const [name, setName] = useState("");
-  const [url, setUrl] = useState("");
-  const [events, setEvents] = useState<WebhookEventKey[]>([...ALL_EVENTS]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [createdSecret, setCreatedSecret] = useState<string | null>(null);
-
-  const toggleEvent = (e: WebhookEventKey) => {
-    setEvents((prev) =>
-      prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]
-    );
-  };
-
-  const handleCreate = async () => {
-    if (!name.trim()) { setError("Name is required"); return; }
-    if (!url.trim()) { setError("URL is required"); return; }
-    setLoading(true);
-    setError("");
-    try {
-      const res = await apiFetch(
-        `/api/admin/projects/${projectId}/categories/${categoryId}/webhooks`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: name.trim(), url: url.trim(), events }),
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Failed to create webhook"); return; }
-      setCreatedSecret(data.secret);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleClose = () => {
-    setName("");
-    setUrl("");
-    setEvents([...ALL_EVENTS]);
-    setError("");
-    if (createdSecret) {
-      setCreatedSecret(null);
-      router.refresh();
-    }
-    onClose();
-  };
-
-  return (
-    <Modal
-      open={open}
-      onClose={handleClose}
-      title="Add Webhook"
-      size="sm"
-      busy={loading}
-      footer={
-        createdSecret ? (
-          <Button className="w-full" onClick={handleClose}>Done</Button>
-        ) : (
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={handleClose} disabled={loading}>Cancel</Button>
-            <Button onClick={handleCreate} loading={loading}>Add Webhook</Button>
-          </div>
-        )
-      }
-    >
-      {createdSecret ? (
-        <div className="space-y-4">
-          <div className="flex items-start gap-2.5 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-            <Check size={16} className="text-emerald-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-emerald-700">
-              Webhook created — copy the signing secret now. It won&apos;t be shown again.
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 mb-1.5">Signing secret</p>
-            <div className="flex items-center gap-2 p-3 bg-slate-900 rounded-lg">
-              <code className="flex-1 text-xs font-mono text-emerald-400 break-all">{createdSecret}</code>
-              <CopyButton text={createdSecret} />
-            </div>
-          </div>
-          <p className="text-xs text-slate-400">
-            Use this secret to verify the <code className="bg-slate-100 px-1 rounded">X-Webhook-Signature</code> header
-            on incoming requests. The payload is signed with HMAC-SHA256.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Vercel Revalidation"
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              autoFocus
-              maxLength={LIMITS.WEBHOOK_NAME}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Endpoint URL</label>
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-              placeholder="https://example.com/api/revalidate"
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              maxLength={LIMITS.WEBHOOK_URL}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Events</label>
-            <div className="space-y-1.5">
-              {ALL_EVENTS.map((ev) => (
-                <label key={ev} className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={events.includes(ev)}
-                    onChange={() => toggleEvent(ev)}
-                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="text-sm text-slate-700">
-                    <span className="font-medium">{EVENT_LABELS[ev]}</span>
-                    <span className="text-slate-400 ml-1.5 font-mono text-xs">{ev}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-          {error && <p className="text-red-500 text-xs">{error}</p>}
-        </div>
-      )}
-    </Modal>
-  );
-}
-
-export function WebhooksSection({ projectId, categoryId, initialWebhooks, createOpen, onCreateClose }: Props) {
+export function WebhooksSection({ projectId, categoryId, initialWebhooks }: Props) {
   const router = useRouter();
   const [deleteTarget, setDeleteTarget] = useState<WebhookRow | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -334,13 +162,6 @@ export function WebhooksSection({ projectId, categoryId, initialWebhooks, create
           ))}
         </TableBody>
       </Table>
-
-      <CreateWebhookModal
-        open={createOpen}
-        onClose={onCreateClose}
-        projectId={projectId}
-        categoryId={categoryId}
-      />
 
       <ConfirmModal
         open={!!deleteTarget}

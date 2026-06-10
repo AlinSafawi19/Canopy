@@ -11,6 +11,8 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: string;
+  /** Action rendered in the header row, to the left of the close button. */
+  headerAction?: React.ReactNode;
   children: React.ReactNode;
   /** Sticky footer rendered below the scrollable content — put action buttons here. */
   footer?: React.ReactNode;
@@ -28,6 +30,7 @@ export const Modal = forwardRef<ModalRef, ModalProps>(function Modal({
   open,
   onClose,
   title,
+  headerAction,
   children,
   footer,
   size = "md",
@@ -104,13 +107,16 @@ export const Modal = forwardRef<ModalRef, ModalProps>(function Modal({
         {title && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
             <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-            <button
-              onClick={attemptClose}
-              disabled={busy}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-2">
+              {headerAction}
+              <button
+                onClick={attemptClose}
+                disabled={busy}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
         )}
         <div className="p-6 overflow-y-auto flex-1 min-h-0">{children}</div>
