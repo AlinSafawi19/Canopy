@@ -124,7 +124,7 @@ export function WebhooksButton({
         onClick={() => setOpen(true)}
       >
         <Webhook size={14} />
-        Manage Webhooks{total > 0 ? ` (${total})` : ""}
+        Webhooks{total > 0 ? ` (${total})` : ""}
       </Button>
 
       <Modal

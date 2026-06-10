@@ -229,7 +229,7 @@ export default async function CategoryDetailPage({
           <ImportEntriesButton projectId={id} categoryId={catId} fields={fields} totalEntries={total} categories={projectCategories} />
           <CreateEntryButton categoryId={catId} projectId={id} fields={fields} />
           <div className="col-span-2 sm:contents">
-            <ManageSchemaButton projectId={id} categoryId={catId} fields={fields} categories={projectCategories.map((c) => ({ id: c.id, name: c.name, fields: (Array.isArray(c.fields) ? c.fields : []) as Array<{ name: string; type: string; relationCategoryId?: string }> }))} />
+            <ManageSchemaButton projectId={id} categoryId={catId} fields={fields} categories={projectCategories.map((c) => ({ id: c.id, name: c.name, fields: (Array.isArray(c.fields) ? c.fields : []) as Array<{ name: string; type: string; relationCategoryId?: string }> }))} className="w-full sm:w-auto" />
           </div>
         </div>
       </div>

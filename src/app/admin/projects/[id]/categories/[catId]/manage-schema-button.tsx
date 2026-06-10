@@ -35,12 +35,14 @@ export function ManageSchemaButton({
   fields: initialFields,
   categories = [],
   basePath = "/api/admin/projects",
+  className,
 }: {
   projectId: string;
   categoryId: string;
   fields: Field[];
   categories?: Category[];
   basePath?: string;
+  className?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -226,7 +228,7 @@ export function ManageSchemaButton({
 
   return (
     <>
-      <Button variant="outline" onClick={handleOpen} className="gap-1.5">
+      <Button variant="outline" onClick={handleOpen} className={`gap-1.5${className ? ` ${className}` : ""}`}>
         <Columns size={14} />
         Manage Columns
         {initialFields.length > 0 && (
