@@ -122,9 +122,9 @@ export function Select({ label, value, onChange, options, placeholder, required,
   ) : null;
 
   return (
-    <div className="relative flex flex-col gap-1.5">
+    <div className="relative flex flex-col gap-1">
       {label && (
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-xs sm:text-sm font-medium text-slate-700">
           {label}{required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
@@ -136,7 +136,7 @@ export function Select({ label, value, onChange, options, placeholder, required,
         className={[
           "flex items-center justify-between gap-1.5 rounded-lg border text-left transition-colors focus:outline-none",
           autoWidth ? "" : "w-full",
-          size === "sm" ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm",
+          size === "sm" ? "px-2 py-1 text-xs" : "px-2.5 py-1.5 text-sm sm:px-3 sm:py-2",
           disabled
             ? "bg-slate-50 text-slate-400 cursor-not-allowed border-slate-200"
             : "bg-white border-slate-300 hover:border-slate-400 cursor-pointer",

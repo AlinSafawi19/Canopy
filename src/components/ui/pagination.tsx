@@ -48,9 +48,9 @@ export function Pagination({ total, page, limit, basePath, extraParams, pagePara
   const pages = getPages(page, totalPages);
 
   return (
-    <div className={cn("flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-3", className)}>
+    <div className={cn("flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 py-2 sm:py-3", className)}>
       {/* Left: rows per page + total */}
-      <div className="flex items-center gap-2 text-sm text-slate-500 order-2 sm:order-1">
+      <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 order-2 sm:order-1">
         <span>Rows per page:</span>
         <PerPageSelector limit={limit} basePath={basePath} extraParams={extraParams} pageParam={pageParam} limitParam={limitParam} />
         <span className="text-slate-300 select-none">·</span>
@@ -59,8 +59,8 @@ export function Pagination({ total, page, limit, basePath, extraParams, pagePara
       </div>
 
       {/* Right: showing range + page nav */}
-      <div className="flex items-center gap-3 order-1 sm:order-2">
-        <span className="text-sm text-slate-500">
+      <div className="flex items-center gap-2 sm:gap-3 order-1 sm:order-2">
+        <span className="text-xs sm:text-sm text-slate-500">
           {from.toLocaleString()}–{to.toLocaleString()} of {total.toLocaleString()}
         </span>
 

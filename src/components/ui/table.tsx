@@ -41,7 +41,7 @@ export function TableRow({ children, className }: TableProps) {
 
 export function TableHead({ children, className }: TableProps) {
   return (
-    <th className={cn("px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap", className)}>
+    <th className={cn("px-3 sm:px-4 py-2 sm:py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap", className)}>
       {children}
     </th>
   );
@@ -49,7 +49,7 @@ export function TableHead({ children, className }: TableProps) {
 
 export function TableCell({ children, className, colSpan }: TableCellProps) {
   return (
-    <td colSpan={colSpan} className={cn("px-4 py-3 text-slate-700", className)}>
+    <td colSpan={colSpan} className={cn("px-3 sm:px-4 py-2 sm:py-3 text-slate-700", className)}>
       {children}
     </td>
   );

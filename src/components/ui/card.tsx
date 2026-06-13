@@ -22,7 +22,7 @@ export function CardHeader({ children, className }: CardProps) {
   return (
     <div
       className={cn(
-        "flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-100 gap-3 flex-wrap",
+        "flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 gap-2 sm:gap-3 flex-wrap",
         className
       )}
     >
@@ -40,14 +40,14 @@ export function CardTitle({ children, className }: CardProps) {
 }
 
 export function CardContent({ children, className }: CardProps) {
-  return <div className={cn("px-4 sm:px-6 py-4", className)}>{children}</div>;
+  return <div className={cn("px-4 sm:px-6 py-3 sm:py-4", className)}>{children}</div>;
 }
 
 export function CardFooter({ children, className }: CardProps) {
   return (
     <div
       className={cn(
-        "px-4 sm:px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-xl",
+        "px-4 sm:px-6 py-3 sm:py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-xl",
         className
       )}
     >

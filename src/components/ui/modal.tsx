@@ -105,8 +105,8 @@ export const Modal = forwardRef<ModalRef, ModalProps>(function Modal({
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
-            <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 flex-shrink-0">
+            <h2 className="text-sm sm:text-base font-semibold text-slate-900">{title}</h2>
             <div className="flex items-center gap-2">
               {headerAction}
               <button
@@ -119,9 +119,9 @@ export const Modal = forwardRef<ModalRef, ModalProps>(function Modal({
             </div>
           </div>
         )}
-        <div className="p-6 overflow-y-auto flex-1 min-h-0">{children}</div>
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0">{children}</div>
         {footer && (
-          <div className="flex-shrink-0 px-6 py-4 border-t border-slate-100">
+          <div className="flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-t border-slate-100">
             {footer}
           </div>
         )}

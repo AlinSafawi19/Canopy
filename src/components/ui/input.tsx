@@ -21,9 +21,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       : type;
 
     return (
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         {label && (
-          <label htmlFor={inputId} className="text-sm font-medium text-slate-700">
+          <label htmlFor={inputId} className="text-xs sm:text-sm font-medium text-slate-700">
             {label}{required && !hideRequiredMark && <span className="text-red-500 ml-0.5">*</span>}
           </label>
         )}
@@ -33,7 +33,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             type={resolvedType}
             className={cn(
-              "h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400",
+              "h-8 sm:h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 sm:px-3 text-sm text-slate-900 placeholder:text-slate-400",
               "focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent",
               "disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500",
               "transition-shadow duration-150",

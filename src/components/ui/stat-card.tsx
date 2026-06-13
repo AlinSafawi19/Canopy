@@ -35,8 +35,8 @@ export function StatCard({
         <Icon size={22} />
       </div>
       <div className="min-w-0">
-        <p className="text-sm text-slate-500 truncate">{title}</p>
-        <p className="text-2xl font-bold text-slate-900 mt-0.5">{value}</p>
+        <p className="text-xs sm:text-sm text-slate-500 truncate">{title}</p>
+        <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">{value}</p>
       </div>
     </div>
   );

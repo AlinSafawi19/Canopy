@@ -149,26 +149,27 @@ export default async function ProjectDetailPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/admin/projects">
+      <div className="flex flex-wrap items-start gap-2 sm:gap-3">
+        <Link href="/admin/projects" className="shrink-0">
           <Button variant="outline" size="sm" className="gap-1.5">
             <ArrowLeft size={14} />
             Projects
           </Button>
         </Link>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <h2 className="text-xl font-bold text-slate-900 truncate">{project.name}</h2>
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 truncate">{project.name}</h2>
             <Badge variant={statusVariant[project.status] ?? "default"}>{project.status}</Badge>
             {project.featured && <Badge variant="info">Featured</Badge>}
             {project.archivedAt && <Badge variant="danger">Archived</Badge>}
           </div>
           {project.shortDescription && (
-            <p className="text-slate-500 text-sm mt-0.5">{project.shortDescription}</p>
+            <p className="text-slate-500 text-xs sm:text-sm mt-0.5">{project.shortDescription}</p>
           )}
         </div>
+        <div className="flex items-center gap-2 shrink-0">
         <Link href={`${BASE}/${id}/health`}>
-          <Button variant="outline" size="md" className="gap-1.5">
+          <Button variant="outline" size="sm" className="gap-1.5">
             <Activity size={14} />
             Health
           </Button>
@@ -196,6 +197,7 @@ export default async function ProjectDetailPage({
           startDate: project.startDate ? project.startDate.toISOString() : null,
           endDate: project.endDate ? project.endDate.toISOString() : null,
         }} />
+        </div>
       </div>
 
       {/* Assigned Client */}

@@ -45,15 +45,15 @@ export function SearchInput({ value, placeholder = "Search…", basePath, extraP
   return (
     <div className="relative">
       <Search
-        size={16}
-        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+        size={14}
+        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none sm:left-3 sm:size-4"
       />
       <input
         type="text"
         value={query}
         onChange={handleChange}
         placeholder={placeholder}
-        className="h-10 w-full sm:w-72 rounded-lg border border-slate-200 bg-white pl-9 pr-8 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+        className="h-8 sm:h-9 w-full sm:w-64 rounded-lg border border-slate-200 bg-white pl-8 sm:pl-9 pr-7 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
       />
       {query && (
         <button

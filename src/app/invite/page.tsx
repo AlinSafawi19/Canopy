@@ -43,19 +43,19 @@ export default async function InvitePage({
   return (
     <div className="min-h-screen bg-slate-50 mk-grid flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 shadow-lg mb-4">
-            <LogoMark size={20} className="text-white" />
+        <div className="text-center mb-5 sm:mb-8">
+          <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-600 shadow-lg mb-3 sm:mb-4">
+            <LogoMark size={18} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Canopy</h1>
-          <p className="text-slate-500 text-sm mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Canopy</h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1">
             Welcome{displayName ? `, ${displayName}` : ""}. Set a password to activate your account.
           </p>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-8">
           <InviteForm token={token} />
         </div>
-        <p className="text-center text-xs text-slate-400 mt-6">
+        <p className="text-center text-xs text-slate-400 mt-4 sm:mt-6">
           Multi-role content management platform
         </p>
       </div>
@@ -67,22 +67,23 @@ function InviteError({ message }: { message: string }) {
   return (
     <div className="min-h-screen bg-slate-50 mk-grid flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 shadow-lg mb-4">
-            <LogoMark size={20} className="text-white" />
+        <div className="text-center mb-5 sm:mb-8">
+          <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-600 shadow-lg mb-3 sm:mb-4">
+            <LogoMark size={18} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Canopy</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Canopy</h1>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center space-y-4">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-8 text-center space-y-3 sm:space-y-4">
           <div className="flex justify-center">
-            <XCircle size={40} className="text-red-400" />
+            <XCircle size={32} className="text-red-400 sm:hidden" />
+            <XCircle size={40} className="text-red-400 hidden sm:block" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Invalid invite link</h2>
+            <h2 className="text-base sm:text-lg font-semibold text-slate-900">Invalid invite link</h2>
             <p className="text-sm text-slate-500 mt-1">{message}</p>
           </div>
         </div>
-        <p className="text-center text-xs text-slate-400 mt-6">
+        <p className="text-center text-xs text-slate-400 mt-4 sm:mt-6">
           Multi-role content management platform
         </p>
       </div>

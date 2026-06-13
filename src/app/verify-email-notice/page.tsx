@@ -54,17 +54,17 @@ export default async function VerifyEmailNoticePage() {
   return (
     <div className="min-h-screen bg-slate-50 mk-grid flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 shadow-lg mb-4">
-            <LogoMark size={20} className="text-white" />
+        <div className="text-center mb-5 sm:mb-8">
+          <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-600 shadow-lg mb-3 sm:mb-4">
+            <LogoMark size={18} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Canopy</h1>
-          <p className="text-slate-500 text-sm mt-1">Email verification</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Canopy</h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1">Email verification</p>
         </div>
 
         <VerifyNoticeClient email={email} nextHref={nextHref} />
 
-        <p className="text-center text-xs text-slate-400 mt-6">
+        <p className="text-center text-xs text-slate-400 mt-4 sm:mt-6">
           Multi-role content management platform
         </p>
       </div>

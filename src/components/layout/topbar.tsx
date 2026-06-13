@@ -101,7 +101,7 @@ function RequestsButton({ count, role }: { count: number; role: SessionRole }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-1 w-72 sm:w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-800">{title}</p>
             {total > 0 && (
@@ -203,7 +203,7 @@ export function Topbar({ title, onMenuClick, pendingRequestsCount = 0, role }: T
           )}
           <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(true)} className="gap-2">
             <LogOut size={16} />
-            Sign out
+            <span className="hidden sm:inline">Sign out</span>
           </Button>
         </div>
       </header>
