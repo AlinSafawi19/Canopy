@@ -167,9 +167,9 @@ export default async function ProjectDetailPage({
             <p className="text-slate-500 text-xs sm:text-sm mt-0.5">{project.shortDescription}</p>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
         <Link href={`${BASE}/${id}/health`}>
-          <Button variant="outline" size="sm" className="gap-1.5">
+          <Button variant="outline" className="gap-1.5">
             <Activity size={14} />
             Health
           </Button>
