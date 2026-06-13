@@ -157,8 +157,8 @@ export default async function ProjectDetailPage({
           </Button>
         </Link>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-xl font-bold text-slate-900">{project.name}</h2>
+          <div className="flex items-center gap-3 min-w-0">
+            <h2 className="text-xl font-bold text-slate-900 truncate">{project.name}</h2>
             <Badge variant={statusVariant[project.status] ?? "default"}>{project.status}</Badge>
             {project.featured && <Badge variant="info">Featured</Badge>}
             {project.archivedAt && <Badge variant="danger">Archived</Badge>}

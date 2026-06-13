@@ -198,6 +198,11 @@ export async function middleware(request: NextRequest) {
 
   const token = request.cookies.get("cms_session")?.value;
 
+  // Marketing landing page — unauthenticated users see it; page.tsx handles the auth redirect
+  if (pathname === "/" && !token) {
+    return NextResponse.next();
+  }
+
   if (!token) {
     return NextResponse.redirect(new URL("/login", request.url));
   }

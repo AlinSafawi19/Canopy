@@ -27,15 +27,15 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex items-start gap-4",
+        "bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6 flex items-start gap-3 sm:gap-4",
         className
       )}
     >
-      <div className={cn("p-3 rounded-xl", colors[color])}>
+      <div className={cn("p-2 sm:p-3 rounded-xl shrink-0", colors[color])}>
         <Icon size={22} />
       </div>
-      <div>
-        <p className="text-sm text-slate-500">{title}</p>
+      <div className="min-w-0">
+        <p className="text-sm text-slate-500 truncate">{title}</p>
         <p className="text-2xl font-bold text-slate-900 mt-0.5">{value}</p>
       </div>
     </div>
