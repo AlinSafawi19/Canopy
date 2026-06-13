@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Users, Code2, Shield, Zap } from "lucide-react";
 
 export function CTASection() {
   return (

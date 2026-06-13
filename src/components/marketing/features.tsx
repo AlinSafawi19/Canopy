@@ -1018,28 +1018,6 @@ function WebhooksPreview() {
   );
 }
 
-function SecurityPreview() {
-  const items = [
-    { label: "Two-factor authentication", active: true  },
-    { label: "Full audit trail",          active: true  },
-    { label: "Session management",        active: true  },
-    { label: "Rate limiting",             active: true  },
-    { label: "Encrypted at rest",         active: true  },
-  ];
-  return (
-    <div className="pointer-events-none select-none space-y-1">
-      {items.map(item => (
-        <div key={item.label} className="flex items-center gap-2.5 py-1.5 border-b border-slate-50 last:border-0">
-          <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-            <CheckCircle2 size={10} className="text-emerald-600" />
-          </div>
-          <span className="text-[11px] text-slate-700">{item.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ── Card wrapper ──────────────────────────────────────────────────────────────
 
 interface FeatureCardProps {
