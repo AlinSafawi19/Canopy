@@ -283,10 +283,15 @@ export default async function ProjectDetailPage({
           {project.domain && (
             <Card><CardContent className="py-4">
               <p className="text-xs text-slate-500 mb-1">Domain</p>
-              <div className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
-                <Globe size={14} className="text-slate-400 flex-shrink-0" />
+              <a
+                href={project.domain.startsWith("http") ? project.domain : `https://${project.domain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+              >
+                <Globe size={14} className="flex-shrink-0" />
                 <span className="truncate">{project.domain}</span>
-              </div>
+              </a>
             </CardContent></Card>
           )}
           {project.host && (
@@ -301,19 +306,29 @@ export default async function ProjectDetailPage({
           {project.liveUrl && (
             <Card><CardContent className="py-4">
               <p className="text-xs text-slate-500 mb-1">Live URL</p>
-              <div className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
-                <ExternalLink size={14} className="text-slate-400 flex-shrink-0" />
+              <a
+                href={project.liveUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+              >
+                <ExternalLink size={14} className="flex-shrink-0" />
                 <span className="truncate">{project.liveUrl}</span>
-              </div>
+              </a>
             </CardContent></Card>
           )}
           {project.githubUrl && (
             <Card><CardContent className="py-4">
               <p className="text-xs text-slate-500 mb-1">GitHub</p>
-              <div className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
-                <GitBranch size={14} className="text-slate-400 flex-shrink-0" />
+              <a
+                href={project.githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+              >
+                <GitBranch size={14} className="flex-shrink-0" />
                 <span className="truncate">{project.githubUrl}</span>
-              </div>
+              </a>
             </CardContent></Card>
           )}
         </div>
