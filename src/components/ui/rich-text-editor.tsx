@@ -4,10 +4,28 @@ import { apiFetch } from "@/lib/api-fetch";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { Extension } from "@tiptap/core";
+import { Extension, Node as TiptapNode, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
+
+const VideoNode = TiptapNode.create({
+  name: "video",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return { src: { default: null } };
+  },
+  parseHTML() {
+    return [{ tag: "video[src]" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["video", mergeAttributes(
+      { controls: true, muted: true, class: "max-w-full rounded-lg my-2 border border-slate-200" },
+      HTMLAttributes
+    )];
+  },
+});
 
 // Preserve HTML attributes that TipTap strips by default (e.g. dir="auto",
 // data-* on list items) so imported HTML round-trips through the editor intact.
@@ -51,7 +69,7 @@ const PreserveAttributes = Extension.create({
 });
 import {
   Bold, Italic, Heading2, Heading3,
-  List, ListOrdered, Quote, Code, Minus, ImageIcon, Upload, Link2,
+  List, ListOrdered, Quote, Code, Minus, ImageIcon, Video, Upload, Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -265,6 +283,161 @@ function ImagePopover({
   );
 }
 
+// ── Video insert popover ──────────────────────────────────────────────────────
+
+function VideoPopover({
+  anchorRect,
+  onInsert,
+  onClose,
+  projectId,
+}: {
+  anchorRect: DOMRect;
+  onInsert: (src: string) => void;
+  onClose: () => void;
+  projectId?: string;
+}) {
+  const [tab, setTab] = useState<"url" | "upload">("url");
+  const [url, setUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    return () => { if (localPreview) URL.revokeObjectURL(localPreview); };
+  }, [localPreview]);
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    const id = setTimeout(() => document.addEventListener("mousedown", handle), 0);
+    return () => {
+      clearTimeout(id);
+      document.removeEventListener("mousedown", handle);
+    };
+  }, [onClose]);
+
+  function handleInsertUrl() {
+    const trimmed = url.trim();
+    if (trimmed) { onInsert(trimmed); onClose(); }
+  }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("video/")) return;
+    setLocalPreview(URL.createObjectURL(file));
+    setUploading(true);
+    setUploadError("");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      if (projectId) form.append("projectId", projectId);
+      const res = await apiFetch("/api/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) { setUploadError(data.error ?? "Upload failed"); return; }
+      onInsert(data.url);
+      onClose();
+    } catch {
+      setUploadError("Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  const left = Math.min(anchorRect.left, window.innerWidth - 296);
+
+  return createPortal(
+    <div
+      ref={popoverRef}
+      style={{ top: anchorRect.bottom + 4, left }}
+      className="fixed z-[9999] w-72 bg-white border border-slate-200 rounded-lg shadow-lg p-3 space-y-3"
+    >
+      <div className="flex gap-1 text-xs">
+        <button
+          type="button"
+          onClick={() => setTab("url")}
+          className={cn(
+            "flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors",
+            tab === "url" ? "bg-indigo-100 text-indigo-700 font-medium" : "text-slate-500 hover:bg-slate-100"
+          )}
+        >
+          <Link2 size={11} /> URL
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("upload")}
+          className={cn(
+            "flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors",
+            tab === "upload" ? "bg-indigo-100 text-indigo-700 font-medium" : "text-slate-500 hover:bg-slate-100"
+          )}
+        >
+          <Upload size={11} /> Upload
+        </button>
+      </div>
+
+      {tab === "url" ? (
+        <div className="flex gap-2">
+          <input
+            autoFocus
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleInsertUrl(); } }}
+            placeholder="https://example.com/video.mp4"
+            className="flex-1 text-xs border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+          <button
+            type="button"
+            disabled={!url.trim()}
+            onClick={handleInsertUrl}
+            className="px-2.5 py-1.5 text-xs bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Insert
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <label
+            className={cn(
+              "flex flex-col items-center gap-1.5 border-2 border-dashed rounded-lg py-4 px-3 cursor-pointer transition-colors",
+              uploading
+                ? "border-indigo-300 bg-indigo-50/40 cursor-wait"
+                : "border-slate-300 hover:border-indigo-400 hover:bg-indigo-50/30"
+            )}
+          >
+            <Upload size={16} className={uploading ? "text-indigo-400" : "text-slate-400"} />
+            <span className="text-xs text-slate-600 font-medium">
+              {uploading ? "Uploading…" : "Click to choose video"}
+            </span>
+            {!uploading && <span className="text-[11px] text-slate-400">MP4, WebM, MOV</span>}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={handleFile}
+              disabled={uploading}
+            />
+          </label>
+          {localPreview && (
+            <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-900 h-20 flex items-center justify-center">
+              <video src={localPreview} muted className="max-h-full max-w-full object-contain" />
+            </div>
+          )}
+          {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
+        </div>
+      )}
+    </div>,
+    document.body
+  );
+}
+
 // ── Editor ─────────────────────────────────────────────────────────────────────
 
 export function RichTextEditor({
@@ -278,6 +451,9 @@ export function RichTextEditor({
   const [imgPopoverOpen, setImgPopoverOpen] = useState(false);
   const [imgBtnRect, setImgBtnRect] = useState<DOMRect | null>(null);
   const imgBtnRef = useRef<HTMLButtonElement>(null);
+  const [vidPopoverOpen, setVidPopoverOpen] = useState(false);
+  const [vidBtnRect, setVidBtnRect] = useState<DOMRect | null>(null);
+  const vidBtnRef = useRef<HTMLButtonElement>(null);
 
   // Track GCS URLs currently in the editor so we can delete them from storage
   // when the user removes an image node.
@@ -296,6 +472,7 @@ export function RichTextEditor({
           class: "max-w-full rounded-lg my-2 border border-slate-200",
         },
       }),
+      VideoNode,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: { rel: "noopener noreferrer" },
@@ -348,6 +525,13 @@ export function RichTextEditor({
       gcsUrlsInEditor.current.add(src);
     }
     editor?.chain().focus().setImage({ src }).run();
+  }
+
+  function insertVideo(src: string) {
+    if (src.startsWith("https://storage.googleapis.com/")) {
+      gcsUrlsInEditor.current.add(src);
+    }
+    editor?.chain().focus().insertContent({ type: "video", attrs: { src } }).run();
   }
 
   return (
@@ -418,6 +602,38 @@ export function RichTextEditor({
                 anchorRect={imgBtnRect}
                 onInsert={insertImage}
                 onClose={() => { setImgPopoverOpen(false); setImgBtnRect(null); }}
+                projectId={projectId}
+              />
+            )}
+            {/* Video button with popover */}
+            <button
+              ref={vidBtnRef}
+              type="button"
+              title="Insert video"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                if (vidPopoverOpen) {
+                  setVidPopoverOpen(false);
+                  setVidBtnRect(null);
+                } else {
+                  setVidBtnRect(vidBtnRef.current?.getBoundingClientRect() ?? null);
+                  setVidPopoverOpen(true);
+                }
+              }}
+              className={cn(
+                "p-1.5 rounded transition-colors",
+                vidPopoverOpen
+                  ? "bg-indigo-100 text-indigo-700"
+                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              )}
+            >
+              <Video size={13} />
+            </button>
+            {vidPopoverOpen && vidBtnRect && (
+              <VideoPopover
+                anchorRect={vidBtnRect}
+                onInsert={insertVideo}
+                onClose={() => { setVidPopoverOpen(false); setVidBtnRect(null); }}
                 projectId={projectId}
               />
             )}
