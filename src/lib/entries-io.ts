@@ -3,6 +3,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { generateId } from "@/lib/utils";
 import { validateEntryValues } from "@/lib/limits";
+import { coerceEntryValue } from "@/lib/field-coerce";
 
 export type IoField = { name: string; type: string; options?: string[]; relationCategoryId?: string; multiple?: boolean; countCategoryId?: string; countFieldName?: string };
 export type ImportMode = "replace" | "merge";
@@ -291,8 +292,10 @@ export async function handleImport(
     ]);
   } else {
     // Merge: ensure the field schema includes every imported column. Existing
-    // columns keep their definition; new columns use the supplied/inferred type.
+    // columns adopt the imported type when it changes; new columns are added.
     let fieldsChanged = false;
+    const typeChangedFields: Array<{ old: IoField; updated: IoField }> = [];
+
     if (fields.length === 0) {
       fields = useSchema
         ? schema!.map(normalizeSchemaField)
@@ -300,6 +303,25 @@ export async function handleImport(
       fieldsChanged = true;
     } else {
       const existingNames = new Set(fields.map((f) => f.name));
+
+      if (useSchema) {
+        // Apply type changes from the import schema to existing fields
+        fields = fields.map((existing) => {
+          const imported = schema!.find((s) => s.name === existing.name);
+          if (!imported) return existing;
+          const normalized = normalizeSchemaField(imported);
+          const typeChanged =
+            normalized.type !== existing.type ||
+            !!normalized.multiple !== !!existing.multiple;
+          if (typeChanged) {
+            typeChangedFields.push({ old: existing, updated: normalized });
+            fieldsChanged = true;
+            return normalized;
+          }
+          return existing;
+        });
+      }
+
       const newFields = useSchema
         ? schema!.filter((s) => !existingNames.has(s.name)).map(normalizeSchemaField)
         : Object.keys(firstRow)
@@ -337,11 +359,20 @@ export async function handleImport(
       if (valErr) { errors.push({ row: i + 1, error: valErr }); continue; }
 
       if (i < existingEntries.length) {
-        // Update existing entry: imported values override, existing values fill missing columns
+        // Update existing entry: imported values override, existing values fill missing columns.
+        // Coerce existing values for type-changed fields before merging.
         const existing = existingEntries[i];
-        const existingValues = existing.values as Record<string, unknown>;
+        let existingValues = existing.values as Record<string, unknown>;
+        if (typeChangedFields.length > 0) {
+          existingValues = { ...existingValues };
+          for (const { old, updated } of typeChangedFields) {
+            if (old.name in existingValues) {
+              existingValues[old.name] = coerceEntryValue(existingValues[old.name], old, updated);
+            }
+          }
+        }
         const mergedValues = { ...existingValues, ...values };
-        if (JSON.stringify(existingValues) !== JSON.stringify(mergedValues)) {
+        if (JSON.stringify(existing.values) !== JSON.stringify(mergedValues)) {
           updateOps.push(
             prisma.contentCategoryEntry.update({
               where: { id: existing.id },
@@ -360,6 +391,32 @@ export async function handleImport(
       }
     }
     created = createRecords.length;
+
+    // Coerce entries not covered by the import rows (beyond the import range).
+    if (typeChangedFields.length > 0) {
+      for (let i = rows.length; i < existingEntries.length; i++) {
+        const existing = existingEntries[i];
+        const vals = { ...(existing.values as Record<string, unknown>) };
+        let touched = false;
+        for (const { old, updated } of typeChangedFields) {
+          if (old.name in vals) {
+            const coerced = coerceEntryValue(vals[old.name], old, updated);
+            if (JSON.stringify(coerced) !== JSON.stringify(vals[old.name])) {
+              vals[old.name] = coerced;
+              touched = true;
+            }
+          }
+        }
+        if (touched) {
+          updateOps.push(
+            prisma.contentCategoryEntry.update({
+              where: { id: existing.id },
+              data: { values: vals as Prisma.InputJsonValue },
+            }),
+          );
+        }
+      }
+    }
 
     // Atomic: schema update (if any) + all row updates + one bulk insert.
     const ops: Prisma.PrismaPromise<unknown>[] = [
