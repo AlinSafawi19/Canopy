@@ -26,7 +26,7 @@ export default async function ClientDashboard() {
     prisma.project.findMany({
       where: { id: { in: projectIds }, archivedAt: null },
       orderBy: { updatedAt: "desc" },
-      select: { id: true, name: true, slug: true, status: true, description: true, updatedAt: true },
+      select: { id: true, name: true, slug: true, status: true, overview: true, updatedAt: true },
     }),
     prisma.contributor.count({
       where: { parentClientUsername: session!.username, archivedAt: null },
