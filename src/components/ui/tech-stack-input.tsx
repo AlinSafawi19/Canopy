@@ -108,9 +108,17 @@ export function TechStackInput({ value, onChange }: Props) {
   }
 
   function remove(index: number) {
+    const item = value[index];
     if (localPreviews[index]) URL.revokeObjectURL(localPreviews[index]!);
     setLocalPreviews((prev) => prev.filter((_, i) => i !== index));
     onChange(value.filter((_, i) => i !== index));
+    if (isGcsUrl(item.icon)) {
+      fetch("/api/upload", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: item.icon }),
+      }).catch(() => {});
+    }
   }
 
   return (

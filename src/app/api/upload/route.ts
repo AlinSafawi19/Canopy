@@ -116,8 +116,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "File not found" }, { status: 404 });
   }
 
-  const allowed = canDelete(session, record);
-  if (!allowed) {
+  if (!canDelete(session)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -135,10 +134,6 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-function canDelete(
-  session: { id: string; role: string },
-  record: { uploadedBy: string }
-): boolean {
-  if (session.role === "owner") return false;
-  return record.uploadedBy === session.id;
+function canDelete(session: { role: string }): boolean {
+  return session.role !== "owner";
 }
