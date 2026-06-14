@@ -1,12 +1,5 @@
-/*
-  Warnings:
-
-  - You are about to drop the column `displayName` on the `ClientIdentity` table. All the data in the column will be lost.
-  - Added the required column `name` to the `ClientIdentity` table without a default value. This is not possible if the table is not empty.
-
-*/
--- AlterTable
-ALTER TABLE "ClientIdentity" DROP COLUMN "displayName",
-ADD COLUMN     "name" VARCHAR(100) NOT NULL,
-ADD COLUMN     "representativeDesignation" VARCHAR(100),
-ADD COLUMN     "representativeName" VARCHAR(100);
+-- AlterTable: rename displayName → name, add rep fields
+ALTER TABLE "ClientIdentity" RENAME COLUMN "displayName" TO "name";
+ALTER TABLE "ClientIdentity" ALTER COLUMN "name" TYPE VARCHAR(100);
+ALTER TABLE "ClientIdentity" ADD COLUMN "representativeName" VARCHAR(100);
+ALTER TABLE "ClientIdentity" ADD COLUMN "representativeDesignation" VARCHAR(100);
