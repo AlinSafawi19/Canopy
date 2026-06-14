@@ -46,7 +46,7 @@ export async function GET(
   const project = await prisma.project.findFirst({
     where: { slug: projectSlug, id: apiKey.projectId },
     select: {
-      id: true, name: true, slug: true, status: true, description: true,
+      id: true, name: true, slug: true, status: true, overview: true,
       tagline: true, industry: true, techStack: true,
       clientAssignment: {
         select: {
@@ -86,7 +86,7 @@ export async function GET(
         name: project.name,
         slug: project.slug,
         status: project.status,
-        description: project.description,
+        overview: project.overview,
         tagline: project.tagline,
         industry: project.industry,
         techStack: project.techStack,
