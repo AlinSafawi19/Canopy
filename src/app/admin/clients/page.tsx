@@ -150,7 +150,7 @@ export default async function ClientsPage({
                     {(() => {
                       const t = inviteMap.get(client.id) ?? null;
                       const st = t ? inviteStatus(t) : "none";
-                      return <InviteStatusCell targetKind="client" targetId={client.id} name={client.name} status={st} token={t?.token} />;
+                      return <InviteStatusCell targetKind="client" targetId={client.id} displayName={client.name} status={st} token={t?.token} />;
                     })()}
                   </TableCell>
                   <TableCell className="text-slate-500">{formatDate(client.updatedAt)}</TableCell>
