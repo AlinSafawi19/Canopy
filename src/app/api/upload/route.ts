@@ -77,7 +77,9 @@ export async function POST(request: NextRequest) {
 
     const gcsFile = bucket.file(filename);
     await gcsFile.save(buffer, { metadata: { contentType: fileType.mime } });
-    await gcsFile.makePublic();
+    // Best-effort: make the object public. Fails silently on buckets with
+    // uniform bucket-level access (public read is controlled via bucket IAM).
+    await gcsFile.makePublic().catch(() => {});
 
     const url = `https://storage.googleapis.com/${bucketName}/${filename}`;
 
