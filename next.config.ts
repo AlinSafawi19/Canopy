@@ -56,10 +56,6 @@ const nextConfig: NextConfig = {
         key: "Cross-Origin-Opener-Policy",
         value: "same-origin",
       });
-      headers.push({
-        key: "Cross-Origin-Embedder-Policy",
-        value: "require-corp",
-      });
     }
 
     return [{ source: "/(.*)", headers }];
