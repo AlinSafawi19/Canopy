@@ -9,6 +9,13 @@ export interface TechStackItem {
   name: string;
 }
 
+export function TechIconImg({ src, className }: { src: string; className?: string }) {
+  const [hidden, setHidden] = useState(false);
+  if (hidden) return null;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt="" className={className} onError={() => setHidden(true)} />;
+}
+
 interface Props {
   value: TechStackItem[];
   onChange: (items: TechStackItem[]) => void;
@@ -27,13 +34,23 @@ function isGcsUrl(url: string) {
   return url.startsWith("https://storage.googleapis.com/");
 }
 
-function IconUploadButton({ currentUrl, onUploaded }: { currentUrl: string; onUploaded: (url: string) => void }) {
+function IconUploadButton({
+  currentUrl,
+  onUploaded,
+  onLocalPreview,
+}: {
+  currentUrl: string;
+  onUploaded: (url: string) => void;
+  onLocalPreview: (url: string | null) => void;
+}) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    const blobUrl = URL.createObjectURL(file);
+    onLocalPreview(blobUrl);
     setUploading(true);
     if (isGcsUrl(currentUrl)) {
       fetch("/api/upload", {
@@ -47,7 +64,11 @@ function IconUploadButton({ currentUrl, onUploaded }: { currentUrl: string; onUp
       form.append("file", file);
       const res = await apiFetch("/api/upload", { method: "POST", body: form });
       const data = await res.json();
-      if (res.ok) onUploaded(data.url);
+      if (res.ok) {
+        URL.revokeObjectURL(blobUrl);
+        onLocalPreview(null);
+        onUploaded(data.url);
+      }
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -66,6 +87,17 @@ function IconUploadButton({ currentUrl, onUploaded }: { currentUrl: string; onUp
 }
 
 export function TechStackInput({ value, onChange }: Props) {
+  const [localPreviews, setLocalPreviews] = useState<(string | null)[]>([]);
+
+  function setLocalPreview(index: number, url: string | null) {
+    setLocalPreviews((prev) => {
+      const next = [...prev];
+      if (url === null && prev[index]) URL.revokeObjectURL(prev[index]!);
+      next[index] = url;
+      return next;
+    });
+  }
+
   function update(index: number, field: keyof TechStackItem, val: string) {
     const next = value.map((item, i) => (i === index ? { ...item, [field]: val } : item));
     onChange(next);
@@ -76,12 +108,16 @@ export function TechStackInput({ value, onChange }: Props) {
   }
 
   function remove(index: number) {
+    if (localPreviews[index]) URL.revokeObjectURL(localPreviews[index]!);
+    setLocalPreviews((prev) => prev.filter((_, i) => i !== index));
     onChange(value.filter((_, i) => i !== index));
   }
 
   return (
     <div className="space-y-2">
-      {value.map((item, i) => (
+      {value.map((item, i) => {
+        const previewSrc = localPreviews[i] ?? item.icon;
+        return (
         <div key={i} className="flex items-center gap-2">
           {/* Name */}
           <input
@@ -118,16 +154,20 @@ export function TechStackInput({ value, onChange }: Props) {
               <X size={14} />
             </button>
           ) : (
-            <IconUploadButton currentUrl={item.icon} onUploaded={(url) => update(i, "icon", url)} />
+            <IconUploadButton
+              currentUrl={item.icon}
+              onUploaded={(url) => update(i, "icon", url)}
+              onLocalPreview={(url) => setLocalPreview(i, url)}
+            />
           )}
           {/* Icon preview */}
           <div className="w-7 h-7 flex items-center justify-center flex-shrink-0 rounded border border-slate-200 bg-slate-50 overflow-hidden">
-            {item.icon ? (
-              /^https?:\/\/|^\//.test(item.icon) ? (
+            {previewSrc ? (
+              /^https?:\/\/|^\/|^blob:/.test(previewSrc) ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={item.icon} alt="" className="w-5 h-5 object-contain" />
+                <img src={previewSrc} alt="" className="w-5 h-5 object-contain" />
               ) : (
-                <span className="text-sm leading-none">{item.icon}</span>
+                <span className="text-sm leading-none">{previewSrc}</span>
               )
             ) : (
               <span className="text-slate-300 text-xs">?</span>
@@ -142,7 +182,8 @@ export function TechStackInput({ value, onChange }: Props) {
             <Trash2 size={14} />
           </button>
         </div>
-      ))}
+        );
+      })}
       <button
         type="button"
         onClick={add}

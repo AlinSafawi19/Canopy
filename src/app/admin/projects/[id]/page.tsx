@@ -12,6 +12,7 @@ import { AssignClientButton } from "./assign-client-button";
 import { ApiKeysSection } from "./api-keys-section";
 import { CreateApiKeyButton } from "./create-api-key-button";
 import { EditProjectButton } from "./edit-project-button";
+import { TechIconImg } from "@/components/ui/tech-stack-input";
 import { SearchInput } from "@/components/ui/search-input";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { Pagination } from "@/components/ui/pagination";
@@ -394,7 +395,7 @@ export default async function ProjectDetailPage({
                 <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-sm text-slate-700">
                   {tech.icon && (
                     /^https?:\/\/|^\//.test(tech.icon)
-                      ? <img src={tech.icon} alt="" className="w-4 h-4 object-contain" /> // eslint-disable-line @next/next/no-img-element
+                      ? <TechIconImg src={tech.icon} className="w-4 h-4 object-contain" />
                       : <span className="text-sm leading-none">{tech.icon}</span>
                   )}
                   {tech.name}
