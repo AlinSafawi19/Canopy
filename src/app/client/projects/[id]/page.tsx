@@ -280,10 +280,15 @@ export default async function ClientProjectDetailPage({
           {project.host && (
             <Card><CardContent className="py-4">
               <p className="text-xs text-slate-500 mb-1">Host</p>
-              <div className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
-                <Server size={14} className="text-slate-400 flex-shrink-0" />
+              <a
+                href={project.host.startsWith("http") ? project.host : `https://${project.host}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+              >
+                <Server size={14} className="flex-shrink-0" />
                 <span className="truncate">{project.host}</span>
-              </div>
+              </a>
             </CardContent></Card>
           )}
           {project.liveUrl && (
