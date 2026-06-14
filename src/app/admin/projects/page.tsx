@@ -59,6 +59,7 @@ export default async function ProjectsPage({
         domain: true, host: true, liveUrl: true, githubUrl: true,
         thumbnail_image: true, thumbnail_video: true, thumbnail_type: true, thumbnail_alt: true,
         role: true, teamSize: true, techStack: true, highlights: true,
+        challenge: true, approach: true, outcome: true, testimonial: true,
         startDate: true, endDate: true, archivedAt: true, updatedAt: true,
         _count: { select: { contentCategories: true } },
       },
