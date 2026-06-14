@@ -83,19 +83,15 @@ export function TechStackInput({ value, onChange }: Props) {
     <div className="space-y-2">
       {value.map((item, i) => (
         <div key={i} className="flex items-center gap-2">
-          {/* Icon preview */}
-          <div className="w-7 h-7 flex items-center justify-center flex-shrink-0 rounded border border-slate-200 bg-slate-50 overflow-hidden">
-            {item.icon ? (
-              /^https?:\/\/|^\//.test(item.icon) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={item.icon} alt="" className="w-5 h-5 object-contain" />
-              ) : (
-                <span className="text-sm leading-none">{item.icon}</span>
-              )
-            ) : (
-              <span className="text-slate-300 text-xs">?</span>
-            )}
-          </div>
+          {/* Name */}
+          <input
+            type="text"
+            value={item.name}
+            onChange={(e) => update(i, "name", e.target.value)}
+            placeholder="Name"
+            className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          {/* Icon URL or emoji */}
           <input
             type="text"
             value={item.icon}
@@ -104,6 +100,7 @@ export function TechStackInput({ value, onChange }: Props) {
             placeholder="Icon URL or emoji"
             className={`flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500${isGcsUrl(item.icon) ? " bg-slate-50 text-slate-500 cursor-default" : ""}`}
           />
+          {/* Upload / clear */}
           {isGcsUrl(item.icon) ? (
             <button
               type="button"
@@ -123,13 +120,20 @@ export function TechStackInput({ value, onChange }: Props) {
           ) : (
             <IconUploadButton currentUrl={item.icon} onUploaded={(url) => update(i, "icon", url)} />
           )}
-          <input
-            type="text"
-            value={item.name}
-            onChange={(e) => update(i, "name", e.target.value)}
-            placeholder="Name"
-            className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+          {/* Icon preview */}
+          <div className="w-7 h-7 flex items-center justify-center flex-shrink-0 rounded border border-slate-200 bg-slate-50 overflow-hidden">
+            {item.icon ? (
+              /^https?:\/\/|^\//.test(item.icon) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={item.icon} alt="" className="w-5 h-5 object-contain" />
+              ) : (
+                <span className="text-sm leading-none">{item.icon}</span>
+              )
+            ) : (
+              <span className="text-slate-300 text-xs">?</span>
+            )}
+          </div>
+          {/* Delete */}
           <button
             type="button"
             onClick={() => remove(i)}

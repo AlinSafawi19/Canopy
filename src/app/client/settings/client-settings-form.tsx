@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { validateDisplayName, validateEmail, validatePassword, firstError } from "@/lib/validation";
 
-interface Client { id: string; displayName: string; email: string; username: string }
+interface Client { id: string; name: string; email: string; username: string; representativeName: string | null; representativeDesignation: string | null }
 
 export function ClientSettingsForm({ client }: { client: Client }) {
   const router = useRouter();
-  const [form, setForm] = useState({ displayName: client.displayName, email: client.email });
+  const [form, setForm] = useState({ name: client.name, email: client.email, representativeName: client.representativeName ?? "", representativeDesignation: client.representativeDesignation ?? "" });
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [loading, setLoading] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
@@ -23,7 +23,7 @@ export function ClientSettingsForm({ client }: { client: Client }) {
   async function saveProfile(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMsg("");
-    const err = firstError(validateDisplayName(form.displayName), validateEmail(form.email));
+    const err = firstError(validateDisplayName(form.name), validateEmail(form.email));
     if (err) { setMsgOk(false); setMsg(err); return; }
     setLoading(true);
     const res = await apiFetch("/api/client/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
@@ -53,11 +53,11 @@ export function ClientSettingsForm({ client }: { client: Client }) {
       <form onSubmit={saveProfile} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
-            label="Display name"
-            value={form.displayName}
-            onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
+            label="Name"
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             autoComplete="name"
-            maxLength={50}
+            maxLength={100}
             required
           />
           <Input
@@ -69,6 +69,22 @@ export function ClientSettingsForm({ client }: { client: Client }) {
             autoComplete="email"
             hint="Changing your email will require re-verification."
             required
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Representative Name"
+            value={form.representativeName}
+            onChange={(e) => setForm((f) => ({ ...f, representativeName: e.target.value }))}
+            placeholder="e.g. John Smith"
+            maxLength={100}
+          />
+          <Input
+            label="Representative Designation"
+            value={form.representativeDesignation}
+            onChange={(e) => setForm((f) => ({ ...f, representativeDesignation: e.target.value }))}
+            placeholder="e.g. CEO"
+            maxLength={100}
           />
         </div>
         <div className="flex items-center gap-3">

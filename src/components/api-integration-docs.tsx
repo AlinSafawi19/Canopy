@@ -134,8 +134,8 @@ Authorization: Bearer cms_your_api_key_here`} language="http" />
       "name": "My Portfolio",
       "slug": "my-portfolio",
       "status": "live",
-      "description": "A personal portfolio site...",
-      "shortDescription": "Personal portfolio",
+      "overview": "A personal portfolio site...",
+      "tagline": "Personal portfolio",
       "industry": "Technology",
       "role": "Lead Developer",
       "teamSize": "3",
@@ -147,8 +147,8 @@ Authorization: Bearer cms_your_api_key_here`} language="http" />
       "featured": true,
       "liveUrl": "https://example.com",
       "githubUrl": "https://github.com/you/project",
-      "imageBg": "https://storage.googleapis.com/...",
-      "coverImageAlt": "Screenshot of the app",
+      "thumbnail_image": "https://storage.googleapis.com/...",
+      "thumbnail_alt": "Screenshot of the app",
       "startDate": "2024-01-01T00:00:00.000Z",
       "endDate": null
     }
@@ -181,8 +181,8 @@ Authorization: Bearer cms_your_api_key_here`} language="http" />
     "name": "My Portfolio",
     "slug": "my-portfolio",
     "status": "live",
-    "description": "...",
-    "shortDescription": "...",
+    "overview": "...",
+    "tagline": "...",
     "industry": "Technology",
     "techStack": [...]
   },

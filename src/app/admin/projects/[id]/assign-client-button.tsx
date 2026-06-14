@@ -11,7 +11,7 @@ import { UserPlus, X } from "lucide-react";
 
 interface AssignedClient {
   id: string;
-  displayName: string;
+  name: string;
   email: string;
   username: string;
 }
@@ -71,7 +71,7 @@ export function AssignClientButton({ projectId, assignedClient }: Props) {
       {assignedClient ? (
         <div className="flex items-center gap-2">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-900 truncate">{assignedClient.displayName}</p>
+            <p className="text-sm font-medium text-slate-900 truncate">{assignedClient.name}</p>
             <p className="text-xs text-slate-500 truncate">@{assignedClient.username} · {assignedClient.email}</p>
           </div>
           <Button
@@ -130,7 +130,7 @@ export function AssignClientButton({ projectId, assignedClient }: Props) {
         onClose={() => setRemoveOpen(false)}
         onConfirm={doRemove}
         title="Remove Assignment"
-        message={`Remove "${assignedClient?.displayName}" from this project? They will lose access.`}
+        message={`Remove "${assignedClient?.name}" from this project? They will lose access.`}
         confirmLabel="Remove"
         variant="danger"
         loading={loading}

@@ -32,13 +32,13 @@ export async function PATCH(
         prisma.clientIdentity.update({ where: { id }, data: { archivedAt: new Date(), archivedBy: session.id } }),
         prisma.$executeRaw`UPDATE "ApiKey" SET "revokedAt" = NOW() WHERE "projectId" IN (SELECT "projectId" FROM "ClientAssignment" WHERE "clientId" = ${id}) AND "revokedAt" IS NULL`,
       ]);
-      await logActivity({ session, action: "archived", resource: "client", resourceId: id, resourceName: client.displayName, adminTenantId: session.tenantId! });
+      await logActivity({ session, action: "archived", resource: "client", resourceId: id, resourceName: client.name, adminTenantId: session.tenantId! });
     } else if (body.action === "restore") {
       await prisma.$transaction([
         prisma.clientIdentity.update({ where: { id }, data: { archivedAt: null, archivedBy: null } }),
         prisma.$executeRaw`UPDATE "ApiKey" SET "revokedAt" = NULL WHERE "projectId" IN (SELECT "projectId" FROM "ClientAssignment" WHERE "clientId" = ${id})`,
       ]);
-      await logActivity({ session, action: "restored", resource: "client", resourceId: id, resourceName: client.displayName, adminTenantId: session.tenantId! });
+      await logActivity({ session, action: "restored", resource: "client", resourceId: id, resourceName: client.name, adminTenantId: session.tenantId! });
     } else {
       return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
@@ -76,6 +76,6 @@ export async function DELETE(
     // Delete the client — ClientAssignment cascades via FK
     prisma.clientIdentity.delete({ where: { id } }),
   ]);
-  await logActivity({ session, action: "deleted", resource: "client", resourceId: id, resourceName: client.displayName, adminTenantId: session.tenantId! });
+  await logActivity({ session, action: "deleted", resource: "client", resourceId: id, resourceName: client.name, adminTenantId: session.tenantId! });
   return NextResponse.json({ ok: true });
 }

@@ -11,7 +11,7 @@ import { ComboSelect } from "@/components/ui/combo-select";
 import { X } from "lucide-react";
 
 interface Project { id: string; name: string }
-interface Client { id: string; displayName: string; archivedAt: Date | null }
+interface Client { id: string; name: string; archivedAt: Date | null }
 
 interface Props {
   client: Client;
@@ -107,7 +107,7 @@ export function ClientActions({ client, assignedProjects }: Props) {
             ? doRestore
             : () => setConfirm({
                 title: "Archive Client",
-                message: `Archive "${client.displayName}"? They won't be able to sign in until restored.`,
+                message: `Archive "${client.name}"? They won't be able to sign in until restored.`,
                 confirmLabel: "Archive",
                 variant: "warning",
                 run: doArchive,
@@ -120,7 +120,7 @@ export function ClientActions({ client, assignedProjects }: Props) {
           variant="danger"
           onClick={() => setConfirm({
             title: "Delete Client",
-            message: `Permanently delete "${client.displayName}"? This cannot be undone.`,
+            message: `Permanently delete "${client.name}"? This cannot be undone.`,
             confirmLabel: "Delete",
             variant: "danger",
             run: doDelete,
@@ -134,7 +134,7 @@ export function ClientActions({ client, assignedProjects }: Props) {
       <Modal
         open={assignOpen}
         onClose={() => setAssignOpen(false)}
-        title={`Projects — ${client.displayName}`}
+        title={`Projects — ${client.name}`}
         size="sm"
         busy={loading}
         footer={

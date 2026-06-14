@@ -5,7 +5,6 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Modal, ModalRef } from "@/components/ui/modal";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -28,13 +27,14 @@ const STEPS = [
   { label: "Details" },
   { label: "Links & Media" },
   { label: "Content" },
+  { label: "Story" },
 ];
 
 const EMPTY_FORM = {
   name: "",
   slug: "",
-  description: "",
-  shortDescription: "",
+  overview: "",
+  tagline: "",
   industry: "",
   status: "live",
   role: "",
@@ -46,9 +46,14 @@ const EMPTY_FORM = {
   host: "",
   liveUrl: "",
   githubUrl: "",
-  imageBg: "",
-  videoBg: "",
-  coverImageAlt: "",
+  thumbnail_type: "image",
+  thumbnail_image: "",
+  thumbnail_video: "",
+  thumbnail_alt: "",
+  challenge: "",
+  approach: "",
+  outcome: "",
+  testimonial: "",
 };
 
 function deleteGcsUrl(url: string) {
@@ -79,7 +84,7 @@ export function CreateProjectButton() {
   }
 
   function cancelClose() {
-    [form.imageBg, form.videoBg, ...techStack.map(t => t.icon)].forEach(deleteGcsUrl);
+    [form.thumbnail_image, form.thumbnail_video, ...techStack.map(t => t.icon)].forEach(deleteGcsUrl);
     setOpen(false);
     setStep(0);
     setForm(EMPTY_FORM);
@@ -102,7 +107,7 @@ export function CreateProjectButton() {
   function next() {
     if (step === 0) {
       if (!form.name.trim()) { setError("Project name is required"); return; }
-      if (!form.description.trim()) { setError("Description is required"); return; }
+      if (!form.overview.replace(/<[^>]*>/g, "").trim()) { setError("Overview is required"); return; }
     }
     setError("");
     setStep((s) => s + 1);
@@ -202,8 +207,11 @@ export function CreateProjectButton() {
                 <Input label="Project Name" value={form.name} onChange={(e) => set("name", e.target.value)} required autoFocus maxLength={LIMITS.PROJECT_NAME} />
                 <Input label="Slug" value={form.slug} onChange={(e) => set("slug", e.target.value)} placeholder="my-project" maxLength={LIMITS.PROJECT_SLUG} />
               </div>
-              <Textarea label="Description" value={form.description} onChange={(e) => set("description", e.target.value)} required rows={3} maxLength={LIMITS.PROJECT_DESCRIPTION} />
-              <Input label="Short Description" value={form.shortDescription} onChange={(e) => set("shortDescription", e.target.value)} placeholder="One-liner for cards" maxLength={LIMITS.PROJECT_SHORT_DESCRIPTION} />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Overview <span className="text-red-500">*</span></label>
+                <RichTextEditor value={form.overview} onChange={(v) => { set("overview", v); }} placeholder="Describe this project…" minHeight="120px" />
+              </div>
+              <Input label="Tagline" value={form.tagline} onChange={(e) => set("tagline", e.target.value)} placeholder="Short tagline for cards" maxLength={LIMITS.PROJECT_TAGLINE} />
             </>
           )}
 
@@ -256,11 +264,21 @@ export function CreateProjectButton() {
                 <Input label="Live URL" value={form.liveUrl} onChange={(e) => set("liveUrl", e.target.value)} placeholder="https://app.example.com" maxLength={LIMITS.PROJECT_LIVE_URL} />
                 <Input label="GitHub URL" value={form.githubUrl} onChange={(e) => set("githubUrl", e.target.value)} placeholder="https://github.com/..." maxLength={LIMITS.PROJECT_GITHUB_URL} />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <MediaInput label="Image Background" value={form.imageBg} onChange={(v) => set("imageBg", v)} accept="image/*" placeholder="https://..." maxLength={LIMITS.PROJECT_IMAGE_BG} />
-                <MediaInput label="Video Background" value={form.videoBg} onChange={(v) => set("videoBg", v)} accept="video/*" placeholder="https://..." maxLength={LIMITS.PROJECT_VIDEO_BG} />
-              </div>
-              <Input label="Cover Image Alt" value={form.coverImageAlt} onChange={(e) => set("coverImageAlt", e.target.value)} placeholder="Descriptive alt text for the cover image" maxLength={LIMITS.PROJECT_COVER_IMAGE_ALT} />
+              <Select
+                label="Thumbnail Type"
+                value={form.thumbnail_type}
+                onChange={(v) => { set("thumbnail_type", v); setTouched(true); }}
+                options={[
+                  { value: "image", label: "Image" },
+                  { value: "video", label: "Video" },
+                ]}
+              />
+              {form.thumbnail_type === "video" ? (
+                <MediaInput label="Thumbnail Video" value={form.thumbnail_video} onChange={(v) => set("thumbnail_video", v)} accept="video/*" placeholder="https://..." maxLength={LIMITS.PROJECT_THUMBNAIL_VIDEO} />
+              ) : (
+                <MediaInput label="Thumbnail Image" value={form.thumbnail_image} onChange={(v) => set("thumbnail_image", v)} accept="image/*" placeholder="https://..." maxLength={LIMITS.PROJECT_THUMBNAIL_IMAGE} />
+              )}
+              <Input label="Thumbnail Alt" value={form.thumbnail_alt} onChange={(e) => set("thumbnail_alt", e.target.value)} placeholder="Descriptive alt text for the thumbnail" maxLength={LIMITS.PROJECT_THUMBNAIL_ALT} />
             </>
           )}
 
@@ -279,6 +297,28 @@ export function CreateProjectButton() {
                   placeholder="Add highlights as a bullet list…"
                   minHeight="120px"
                 />
+              </div>
+            </>
+          )}
+
+          {/* Step 4 — Story */}
+          {step === 4 && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Challenge</label>
+                <RichTextEditor value={form.challenge} onChange={(v) => { set("challenge", v); }} placeholder="What problem did this project solve?" minHeight="100px" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Approach</label>
+                <RichTextEditor value={form.approach} onChange={(v) => { set("approach", v); }} placeholder="How did you tackle it?" minHeight="100px" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Outcome</label>
+                <RichTextEditor value={form.outcome} onChange={(v) => { set("outcome", v); }} placeholder="What was the result?" minHeight="100px" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Testimonial</label>
+                <RichTextEditor value={form.testimonial} onChange={(v) => { set("testimonial", v); }} placeholder="Client quote or feedback…" minHeight="80px" />
               </div>
             </>
           )}

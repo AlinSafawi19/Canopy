@@ -126,7 +126,7 @@ export default async function ProjectDetailPage({
 
   const assignment = await prisma.clientAssignment.findFirst({
     where: { projectId: id },
-    include: { client: { select: { id: true, displayName: true, email: true, username: true } } },
+    include: { client: { select: { id: true, name: true, email: true, username: true } } },
   });
 
   const assignedClient = assignment?.client ?? null;
@@ -144,7 +144,7 @@ export default async function ProjectDetailPage({
       )
     : [];
   const highlights = Array.isArray(project.highlights) ? project.highlights : [];
-  const hasMedia = project.imageBg || project.videoBg || project.coverImageAlt;
+  const hasMedia = project.thumbnail_image || project.thumbnail_video || project.thumbnail_alt;
 
   return (
     <div className="space-y-6">
@@ -163,8 +163,8 @@ export default async function ProjectDetailPage({
             {project.featured && <Badge variant="info">Featured</Badge>}
             {project.archivedAt && <Badge variant="danger">Archived</Badge>}
           </div>
-          {project.shortDescription && (
-            <p className="text-slate-500 text-xs sm:text-sm mt-0.5">{project.shortDescription}</p>
+          {project.tagline && (
+            <p className="text-slate-500 text-xs sm:text-sm mt-0.5">{project.tagline}</p>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
@@ -178,8 +178,8 @@ export default async function ProjectDetailPage({
           id: project.id,
           name: project.name,
           slug: project.slug ?? null,
-          description: project.description,
-          shortDescription: project.shortDescription ?? null,
+          overview: project.overview,
+          tagline: project.tagline ?? null,
           industry: project.industry ?? null,
           status: project.status,
           role: project.role ?? null,
@@ -189,9 +189,14 @@ export default async function ProjectDetailPage({
           host: project.host ?? null,
           liveUrl: project.liveUrl ?? null,
           githubUrl: project.githubUrl ?? null,
-          imageBg: project.imageBg ?? null,
-          videoBg: project.videoBg ?? null,
-          coverImageAlt: project.coverImageAlt ?? null,
+          thumbnail_image: project.thumbnail_image ?? null,
+          thumbnail_video: project.thumbnail_video ?? null,
+          thumbnail_type: project.thumbnail_type ?? null,
+          thumbnail_alt: project.thumbnail_alt ?? null,
+          challenge: project.challenge ?? null,
+          approach: project.approach ?? null,
+          outcome: project.outcome ?? null,
+          testimonial: project.testimonial ?? null,
           techStack: project.techStack as unknown[],
           highlights,
           startDate: project.startDate ? project.startDate.toISOString() : null,
@@ -218,24 +223,24 @@ export default async function ProjectDetailPage({
         <Card>
           <CardHeader><CardTitle>Media</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            {project.imageBg && (
+            {project.thumbnail_image && (
               <div>
-                <p className="text-xs text-slate-500 mb-2">Image Background</p>
+                <p className="text-xs text-slate-500 mb-2">Thumbnail Image</p>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={project.imageBg} alt={project.coverImageAlt ?? "Project background"} className="w-full max-h-56 object-cover rounded-lg border border-slate-200" />
-                {project.coverImageAlt && <p className="text-xs text-slate-400 mt-1.5 italic">{project.coverImageAlt}</p>}
+                <img src={project.thumbnail_image} alt={project.thumbnail_alt ?? "Project thumbnail"} className="w-full max-h-56 object-cover rounded-lg border border-slate-200" />
+                {project.thumbnail_alt && <p className="text-xs text-slate-400 mt-1.5 italic">{project.thumbnail_alt}</p>}
               </div>
             )}
-            {project.videoBg && (
+            {project.thumbnail_video && (
               <div>
-                <p className="text-xs text-slate-500 mb-2">Video Background</p>
-                <video src={project.videoBg} controls muted className="w-full max-h-56 rounded-lg border border-slate-200 bg-slate-900" />
+                <p className="text-xs text-slate-500 mb-2">Thumbnail Video</p>
+                <video src={project.thumbnail_video} controls muted className="w-full max-h-56 rounded-lg border border-slate-200 bg-slate-900" />
               </div>
             )}
-            {project.coverImageAlt && !project.imageBg && (
+            {project.thumbnail_alt && !project.thumbnail_image && (
               <div>
-                <p className="text-xs text-slate-500 mb-1">Cover Image Alt</p>
-                <p className="text-sm text-slate-700">{project.coverImageAlt}</p>
+                <p className="text-xs text-slate-500 mb-1">Thumbnail Alt</p>
+                <p className="text-sm text-slate-700">{project.thumbnail_alt}</p>
               </div>
             )}
           </CardContent>
@@ -314,14 +319,44 @@ export default async function ProjectDetailPage({
         </div>
       )}
 
-      {/* Description */}
-      {project.description && (
+      {/* Overview */}
+      {project.overview && (
         <Card>
-          <CardHeader><CardTitle>Description</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Overview</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-slate-700 text-sm leading-relaxed">{project.description}</p>
+            <div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.overview }} />
           </CardContent>
         </Card>
+      )}
+
+      {/* Story */}
+      {(project.challenge || project.approach || project.outcome || project.testimonial) && (
+        <div className="grid grid-cols-1 gap-4">
+          {project.challenge && (
+            <Card>
+              <CardHeader><CardTitle>Challenge</CardTitle></CardHeader>
+              <CardContent><div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.challenge }} /></CardContent>
+            </Card>
+          )}
+          {project.approach && (
+            <Card>
+              <CardHeader><CardTitle>Approach</CardTitle></CardHeader>
+              <CardContent><div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.approach }} /></CardContent>
+            </Card>
+          )}
+          {project.outcome && (
+            <Card>
+              <CardHeader><CardTitle>Outcome</CardTitle></CardHeader>
+              <CardContent><div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.outcome }} /></CardContent>
+            </Card>
+          )}
+          {project.testimonial && (
+            <Card>
+              <CardHeader><CardTitle>Testimonial</CardTitle></CardHeader>
+              <CardContent><div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.testimonial }} /></CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Tech Stack */}

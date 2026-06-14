@@ -29,7 +29,7 @@ export default async function AdminArchiveClientsPage({
     archivedAt: { not: null as null },
     ...(search ? {
       OR: [
-        { displayName: { contains: search, mode: "insensitive" as const } },
+        { name: { contains: search, mode: "insensitive" as const } },
         { username: { contains: search, mode: "insensitive" as const } },
         { email: { contains: search, mode: "insensitive" as const } },
       ],
@@ -43,7 +43,7 @@ export default async function AdminArchiveClientsPage({
       orderBy: { archivedAt: "desc" },
       skip,
       take: limit,
-      select: { id: true, username: true, displayName: true, email: true, archivedAt: true },
+      select: { id: true, username: true, name: true, email: true, archivedAt: true },
     }),
     prisma.clientAssignment.findMany({
       where: { tenantId },
@@ -111,7 +111,7 @@ export default async function AdminArchiveClientsPage({
                 .filter(Boolean) as Array<{ id: string; name: string }>;
               return (
                 <TableRow key={client.id}>
-                  <TableCell className="font-medium text-slate-900">{client.displayName}</TableCell>
+                  <TableCell className="font-medium text-slate-900">{client.name}</TableCell>
                   <TableCell className="text-slate-500">@{client.username}</TableCell>
                   <TableCell className="text-slate-500">{client.email || "—"}</TableCell>
                   <TableCell className="text-xs text-slate-500 whitespace-nowrap">

@@ -20,10 +20,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { username, displayName, email } = await request.json();
+    const { username, name, email, representativeName, representativeDesignation } = await request.json();
 
     const err = firstError(
-      validateDisplayName(displayName),
+      validateDisplayName(name),
       validateUsername(username),
       validateEmail(email),
     );
@@ -41,16 +41,18 @@ export async function POST(request: NextRequest) {
         tenantId,
         username,
         password: placeholder,
-        displayName: displayName.trim(),
+        name: name.trim(),
         email: email.trim().toLowerCase(),
         slug: slugify(username),
         updatedBy: session.id,
+        ...(representativeName ? { representativeName: representativeName.trim() } : {}),
+        ...(representativeDesignation ? { representativeDesignation: representativeDesignation.trim() } : {}),
       },
     });
 
     const inviteToken = await createInviteToken("client", client.id);
 
-    await logActivity({ session, action: "created", resource: "client", resourceId: client.id, resourceName: client.displayName, adminTenantId: tenantId });
+    await logActivity({ session, action: "created", resource: "client", resourceId: client.id, resourceName: client.name, adminTenantId: tenantId });
 
     return NextResponse.json({ id: client.id, inviteToken }, { status: 201 });
   } catch (err) {

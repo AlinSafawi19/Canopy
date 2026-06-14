@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     ...(excludeId ? { id: { not: excludeId } } : {}),
     ...(search ? {
       OR: [
-        { displayName: { contains: search, mode: "insensitive" as const } },
+        { name: { contains: search, mode: "insensitive" as const } },
         { username: { contains: search, mode: "insensitive" as const } },
         { email: { contains: search, mode: "insensitive" as const } },
       ],
@@ -33,17 +33,17 @@ export async function GET(request: NextRequest) {
     prisma.clientIdentity.count({ where }),
     prisma.clientIdentity.findMany({
       where,
-      orderBy: { displayName: "asc" },
+      orderBy: { name: "asc" },
       skip,
       take: limit,
-      select: { id: true, displayName: true, username: true },
+      select: { id: true, name: true, username: true },
     }),
   ]);
 
   return NextResponse.json({
     items: clients.map((c) => ({
       id: c.id,
-      label: c.displayName,
+      label: c.name,
       sublabel: `@${c.username}`,
     })),
     total,

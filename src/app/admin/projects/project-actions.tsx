@@ -12,7 +12,7 @@ import { EditProjectButton } from "./[id]/edit-project-button";
 
 interface Client {
   id: string;
-  displayName: string;
+  name: string;
   username: string;
   email: string;
 }
@@ -21,8 +21,8 @@ interface Project {
   id: string;
   name: string;
   slug: string | null;
-  description: string;
-  shortDescription: string | null;
+  overview: string;
+  tagline: string | null;
   industry: string | null;
   status: string;
   role: string | null;
@@ -32,9 +32,14 @@ interface Project {
   host: string | null;
   liveUrl: string | null;
   githubUrl: string | null;
-  imageBg: string | null;
-  videoBg: string | null;
-  coverImageAlt: string | null;
+  challenge: string | null;
+  approach: string | null;
+  outcome: string | null;
+  testimonial: string | null;
+  thumbnail_image: string | null;
+  thumbnail_video: string | null;
+  thumbnail_type: string | null;
+  thumbnail_alt: string | null;
   techStack: string[];
   highlights: string[];
   startDate: string | null;
@@ -145,7 +150,7 @@ export function ProjectActions({ project, assignedClient }: Props) {
             variant="warning"
             onClick={() => setConfirm({
               title: "Remove Assignment",
-              message: `Remove "${assignedClient.displayName}" from "${project.name}"? They will lose access.`,
+              message: `Remove "${assignedClient.name}" from "${project.name}"? They will lose access.`,
               confirmLabel: "Remove",
               variant: "warning",
               run: doRemoveAssignment,
@@ -205,7 +210,7 @@ export function ProjectActions({ project, assignedClient }: Props) {
         <form id="assign-client-form" onSubmit={doAssign} className="space-y-4">
           {assignedClient && (
             <div className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">
-              Currently assigned: <span className="font-medium text-slate-800">{assignedClient.displayName}</span>
+              Currently assigned: <span className="font-medium text-slate-800">{assignedClient.name}</span>
             </div>
           )}
           <ComboSelect

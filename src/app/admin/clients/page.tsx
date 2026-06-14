@@ -14,7 +14,7 @@ import { InviteStatusCell } from "@/components/ui/invite-status-cell";
 import { inviteStatus } from "@/lib/invite-tokens";
 
 const BASE = "/admin/clients";
-const VALID_SORTS = ["displayName", "updatedAt"] as const;
+const VALID_SORTS = ["name", "updatedAt"] as const;
 type SortField = typeof VALID_SORTS[number];
 
 export default async function ClientsPage({
@@ -28,17 +28,17 @@ export default async function ClientsPage({
   const page = parsePage(rp);
   const limit = parseLimit(rl);
   const search = parseSearch(rs);
-  const sortBy: SortField = VALID_SORTS.includes(rsb as SortField) ? (rsb as SortField) : "displayName";
+  const sortBy: SortField = VALID_SORTS.includes(rsb as SortField) ? (rsb as SortField) : "name";
   const sortDir = parseSortDir(rsd === "desc" ? "desc" : rsd === "asc" ? "asc" : "asc");
   const skip = (page - 1) * limit;
 
-  const orderBy = sortBy === "updatedAt" ? { updatedAt: sortDir } : { displayName: sortDir };
+  const orderBy = sortBy === "updatedAt" ? { updatedAt: sortDir } : { name: sortDir };
 
   const where = {
     tenantId,
     ...(search ? {
       OR: [
-        { displayName: { contains: search, mode: "insensitive" as const } },
+        { name: { contains: search, mode: "insensitive" as const } },
         { username: { contains: search, mode: "insensitive" as const } },
         { email: { contains: search, mode: "insensitive" as const } },
       ],
@@ -52,7 +52,7 @@ export default async function ClientsPage({
       orderBy,
       skip,
       take: limit,
-      select: { id: true, username: true, displayName: true, email: true, slug: true, archivedAt: true, updatedAt: true },
+      select: { id: true, username: true, name: true, email: true, slug: true, archivedAt: true, updatedAt: true },
     }),
     prisma.clientAssignment.findMany({
       where: { tenantId },
@@ -117,7 +117,7 @@ export default async function ClientsPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead><SortableHeader label="Name" field="displayName" sortBy={sortBy} sortDir={sortDir} basePath={BASE} extraParams={sortExtras} /></TableHead>
+                <TableHead><SortableHeader label="Name" field="name" sortBy={sortBy} sortDir={sortDir} basePath={BASE} extraParams={sortExtras} /></TableHead>
                 <TableHead>Username</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Projects</TableHead>
@@ -137,7 +137,7 @@ export default async function ClientsPage({
               )}
               {clients.map((client) => (
                 <TableRow key={client.id}>
-                  <TableCell className="font-medium text-slate-900">{client.displayName}</TableCell>
+                  <TableCell className="font-medium text-slate-900">{client.name}</TableCell>
                   <TableCell className="text-slate-500">@{client.username}</TableCell>
                   <TableCell className="text-slate-500">{client.email}</TableCell>
                   <TableCell className="text-slate-700">
@@ -150,7 +150,7 @@ export default async function ClientsPage({
                     {(() => {
                       const t = inviteMap.get(client.id) ?? null;
                       const st = t ? inviteStatus(t) : "none";
-                      return <InviteStatusCell targetKind="client" targetId={client.id} displayName={client.displayName} status={st} token={t?.token} />;
+                      return <InviteStatusCell targetKind="client" targetId={client.id} name={client.name} status={st} token={t?.token} />;
                     })()}
                   </TableCell>
                   <TableCell className="text-slate-500">{formatDate(client.updatedAt)}</TableCell>

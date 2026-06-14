@@ -86,7 +86,7 @@ export default async function ContributorProjectDetailPage({
 
   const techStack = Array.isArray(project.techStack) ? (project.techStack as string[]) : [];
   const highlights = Array.isArray(project.highlights) ? project.highlights : [];
-  const hasMedia = project.imageBg || project.videoBg || project.coverImageAlt;
+  const hasMedia = project.thumbnail_image || project.thumbnail_video || project.thumbnail_alt;
 
   return (
     <div className="space-y-6">
@@ -105,8 +105,8 @@ export default async function ContributorProjectDetailPage({
             {project.featured && <Badge variant="info">Featured</Badge>}
             {project.archivedAt && <Badge variant="danger">Archived</Badge>}
           </div>
-          {project.shortDescription && (
-            <p className="text-slate-500 text-sm mt-0.5">{project.shortDescription}</p>
+          {project.tagline && (
+            <p className="text-slate-500 text-sm mt-0.5">{project.tagline}</p>
           )}
         </div>
       </div>
@@ -143,18 +143,18 @@ export default async function ContributorProjectDetailPage({
         <Card>
           <CardHeader><CardTitle>Media</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            {project.imageBg && (
+            {project.thumbnail_image && (
               <div>
-                <p className="text-xs text-slate-500 mb-2">Image Background</p>
+                <p className="text-xs text-slate-500 mb-2">Thumbnail Image</p>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={project.imageBg} alt={project.coverImageAlt ?? "Project background"} className="w-full max-h-56 object-cover rounded-lg border border-slate-200" />
-                {project.coverImageAlt && <p className="text-xs text-slate-400 mt-1.5 italic">{project.coverImageAlt}</p>}
+                <img src={project.thumbnail_image} alt={project.thumbnail_alt ?? "Project thumbnail"} className="w-full max-h-56 object-cover rounded-lg border border-slate-200" />
+                {project.thumbnail_alt && <p className="text-xs text-slate-400 mt-1.5 italic">{project.thumbnail_alt}</p>}
               </div>
             )}
-            {project.videoBg && (
+            {project.thumbnail_video && (
               <div>
-                <p className="text-xs text-slate-500 mb-2">Video Background</p>
-                <video src={project.videoBg} controls muted className="w-full max-h-56 rounded-lg border border-slate-200 bg-slate-900" />
+                <p className="text-xs text-slate-500 mb-2">Thumbnail Video</p>
+                <video src={project.thumbnail_video} controls muted className="w-full max-h-56 rounded-lg border border-slate-200 bg-slate-900" />
               </div>
             )}
           </CardContent>
@@ -181,12 +181,42 @@ export default async function ContributorProjectDetailPage({
         </div>
       )}
 
-      {/* Description */}
-      {project.description && (
+      {/* Overview */}
+      {project.overview && (
         <Card>
-          <CardHeader><CardTitle>Description</CardTitle></CardHeader>
-          <CardContent><p className="text-slate-700 text-sm leading-relaxed">{project.description}</p></CardContent>
+          <CardHeader><CardTitle>Overview</CardTitle></CardHeader>
+          <CardContent><div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.overview }} /></CardContent>
         </Card>
+      )}
+
+      {/* Story */}
+      {(project.challenge || project.approach || project.outcome || project.testimonial) && (
+        <div className="grid grid-cols-1 gap-4">
+          {project.challenge && (
+            <Card>
+              <CardHeader><CardTitle>Challenge</CardTitle></CardHeader>
+              <CardContent><div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.challenge }} /></CardContent>
+            </Card>
+          )}
+          {project.approach && (
+            <Card>
+              <CardHeader><CardTitle>Approach</CardTitle></CardHeader>
+              <CardContent><div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.approach }} /></CardContent>
+            </Card>
+          )}
+          {project.outcome && (
+            <Card>
+              <CardHeader><CardTitle>Outcome</CardTitle></CardHeader>
+              <CardContent><div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.outcome }} /></CardContent>
+            </Card>
+          )}
+          {project.testimonial && (
+            <Card>
+              <CardHeader><CardTitle>Testimonial</CardTitle></CardHeader>
+              <CardContent><div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.testimonial }} /></CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Tech Stack */}

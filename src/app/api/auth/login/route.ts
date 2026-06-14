@@ -56,8 +56,9 @@ export async function POST(request: NextRequest) {
     if (!valid) {
       const userRole = user === owner ? "owner" : user === admin ? "admin" : user === client ? "client" : "contributor";
       await recordFailedLoginAttempt(userRole, user.id);
+      const actorName = owner?.displayName ?? admin?.displayName ?? client?.name ?? contributor?.displayName ?? "";
       await logActivity({
-        session: { id: user.id, username: user.username, displayName: user.displayName, role: userRole },
+        session: { id: user.id, username: user.username, displayName: actorName, role: userRole },
         action: "login_failed",
         resource: "auth",
       });
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
       if (client.archivedAt) {
         return NextResponse.json({ error: "Your account has been deactivated. Contact your admin for help." }, { status: 403 });
       }
-      session = { id: client.id, username: client.username, displayName: client.displayName, role: "client" };
+      session = { id: client.id, username: client.username, displayName: client.name, role: "client" };
       emailVerified = !!client.emailVerifiedAt;
       twoFactorEnabled = !!client.twoFactorEnabled;
       mustShow2faReminder = !!client.mustShow2faReminder;

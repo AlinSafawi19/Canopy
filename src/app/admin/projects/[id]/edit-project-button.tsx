@@ -5,7 +5,6 @@ import { useRef, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Modal, ModalRef } from "@/components/ui/modal";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -29,14 +28,15 @@ const STEPS = [
   { label: "Details" },
   { label: "Links & Media" },
   { label: "Content" },
+  { label: "Story" },
 ];
 
 interface Project {
   id: string;
   name: string;
   slug: string | null;
-  description: string;
-  shortDescription: string | null;
+  overview: string;
+  tagline: string | null;
   industry: string | null;
   status: string;
   role: string | null;
@@ -46,9 +46,14 @@ interface Project {
   host: string | null;
   liveUrl: string | null;
   githubUrl: string | null;
-  imageBg: string | null;
-  videoBg: string | null;
-  coverImageAlt: string | null;
+  thumbnail_image: string | null;
+  thumbnail_video: string | null;
+  thumbnail_type: string | null;
+  thumbnail_alt: string | null;
+  challenge: string | null;
+  approach: string | null;
+  outcome: string | null;
+  testimonial: string | null;
   techStack: unknown[];
   highlights: string[];
   startDate: string | null;
@@ -82,8 +87,8 @@ export function EditProjectButton({ project, open: controlledOpen, onClose: cont
   const [form, setForm] = useState({
     name: project.name,
     slug: project.slug ?? "",
-    description: project.description,
-    shortDescription: project.shortDescription ?? "",
+    overview: project.overview,
+    tagline: project.tagline ?? "",
     industry: project.industry ?? "",
     status: project.status,
     role: project.role ?? "",
@@ -93,9 +98,14 @@ export function EditProjectButton({ project, open: controlledOpen, onClose: cont
     host: project.host ?? "",
     liveUrl: project.liveUrl ?? "",
     githubUrl: project.githubUrl ?? "",
-    imageBg: project.imageBg ?? "",
-    videoBg: project.videoBg ?? "",
-    coverImageAlt: project.coverImageAlt ?? "",
+    thumbnail_image: project.thumbnail_image ?? "",
+    thumbnail_video: project.thumbnail_video ?? "",
+    thumbnail_type: project.thumbnail_type ?? (project.thumbnail_video ? "video" : "image"),
+    thumbnail_alt: project.thumbnail_alt ?? "",
+    challenge: project.challenge ?? "",
+    approach: project.approach ?? "",
+    outcome: project.outcome ?? "",
+    testimonial: project.testimonial ?? "",
     startDate: project.startDate ? project.startDate.slice(0, 10) : "",
     endDate: project.endDate ? project.endDate.slice(0, 10) : "",
   });
@@ -107,9 +117,9 @@ export function EditProjectButton({ project, open: controlledOpen, onClose: cont
   );
 
   const originalGcsUrls = useMemo(() => new Set(
-    [project.imageBg ?? "", project.videoBg ?? "", ...parseTechStack(project.techStack).map(t => t.icon)]
+    [project.thumbnail_image ?? "", project.thumbnail_video ?? "", ...parseTechStack(project.techStack).map(t => t.icon)]
       .filter(u => u.startsWith("https://storage.googleapis.com/"))
-  ), [project.imageBg, project.videoBg, project.techStack]);
+  ), [project.thumbnail_image, project.thumbnail_video, project.techStack]);
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -119,7 +129,7 @@ export function EditProjectButton({ project, open: controlledOpen, onClose: cont
 
   function cancelClose() {
     // Delete GCS files uploaded during this session that aren't in the original project
-    [form.imageBg, form.videoBg, ...techStack.map(t => t.icon)]
+    [form.thumbnail_image, form.thumbnail_video, ...techStack.map(t => t.icon)]
       .filter(u => u.startsWith("https://storage.googleapis.com/") && !originalGcsUrls.has(u))
       .forEach(deleteGcsUrl);
     setOwnOpen(false);
@@ -139,7 +149,7 @@ export function EditProjectButton({ project, open: controlledOpen, onClose: cont
 
   function next() {
     if (step === 0 && !form.name.trim()) { setError("Project name is required"); return; }
-    if (step === 0 && !form.description.trim()) { setError("Description is required"); return; }
+    if (step === 0 && !form.overview.replace(/<[^>]*>/g, "").trim()) { setError("Overview is required"); return; }
     setError("");
     setStep((s) => s + 1);
   }
@@ -239,8 +249,11 @@ export function EditProjectButton({ project, open: controlledOpen, onClose: cont
                 <Input label="Project Name" value={form.name} onChange={(e) => set("name", e.target.value)} required autoFocus maxLength={LIMITS.PROJECT_NAME} />
                 <Input label="Slug" value={form.slug} onChange={(e) => set("slug", e.target.value)} placeholder="my-project" maxLength={LIMITS.PROJECT_SLUG} />
               </div>
-              <Textarea label="Description" value={form.description} onChange={(e) => set("description", e.target.value)} required rows={3} maxLength={LIMITS.PROJECT_DESCRIPTION} />
-              <Input label="Short Description" value={form.shortDescription} onChange={(e) => set("shortDescription", e.target.value)} placeholder="One-liner for cards" maxLength={LIMITS.PROJECT_SHORT_DESCRIPTION} />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Overview <span className="text-red-500">*</span></label>
+                <RichTextEditor value={form.overview} onChange={(v) => { set("overview", v); }} placeholder="Describe this project…" minHeight="120px" />
+              </div>
+              <Input label="Tagline" value={form.tagline} onChange={(e) => set("tagline", e.target.value)} placeholder="Short tagline for cards" maxLength={LIMITS.PROJECT_TAGLINE} />
             </>
           )}
 
@@ -293,11 +306,21 @@ export function EditProjectButton({ project, open: controlledOpen, onClose: cont
                 <Input label="Live URL" value={form.liveUrl} onChange={(e) => set("liveUrl", e.target.value)} placeholder="https://app.example.com" maxLength={LIMITS.PROJECT_LIVE_URL} />
                 <Input label="GitHub URL" value={form.githubUrl} onChange={(e) => set("githubUrl", e.target.value)} placeholder="https://github.com/..." maxLength={LIMITS.PROJECT_GITHUB_URL} />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <MediaInput label="Image Background" value={form.imageBg} onChange={(v) => set("imageBg", v)} accept="image/*" placeholder="https://..." maxLength={LIMITS.PROJECT_IMAGE_BG} />
-                <MediaInput label="Video Background" value={form.videoBg} onChange={(v) => set("videoBg", v)} accept="video/*" placeholder="https://..." maxLength={LIMITS.PROJECT_VIDEO_BG} />
-              </div>
-              <Input label="Cover Image Alt" value={form.coverImageAlt} onChange={(e) => set("coverImageAlt", e.target.value)} placeholder="Descriptive alt text" maxLength={LIMITS.PROJECT_COVER_IMAGE_ALT} />
+              <Select
+                label="Thumbnail Type"
+                value={form.thumbnail_type}
+                onChange={(v) => { set("thumbnail_type", v); setTouched(true); }}
+                options={[
+                  { value: "image", label: "Image" },
+                  { value: "video", label: "Video" },
+                ]}
+              />
+              {form.thumbnail_type === "video" ? (
+                <MediaInput label="Thumbnail Video" value={form.thumbnail_video} onChange={(v) => set("thumbnail_video", v)} accept="video/*" placeholder="https://..." maxLength={LIMITS.PROJECT_THUMBNAIL_VIDEO} />
+              ) : (
+                <MediaInput label="Thumbnail Image" value={form.thumbnail_image} onChange={(v) => set("thumbnail_image", v)} accept="image/*" placeholder="https://..." maxLength={LIMITS.PROJECT_THUMBNAIL_IMAGE} />
+              )}
+              <Input label="Thumbnail Alt" value={form.thumbnail_alt} onChange={(e) => set("thumbnail_alt", e.target.value)} placeholder="Descriptive alt text" maxLength={LIMITS.PROJECT_THUMBNAIL_ALT} />
             </>
           )}
 
@@ -316,6 +339,28 @@ export function EditProjectButton({ project, open: controlledOpen, onClose: cont
                   placeholder="Add highlights as a bullet list…"
                   minHeight="120px"
                 />
+              </div>
+            </>
+          )}
+
+          {/* Step 4 — Story */}
+          {step === 4 && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Challenge</label>
+                <RichTextEditor value={form.challenge} onChange={(v) => { set("challenge", v); }} placeholder="What problem did this project solve?" minHeight="100px" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Approach</label>
+                <RichTextEditor value={form.approach} onChange={(v) => { set("approach", v); }} placeholder="How did you tackle it?" minHeight="100px" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Outcome</label>
+                <RichTextEditor value={form.outcome} onChange={(v) => { set("outcome", v); }} placeholder="What was the result?" minHeight="100px" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Testimonial</label>
+                <RichTextEditor value={form.testimonial} onChange={(v) => { set("testimonial", v); }} placeholder="Client quote or feedback…" minHeight="80px" />
               </div>
             </>
           )}

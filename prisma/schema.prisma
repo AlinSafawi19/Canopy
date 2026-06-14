@@ -18,9 +18,10 @@ model Project {
   name        String    @db.VarChar(100)
   slug        String?   @db.VarChar(100)
   industry    String?   @db.VarChar(100)
-  description String    @db.VarChar(2000)
-  videoBg     String?   @db.VarChar(500)
-  imageBg     String?   @db.VarChar(500)
+  overview    String    @db.Text
+  thumbnail_video String?   @db.VarChar(500)
+  thumbnail_image String?   @db.VarChar(500)
+  thumbnail_type  String?   @db.VarChar(10)
   categories  Json
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -31,7 +32,7 @@ model Project {
   host          String?   @db.VarChar(100)
   adminTenantId String    @default("platform-default")
 
-  shortDescription String?   @db.VarChar(200)
+  tagline          String?   @db.VarChar(200)
   techStack        Json      @default("[]")
   githubUrl        String?   @db.VarChar(500)
   liveUrl          String?   @db.VarChar(500)
@@ -40,9 +41,13 @@ model Project {
   status           String    @default("live") @db.VarChar(20)
   startDate        DateTime?
   endDate          DateTime?
-  coverImageAlt    String?   @db.VarChar(200)
+  thumbnail_alt    String?   @db.VarChar(200)
   teamSize         String?   @db.VarChar(20)
   highlights       String[]
+  challenge        String?   @db.Text
+  approach         String?   @db.Text
+  outcome          String?   @db.Text
+  testimonial      String?   @db.Text
 
   contentCategories ContentCategory[]
   clientAssignment  ClientAssignment?
@@ -112,25 +117,27 @@ model ContentCategoryEntry {
 }
 
 model ClientIdentity {
-  id                 String             @id
-  tenantId           String?
-  username           String             @unique @db.VarChar(30)
-  password           String
-  displayName        String             @db.VarChar(50)
-  email              String             @db.VarChar(255)
-  theme              String             @default("auto") @db.VarChar(10)
-  updatedAt          DateTime           @updatedAt
-  updatedBy          String?
-  archivedAt         DateTime?
-  archivedBy         String?
-  slug               String?            @unique
-  walkthroughSeenAt  DateTime?
-  emailVerifiedAt    DateTime?
-  twoFactorSecret     String?
-  twoFactorEnabled    Boolean            @default(false)
-  mustShow2faReminder Boolean            @default(true)
-  lastSeenReleaseId   String?
-  assignments         ClientAssignment[]
+  id                       String             @id
+  tenantId                 String?
+  username                 String             @unique @db.VarChar(30)
+  password                 String
+  name                     String             @db.VarChar(100)
+  email                    String             @db.VarChar(255)
+  theme                    String             @default("auto") @db.VarChar(10)
+  updatedAt                DateTime           @updatedAt
+  updatedBy                String?
+  archivedAt               DateTime?
+  archivedBy               String?
+  slug                     String?            @unique
+  walkthroughSeenAt        DateTime?
+  emailVerifiedAt          DateTime?
+  twoFactorSecret          String?
+  twoFactorEnabled         Boolean            @default(false)
+  mustShow2faReminder      Boolean            @default(true)
+  lastSeenReleaseId        String?
+  representativeName       String?            @db.VarChar(100)
+  representativeDesignation String?           @db.VarChar(100)
+  assignments              ClientAssignment[]
 
   @@index([tenantId])
   @@index([tenantId, archivedAt])

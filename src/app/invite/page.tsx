@@ -33,8 +33,8 @@ export default async function InvitePage({
     const u = await prisma.adminIdentity.findUnique({ where: { id: invite.targetId }, select: { displayName: true } });
     displayName = u?.displayName ?? "";
   } else if (invite.targetKind === "client") {
-    const u = await prisma.clientIdentity.findUnique({ where: { id: invite.targetId }, select: { displayName: true } });
-    displayName = u?.displayName ?? "";
+    const u = await prisma.clientIdentity.findUnique({ where: { id: invite.targetId }, select: { name: true } });
+    displayName = u?.name ?? "";
   } else {
     const u = await prisma.contributor.findUnique({ where: { id: invite.targetId }, select: { displayName: true } });
     displayName = u?.displayName ?? "";

@@ -47,7 +47,19 @@ export async function GET(
     where: { slug: projectSlug, id: apiKey.projectId },
     select: {
       id: true, name: true, slug: true, status: true, description: true,
-      shortDescription: true, industry: true, techStack: true,
+      tagline: true, industry: true, techStack: true,
+      clientAssignment: {
+        select: {
+          client: {
+            select: {
+              name: true,
+              slug: true,
+              representativeName: true,
+              representativeDesignation: true,
+            },
+          },
+        },
+      },
       contentCategories: {
         where: { archivedAt: null },
         orderBy: { name: "asc" },
@@ -75,9 +87,10 @@ export async function GET(
         slug: project.slug,
         status: project.status,
         description: project.description,
-        shortDescription: project.shortDescription,
+        tagline: project.tagline,
         industry: project.industry,
         techStack: project.techStack,
+        client: project.clientAssignment?.client ?? null,
       },
       categories: project.contentCategories.map((cat) => ({
         name: cat.name,

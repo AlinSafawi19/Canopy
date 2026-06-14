@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       mustShow2faReminder = !!u!.mustShow2faReminder;
     } else if (targetKind === "client") {
       const u = await prisma.clientIdentity.findUnique({ where: { id: targetId } });
-      session = { id: u!.id, username: u!.username, displayName: u!.displayName, role: "client" };
+      session = { id: u!.id, username: u!.username, displayName: u!.name, role: "client" };
       emailVerified = !!u!.emailVerifiedAt;
       walkthroughSeen = !!u!.walkthroughSeenAt;
       userTheme = u!.theme;

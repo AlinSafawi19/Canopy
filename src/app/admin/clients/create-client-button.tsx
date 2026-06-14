@@ -22,10 +22,10 @@ export function CreateClientButton({ tenantId }: Props) {
   const [createdName, setCreatedName] = useState("");
   const modalRef = useRef<ModalRef>(null);
   const submittingRef = useRef(false);
-  const [form, setForm] = useState({ username: "", displayName: "", email: "", projectId: "" });
+  const [form, setForm] = useState({ username: "", name: "", email: "", projectId: "", representativeName: "", representativeDesignation: "" });
 
   function reset() {
-    setForm({ username: "", displayName: "", email: "", projectId: "" });
+    setForm({ username: "", name: "", email: "", projectId: "", representativeName: "", representativeDesignation: "" });
     setError("");
     setTouched(false);
   }
@@ -35,7 +35,7 @@ export function CreateClientButton({ tenantId }: Props) {
     if (submittingRef.current) return;
     setError("");
     const err = firstError(
-      validateDisplayName(form.displayName),
+      validateDisplayName(form.name),
       validateUsername(form.username),
       validateEmail(form.email),
     );
@@ -46,7 +46,7 @@ export function CreateClientButton({ tenantId }: Props) {
       const res = await apiFetch("/api/admin/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: form.username, displayName: form.displayName, email: form.email, tenantId }),
+        body: JSON.stringify({ username: form.username, name: form.name, email: form.email, tenantId, representativeName: form.representativeName || undefined, representativeDesignation: form.representativeDesignation || undefined }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Failed to create client."); return; }
@@ -60,7 +60,7 @@ export function CreateClientButton({ tenantId }: Props) {
       }
 
       setInviteUrl(`${window.location.origin}/invite?token=${data.inviteToken}`);
-      setCreatedName(form.displayName);
+      setCreatedName(form.name);
       setOpen(false);
       reset();
       router.refresh();
@@ -85,12 +85,12 @@ export function CreateClientButton({ tenantId }: Props) {
         <form id="create-client-form" onSubmit={handleSubmit} className="space-y-4" onInput={() => setTouched(true)}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Display name"
-              value={form.displayName}
-              onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
-              placeholder="Full name"
+              label="Name"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="Company or client name"
               autoComplete="off"
-              maxLength={50}
+              maxLength={100}
               required
             />
             <Input
@@ -117,6 +117,24 @@ export function CreateClientButton({ tenantId }: Props) {
             maxLength={255}
             required
           />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Representative Name"
+              value={form.representativeName}
+              onChange={(e) => setForm((f) => ({ ...f, representativeName: e.target.value }))}
+              placeholder="e.g. John Smith"
+              autoComplete="off"
+              maxLength={100}
+            />
+            <Input
+              label="Representative Designation"
+              value={form.representativeDesignation}
+              onChange={(e) => setForm((f) => ({ ...f, representativeDesignation: e.target.value }))}
+              placeholder="e.g. CEO"
+              autoComplete="off"
+              maxLength={100}
+            />
+          </div>
           <ComboSelect
             endpoint="/api/admin/selects/projects"
             extraParams={{ unassigned: "true" }}

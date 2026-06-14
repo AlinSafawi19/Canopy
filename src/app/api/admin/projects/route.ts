@@ -15,33 +15,39 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const {
-      name, description, slug, industry, status, domain, liveUrl, githubUrl,
-      shortDescription, role, teamSize, featured, host, imageBg, videoBg,
-      coverImageAlt, techStack, highlights,
+      name, overview, slug, industry, status, domain, liveUrl, githubUrl,
+      tagline, role, teamSize, featured, host, thumbnail_image, thumbnail_video,
+      thumbnail_type, thumbnail_alt, techStack, highlights,
+      challenge, approach, outcome, testimonial,
     } = body;
 
     if (!name?.trim()) {
       return NextResponse.json({ error: "Project name is required." }, { status: 400 });
     }
-    if (!description?.trim()) {
-      return NextResponse.json({ error: "Description is required." }, { status: 400 });
+    if (!overview?.trim()) {
+      return NextResponse.json({ error: "Overview is required." }, { status: 400 });
     }
 
     const lenErr = firstError(
       maxLen(name, LIMITS.PROJECT_NAME, "Project name"),
-      maxLen(description, LIMITS.PROJECT_DESCRIPTION, "Description"),
+      maxLen(overview, LIMITS.PROJECT_OVERVIEW, "Overview"),
       maxLen(slug, LIMITS.PROJECT_SLUG, "Slug"),
       maxLen(industry, LIMITS.PROJECT_INDUSTRY, "Industry"),
-      maxLen(shortDescription, LIMITS.PROJECT_SHORT_DESCRIPTION, "Short description"),
+      maxLen(tagline, LIMITS.PROJECT_TAGLINE, "Short description"),
       maxLen(role, LIMITS.PROJECT_ROLE, "Role"),
       maxLen(teamSize, LIMITS.PROJECT_TEAM_SIZE, "Team size"),
       maxLen(domain, LIMITS.PROJECT_DOMAIN, "Domain"),
       maxLen(host, LIMITS.PROJECT_HOST, "Host"),
       maxLen(liveUrl, LIMITS.PROJECT_LIVE_URL, "Live URL"),
       maxLen(githubUrl, LIMITS.PROJECT_GITHUB_URL, "GitHub URL"),
-      maxLen(imageBg, LIMITS.PROJECT_IMAGE_BG, "Image background"),
-      maxLen(videoBg, LIMITS.PROJECT_VIDEO_BG, "Video background"),
-      maxLen(coverImageAlt, LIMITS.PROJECT_COVER_IMAGE_ALT, "Cover image alt"),
+      maxLen(thumbnail_image, LIMITS.PROJECT_THUMBNAIL_IMAGE, "Thumbnail image"),
+      maxLen(thumbnail_video, LIMITS.PROJECT_THUMBNAIL_VIDEO, "Thumbnail video"),
+      maxLen(thumbnail_type, LIMITS.PROJECT_THUMBNAIL_TYPE, "Thumbnail type"),
+      maxLen(thumbnail_alt, LIMITS.PROJECT_THUMBNAIL_ALT, "Thumbnail alt"),
+      maxLen(challenge, LIMITS.PROJECT_CHALLENGE, "Challenge"),
+      maxLen(approach, LIMITS.PROJECT_APPROACH, "Approach"),
+      maxLen(outcome, LIMITS.PROJECT_OUTCOME, "Outcome"),
+      maxLen(testimonial, LIMITS.PROJECT_TESTIMONIAL, "Testimonial"),
     );
     if (lenErr) return NextResponse.json({ error: lenErr }, { status: 400 });
 
@@ -51,7 +57,7 @@ export async function POST(request: NextRequest) {
         tenantId: session.tenantId!,
         adminTenantId: session.tenantId!,
         name,
-        description,
+        overview,
         slug: slug || slugify(name),
         industry: industry || null,
         status: status ?? "live",
@@ -59,15 +65,20 @@ export async function POST(request: NextRequest) {
         host: host || null,
         liveUrl: liveUrl || null,
         githubUrl: githubUrl || null,
-        shortDescription: shortDescription || null,
+        tagline: tagline || null,
         role: role || null,
         teamSize: teamSize || null,
         featured: featured === true,
-        imageBg: imageBg || null,
-        videoBg: videoBg || null,
-        coverImageAlt: coverImageAlt || null,
+        thumbnail_image: thumbnail_image || null,
+        thumbnail_video: thumbnail_video || null,
+        thumbnail_type: thumbnail_type || null,
+        thumbnail_alt: thumbnail_alt || null,
         techStack: Array.isArray(techStack) ? techStack : [],
         highlights: Array.isArray(highlights) ? highlights : [],
+        challenge: challenge || null,
+        approach: approach || null,
+        outcome: outcome || null,
+        testimonial: testimonial || null,
         categories: [],
         updatedBy: session.id,
       },

@@ -55,9 +55,9 @@ export default async function ProjectsPage({
       take: limit,
       select: {
         id: true, name: true, slug: true, status: true, featured: true,
-        description: true, shortDescription: true, industry: true,
+        overview: true, tagline: true, industry: true,
         domain: true, host: true, liveUrl: true, githubUrl: true,
-        imageBg: true, videoBg: true, coverImageAlt: true,
+        thumbnail_image: true, thumbnail_video: true, thumbnail_type: true, thumbnail_alt: true,
         role: true, teamSize: true, techStack: true, highlights: true,
         startDate: true, endDate: true, archivedAt: true, updatedAt: true,
         _count: { select: { contentCategories: true } },
@@ -67,7 +67,7 @@ export default async function ProjectsPage({
       where: { tenantId },
       select: {
         projectId: true,
-        client: { select: { id: true, displayName: true, username: true, email: true } },
+        client: { select: { id: true, name: true, username: true, email: true } },
       },
     }),
   ]);

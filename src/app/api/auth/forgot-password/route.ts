@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       const client = await prisma.clientIdentity.findFirst({
         where: { email: { equals: normalizedEmail, mode: "insensitive" }, archivedAt: null },
       });
-      if (client) { targetKind = "client"; targetId = client.id; toEmail = client.email; displayName = client.displayName; }
+      if (client) { targetKind = "client"; targetId = client.id; toEmail = client.email; displayName = client.name; }
     }
 
     if (!targetKind) {

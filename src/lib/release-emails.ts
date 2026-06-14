@@ -13,7 +13,7 @@ export async function sendReleaseEmails(release: ReleasePayload): Promise<void> 
   const [owners, admins, clients, contributors] = await Promise.all([
     prisma.platformOwner.findMany({ select: { email: true, displayName: true } }),
     prisma.adminIdentity.findMany({ where: { archivedAt: null }, select: { email: true, displayName: true } }),
-    prisma.clientIdentity.findMany({ where: { archivedAt: null }, select: { email: true, displayName: true } }),
+    prisma.clientIdentity.findMany({ where: { archivedAt: null }, select: { email: true, name: true } }).then(cs => cs.map(c => ({ email: c.email, displayName: c.name }))),
     prisma.contributor.findMany({ where: { archivedAt: null }, select: { email: true, displayName: true } }),
   ]);
 

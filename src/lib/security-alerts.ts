@@ -65,8 +65,10 @@ export async function getUserEmailAndName(
     return prisma.platformOwner.findUnique({ where: { id }, select: { email: true, displayName: true } });
   if (role === "admin")
     return prisma.adminIdentity.findUnique({ where: { id }, select: { email: true, displayName: true } });
-  if (role === "client")
-    return prisma.clientIdentity.findUnique({ where: { id }, select: { email: true, displayName: true } });
+  if (role === "client") {
+    const c = await prisma.clientIdentity.findUnique({ where: { id }, select: { email: true, name: true } });
+    return c ? { email: c.email, displayName: c.name } : null;
+  }
   if (role === "contributor")
     return prisma.contributor.findUnique({ where: { id }, select: { email: true, displayName: true } });
   return null;
